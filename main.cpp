@@ -16,6 +16,8 @@ struct UniquePrinter {
   std::unordered_set<string> seen;
 
   void print(std::string& s) {
+    if(s.empty()) return;
+    if(s[0] == '"') return;
     if(seen.find(s) == seen.end()) {
       seen.insert(s);
       std::cout << s << "\n";
@@ -41,7 +43,8 @@ struct ExpressionExtractorEVisitor : public EVisitor {
             e->isa<TypeInst>())) {
         p.print(e);
       }
-      return true;
+
+      return e != nullptr;
     }
 };
 
@@ -83,22 +86,36 @@ struct ExpressionExtractor : public ItemVisitor {
 };
 
 int main(int argc, char**argv) {
-  if(argc != 2) {
+  if(argc < 2) {
     std::cerr << argv[0] << ": Invalid arguments." << std::endl;
+    std::cerr << "Usage: " << argv[0] << " <mzn>" << std::endl;
     return EXIT_FAILURE;
   }
-  string mzn_path = argv[1];
+  vector<string> mzn_paths;
+
+  for(int i=1;i<argc;i++) {
+    mzn_paths.push_back(argv[i]);
+  }
 
   vector<string> includes;
   string mzn_stdlib_dir = FileUtils::share_directory();
   includes.push_back(mzn_stdlib_dir + "/std/");
 
-  Env env;
-  Model* m = MiniZinc::parse(env, {mzn_path}, {}, "", "", includes, false, false, false, std::cerr);
-
   ExpressionExtractor ee;
+  for(const string& path: mzn_paths) {
+    Env env;
+    Model* m = MiniZinc::parse(env, {path}, {}, "", "", includes, false, false, false, std::cerr);
 
-  iterItems(ee, m);
+    if(!m) {
+      std::cerr << argv[0] << ": Failed to parse file" << std::endl;
+      return EXIT_FAILURE;
+    }
+
+    iterItems(ee, m);
+
+    delete m;
+  }
+
 
   return EXIT_SUCCESS;
 }
