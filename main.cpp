@@ -36,7 +36,11 @@ struct ExpressionExtractorEVisitor : public EVisitor {
     ExpressionExtractorEVisitor(UniquePrinter& p1) : p{p1} {}
 
     bool enter(Expression* e) {
-      p.print(e);
+      if(e && !(
+            e->isa<VarDecl>() ||
+            e->isa<TypeInst>())) {
+        p.print(e);
+      }
       return true;
     }
 };
