@@ -15,7 +15,7 @@ using std::string;
 using std::vector;
 
 
-FunctionI* construct_data_ann(EnvI& envi) {
+FunctionI* construct_data_ann(EnvI& envi, const string& name) {
   vector<VarDecl*> params;
   params.push_back(
       new VarDecl(
@@ -34,36 +34,14 @@ FunctionI* construct_data_ann(EnvI& envi) {
         "value"));
   TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
 
-  return new FunctionI(
-      Location().introduce(),
-      "data",
-      ti,
-      params);
+  return new FunctionI(Location().introduce(), name, ti, params);
 }
-FunctionI* construct_data_in_ann(EnvI& envi) {
-  vector<VarDecl*> params;
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parint()),
-        "depth"));
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parstring()),
-        "name"));
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parstring()),
-        "value"));
-  TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
 
-  return new FunctionI(
-      Location().introduce(),
-      "data_in",
-      ti,
-      params);
+Expression* create_annotation(EnvI& envi, const string& name, size_t depth, Expression* key, Expression* value) {
+  vector<Expression*> args = {IntLit::a(depth), key, value};
+  Call* ca = new Call(Location().introduce(), name, args);
+  ca->type(Type::ann());
+  return ca;
 }
 
 
@@ -74,13 +52,9 @@ Expression* data(EnvI& envi, size_t depth, Expression* e) {
   Expression* e_copy = copy(envi, e);
   e_copy->ann().clear();
 
-  vector<Expression*> args;
-  args.push_back(IntLit::a(depth));
-  args.push_back(new StringLit(Location().introduce(), ss.str()));
-  args.push_back(new Call(Location().introduce(), "show", {e_copy}));
-  Call* ca = new Call(Location().introduce(), "data", args);
-  ca->type(Type::ann());
-  return ca;
+  return create_annotation(envi, "data", depth,
+      new StringLit(Location().introduce(), ss.str()),
+      new Call(Location().introduce(), "show", {e_copy}));
 }
 
 Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
@@ -97,13 +71,21 @@ Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
   std::stringstream in_ss;
   in_ss << *in;
 
-  vector<Expression*> args;
-  args.push_back(IntLit::a(depth));
-  args.push_back(new StringLit(Location().introduce(), id_ss.str()));
-  args.push_back(new StringLit(Location().introduce(), in_ss.str()));
-  Call* ca = new Call(Location().introduce(), "data_in", args);
-  ca->type(Type::ann());
-  return ca;
+  return create_annotation(envi, "data_in", depth,
+      new StringLit(Location().introduce(), id_ss.str()),
+      new StringLit(Location().introduce(), in_ss.str()));
+}
+
+Expression* data_where(EnvI& envi, size_t depth, Expression* where) {
+  std::stringstream ss;
+  ss << *where;
+
+  Expression* e_copy = copy(envi, where);
+  e_copy->ann().clear();
+
+  return create_annotation(envi, "data_where", depth,
+      new StringLit(Location().introduce(), ss.str()),
+      new Call(Location().introduce(), "show", {e_copy}));
 }
 
 struct Frame {
@@ -166,7 +148,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
 
           for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
             if(comp->e()->type().isvarbool() && comp->where(i) && comp->where(i)->type().isPar()) {
-              comp->e()->addAnnotation(data(envi, depth, comp->where(i)));
+              comp->e()->addAnnotation(data_where(envi, depth, comp->where(i)));
             }
             if(comp->e()->type().isvarbool() && comp->in(i)->type().isPar()) {
               comp->e()->addAnnotation(data(envi, depth, comp->in(i)));
@@ -303,8 +285,9 @@ int main(int argc, char**argv) {
     if(verbose)
       std::cerr << std::endl;
   }
-  m->addItem(construct_data_ann(env.envi()));
-  m->addItem(construct_data_in_ann(env.envi()));
+  m->addItem(construct_data_ann(env.envi(), "data"));
+  m->addItem(construct_data_ann(env.envi(), "data_in"));
+  m->addItem(construct_data_ann(env.envi(), "data_where"));
 
   Printer pp(std::cout, 80);
   pp.print(m);
