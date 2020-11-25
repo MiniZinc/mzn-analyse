@@ -15,46 +15,49 @@ using std::string;
 using std::vector;
 
 
-FunctionI* construct_data_ann(EnvI& envi, const string& name) {
+FunctionI* construct_data_ann(EnvI& envi, const string& name, int n = 2) {
   vector<VarDecl*> params;
   params.push_back(
       new VarDecl(
         Location().introduce(),
         new TypeInst(Location().introduce(), Type::parint()),
         "depth"));
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parstring()),
-        "name"));
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parstring()),
-        "value"));
+  for(int i=0; i<n; i++) {
+    std::stringstream ss;
+    ss << "p_" << i << "_";
+    params.push_back(
+        new VarDecl(
+          Location().introduce(),
+          new TypeInst(Location().introduce(), Type::parstring()),
+          ss.str()));
+  }
   TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
 
   return new FunctionI(Location().introduce(), name, ti, params);
 }
 
-Expression* create_annotation(EnvI& envi, const string& name, size_t depth, Expression* key, Expression* value) {
-  vector<Expression*> args = {IntLit::a(depth), key, value};
+Expression* create_annotation(EnvI& envi, const string& name, size_t depth, vector<Expression*> exprs) {
+  vector<Expression*> args;
+  args.push_back(IntLit::a(depth));
+  for(Expression* expr : exprs) {
+    args.push_back(expr);
+  }
   Call* ca = new Call(Location().introduce(), name, args);
   ca->type(Type::ann());
   return ca;
 }
 
 
-Expression* data(EnvI& envi, size_t depth, Expression* e) {
-  std::stringstream ss;
-  ss << *e;
-
+Expression* data_eq(EnvI& envi, size_t depth, Expression* e) {
   Expression* e_copy = copy(envi, e);
   e_copy->ann().clear();
 
-  return create_annotation(envi, "data", depth,
-      new StringLit(Location().introduce(), ss.str()),
-      new Call(Location().introduce(), "show", {e_copy}));
+  std::stringstream ss;
+  ss << *e_copy;
+
+  return create_annotation(envi, "data_eq", depth,
+      {new StringLit(Location().introduce(), ss.str()),
+      new Call(Location().introduce(), "show", {e_copy})});
 }
 
 Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
@@ -72,20 +75,19 @@ Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
   in_ss << *in;
 
   return create_annotation(envi, "data_in", depth,
-      new StringLit(Location().introduce(), id_ss.str()),
-      new StringLit(Location().introduce(), in_ss.str()));
+      {new StringLit(Location().introduce(), id_ss.str()),
+      new StringLit(Location().introduce(), in_ss.str())});
 }
 
-Expression* data_where(EnvI& envi, size_t depth, Expression* where) {
-  std::stringstream ss;
-  ss << *where;
-
+Expression* data_if(EnvI& envi, size_t depth, Expression* where) {
   Expression* e_copy = copy(envi, where);
   e_copy->ann().clear();
 
-  return create_annotation(envi, "data_where", depth,
-      new StringLit(Location().introduce(), ss.str()),
-      new Call(Location().introduce(), "show", {e_copy}));
+  std::stringstream ss;
+  ss << *e_copy;
+
+  return create_annotation(envi, "data_if", depth,
+      {new StringLit(Location().introduce(), ss.str())});
 }
 
 struct Frame {
@@ -148,17 +150,17 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
 
           for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
             if(comp->e()->type().isvarbool() && comp->where(i) && comp->where(i)->type().isPar()) {
-              comp->e()->addAnnotation(data_where(envi, depth, comp->where(i)));
+              comp->e()->addAnnotation(data_if(envi, depth, comp->where(i)));
             }
             if(comp->e()->type().isvarbool() && comp->in(i)->type().isPar()) {
-              comp->e()->addAnnotation(data(envi, depth, comp->in(i)));
+              comp->e()->addAnnotation(data_eq(envi, depth, comp->in(i)));
             }
             stack.emplace_back(depth+1,comp->where(i));
             stack.emplace_back(depth+1,comp->in(i));
             for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
               if(comp->e()->type().isvarbool()) {
                 if(comp->decl(i, j)->type().isPar()) {
-                  comp->e()->addAnnotation(data(envi, depth, comp->decl(i, j)->id()));
+                  comp->e()->addAnnotation(data_eq(envi, depth, comp->decl(i, j)->id()));
                   if(comp->in(i)->type().isPar()) {
                     comp->e()->addAnnotation(data_in(envi, depth, comp->decl(i, j)->id(), comp->in(i)));
                   }
@@ -176,7 +178,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
           for (size_t j = 0; j < ite->size(); j++) {
             if(ite->elseExpr()->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
               ite->elseExpr()->addAnnotation(
-                  data(envi, depth,
+                  data_if(envi, depth,
                     new UnOp(
                       Location().introduce(),
                       UOT_NOT,
@@ -191,7 +193,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
             for (size_t j = 0; j < i; j++) {
               if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
                 ite->thenExpr(i)->addAnnotation(
-                    data(envi,
+                    data_if(envi,
                       depth,
                       new UnOp(
                         Location().introduce(),
@@ -201,7 +203,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
             }
             if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(i)->type().isPar()) {
               ite->thenExpr(i)->addAnnotation(
-                  data(envi, depth, ite->ifExpr(i)));
+                  data_if(envi, depth, ite->ifExpr(i)));
             }
           }
         }
@@ -285,9 +287,9 @@ int main(int argc, char**argv) {
     if(verbose)
       std::cerr << std::endl;
   }
-  m->addItem(construct_data_ann(env.envi(), "data"));
-  m->addItem(construct_data_ann(env.envi(), "data_in"));
-  m->addItem(construct_data_ann(env.envi(), "data_where"));
+  m->addItem(construct_data_ann(env.envi(), "data_eq", 2));
+  m->addItem(construct_data_ann(env.envi(), "data_in", 2));
+  m->addItem(construct_data_ann(env.envi(), "data_if", 1));
 
   Printer pp(std::cout, 80);
   pp.print(m);
