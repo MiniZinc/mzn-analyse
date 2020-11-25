@@ -106,16 +106,6 @@ Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
   return ca;
 }
 
-typedef std::unordered_set<Expression*, ExpressionHash, ExpressionEq> ExprSet;
-
-struct Scope {
-  ExprSet par_deps;
-  Expression* parent;
-
-  Scope(Expression* p) : parent{p} {}
-  Scope(Scope& s, Expression* p) : par_deps{s.par_deps}, parent{p} {}
-};
-
 struct Frame {
   size_t depth;
   Expression* e;
@@ -132,10 +122,6 @@ void pushVec(size_t depth, std::vector<Frame>& stack, ASTExprVec<E> v) {
 }
 
 void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
-  //vector<Scope> scopes;
-  //scopes.emplace_back(nullptr);
-  //
-
   std::vector<Frame> stack;
   stack.emplace_back(0, root);
 
@@ -147,56 +133,6 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
     if (e == nullptr) {
       continue;
     }
-
-    //if(e->type().isvarbool()) {
-    //  // ANNOTATE
-
-    //  if(!scopes.back().par_deps.empty()) {
-    //    std::vector<Expression*> concat_strings;
-    //    concat_strings.push_back(new StringLit(Location().introduce(), "{"));
-
-    //    int i = scopes.back().par_deps.size();
-    //    for(Expression* e : scopes.back().par_deps) {
-    //      std::stringstream ss;
-    //      ss << "\"" << *e << "\": \"";
-    //      concat_strings.push_back(new StringLit(Location().introduce(), ss.str()));
-    //      std::vector<Expression*> e_vec;
-    //      e_vec.push_back(e);
-    //      concat_strings.push_back(new Call(Location().introduce(), "show", e_vec));
-
-    //      if(--i) {
-    //        concat_strings.push_back(new StringLit(Location().introduce(), "\","));
-    //      } else {
-    //        concat_strings.push_back(new StringLit(Location().introduce(), "\""));
-    //      }
-    //    }
-
-    //    concat_strings.push_back(new StringLit(Location().introduce(), "}"));
-
-    //    ArrayLit* concat_stringlit = new ArrayLit(Location().introduce(), concat_strings);
-
-    //    std::vector<Expression*> call_args = { concat_stringlit };
-    //    std::vector<Expression*> args = { new Call(Location().introduce(), "concat", call_args) };
-
-    //    Call* ca = new Call(e->loc(), "mzn_expression_name", args);
-    //    ca->type(Type::ann());
-    //    e->addAnnotation(ca);
-    //  }
-
-    //} else if(scopes.back().parent != e && e->type().isPar() && !e->isa<VarDecl>()) {
-    //  // COLLECT
-    //  if(e->isa<Id>()) {
-    //    scopes.back().par_deps.insert(e->cast<Id>()->decl()->id());
-    //    if(verbose)
-    //      std::cerr << "    COLLECTING: " << *e << std::endl;
-    //  } else {
-    //    if(scopes.back().par_deps.find(e) == scopes.back().par_deps.end()) {
-    //      scopes.back().par_deps.insert(e);
-    //      if(verbose)
-    //        std::cerr << "    COLLECTING: " << *e << std::endl;
-    //    }
-    //  }
-    //}
 
     switch (e->eid()) {
       case Expression::E_INTLIT:
@@ -227,9 +163,6 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
         {
           auto* comp = e->template cast<Comprehension>();
           stack.emplace_back(depth+1, comp->e());
-          //if(verbose)
-          //  std::cerr << "NEW SCOPE comp: " << *e << std::endl;
-          //scopes.emplace_back(scopes.back(), comp->e());
 
           for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
             if(comp->e()->type().isvarbool() && comp->where(i) && comp->where(i)->type().isPar()) {
@@ -258,14 +191,6 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
         {
           ITE* ite = e->template cast<ITE>();
           stack.emplace_back(depth+1,ite->elseExpr());
-          //scopes.emplace_back(scopes.back(), ite->elseExpr());
-          //for (size_t j = 0; j < ite->size(); j++) {
-          //  scopes.back().par_deps.insert(
-          //    new UnOp(
-          //      Location().introduce(),
-          //      UOT_NOT,
-          //      ite->ifExpr(j)));
-          //}
           for (size_t j = 0; j < ite->size(); j++) {
             if(ite->elseExpr()->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
               ite->elseExpr()->addAnnotation(
@@ -281,15 +206,6 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
           for (size_t i = 0; i < ite->size(); i++) {
             stack.emplace_back(depth+1,ite->thenExpr(i));
             stack.emplace_back(depth+1,ite->ifExpr(i));
-            //scopes.emplace_back(scopes.back(), ite->thenExpr(i));
-            //for (size_t j = 0; j < i; j++) {
-            //  scopes.back().par_deps.insert(
-            //    new UnOp(
-            //      Location().introduce(),
-            //      UOT_NOT,
-            //      ite->ifExpr(j)));
-            //}
-            //scopes.back().par_deps.insert(ite->ifExpr(i));
             for (size_t j = 0; j < i; j++) {
               if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
                 ite->thenExpr(i)->addAnnotation(
@@ -336,11 +252,6 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
         break;
     }
 
-    //if(scopes.back().parent == e) {
-    //  if(verbose)
-    //    std::cerr << "EXITING SCOPE: " << *e << std::endl;
-    //  scopes.pop_back();
-    //}
   }
 }
 
