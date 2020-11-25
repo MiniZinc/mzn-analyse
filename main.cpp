@@ -40,6 +40,31 @@ FunctionI* construct_data_ann(EnvI& envi) {
       ti,
       params);
 }
+FunctionI* construct_data_in_ann(EnvI& envi) {
+  vector<VarDecl*> params;
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parint()),
+        "depth"));
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "name"));
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "value"));
+  TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
+
+  return new FunctionI(
+      Location().introduce(),
+      "data_in",
+      ti,
+      params);
+}
 
 
 Expression* data(EnvI& envi, size_t depth, Expression* e) {
@@ -54,6 +79,29 @@ Expression* data(EnvI& envi, size_t depth, Expression* e) {
   args.push_back(new StringLit(Location().introduce(), ss.str()));
   args.push_back(new Call(Location().introduce(), "show", {e_copy}));
   Call* ca = new Call(Location().introduce(), "data", args);
+  ca->type(Type::ann());
+  return ca;
+}
+
+Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
+
+  Expression* id_copy = copy(envi, id);
+  id_copy->ann().clear();
+
+  Expression* in_copy = copy(envi, in);
+  in_copy->ann().clear();
+
+  std::stringstream id_ss;
+  id_ss << *id;
+
+  std::stringstream in_ss;
+  in_ss << *in;
+
+  vector<Expression*> args;
+  args.push_back(IntLit::a(depth));
+  args.push_back(new StringLit(Location().introduce(), id_ss.str()));
+  args.push_back(new StringLit(Location().introduce(), in_ss.str()));
+  Call* ca = new Call(Location().introduce(), "data_in", args);
   ca->type(Type::ann());
   return ca;
 }
@@ -193,8 +241,13 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
             stack.emplace_back(depth+1,comp->where(i));
             stack.emplace_back(depth+1,comp->in(i));
             for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
-              if(comp->e()->type().isvarbool() && comp->in(i)->type().isPar()) {
-                comp->e()->addAnnotation(data(envi, depth, comp->decl(i, j)->id()));
+              if(comp->e()->type().isvarbool()) {
+                if(comp->decl(i, j)->type().isPar()) {
+                  comp->e()->addAnnotation(data(envi, depth, comp->decl(i, j)->id()));
+                  if(comp->in(i)->type().isPar()) {
+                    comp->e()->addAnnotation(data_in(envi, depth, comp->decl(i, j)->id(), comp->in(i)));
+                  }
+                }
               }
               stack.emplace_back(depth+1,comp->decl(i, j));
             }
@@ -340,6 +393,7 @@ int main(int argc, char**argv) {
       std::cerr << std::endl;
   }
   m->addItem(construct_data_ann(env.envi()));
+  m->addItem(construct_data_in_ann(env.envi()));
 
   Printer pp(std::cout, 80);
   pp.print(m);
