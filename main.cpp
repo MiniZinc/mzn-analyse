@@ -68,23 +68,33 @@ struct Scope {
   Scope(Scope& s, Expression* p) : par_deps{s.par_deps}, parent{p} {}
 };
 
+struct Frame {
+  size_t depth;
+  Expression* e;
+
+  Frame(size_t d, Expression* expr) : depth{d}, e{expr} {}
+};
+
 /// Push all elements of \a v onto \a stack
 template <class E>
-void pushVec(std::vector<Expression*>& stack, ASTExprVec<E> v) {
+void pushVec(size_t depth, std::vector<Frame>& stack, ASTExprVec<E> v) {
   for (unsigned int i = 0; i < v.size(); i++) {
-    stack.push_back(v[i]);
+    stack.emplace_back(depth+1,v[i]);
   }
 }
 
 void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
   //vector<Scope> scopes;
   //scopes.emplace_back(nullptr);
+  //
 
-  std::vector<Expression*> stack;
-  stack.push_back(root);
+  std::vector<Frame> stack;
+  stack.emplace_back(0, root);
 
   while (!stack.empty()) {
-    Expression* e = stack.back();
+    Frame f = stack.back();
+    size_t depth = f.depth;
+    Expression* e = f.e;
     stack.pop_back();
     if (e == nullptr) {
       continue;
@@ -146,7 +156,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
       case Expression::E_FLOATLIT:
         break;
       case Expression::E_SETLIT:
-        pushVec(stack, e->template cast<SetLit>()->v());
+        pushVec(depth+1, stack, e->template cast<SetLit>()->v());
         break;
       case Expression::E_BOOLLIT:
         break;
@@ -158,35 +168,35 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
         break;
       case Expression::E_ARRAYLIT:
         for (unsigned int i = 0; i < e->cast<ArrayLit>()->size(); i++) {
-          stack.push_back((*e->cast<ArrayLit>())[i]);
+          stack.emplace_back(depth+1, (*e->cast<ArrayLit>())[i]);
         }
         break;
       case Expression::E_ARRAYACCESS:
-        pushVec(stack, e->template cast<ArrayAccess>()->idx());
-        stack.push_back(e->template cast<ArrayAccess>()->v());
+        pushVec(depth+1, stack, e->template cast<ArrayAccess>()->idx());
+        stack.emplace_back(depth+1, e->template cast<ArrayAccess>()->v());
         break;
       case Expression::E_COMP:
         {
           auto* comp = e->template cast<Comprehension>();
-          stack.push_back(comp->e());
+          stack.emplace_back(depth+1, comp->e());
           //if(verbose)
           //  std::cerr << "NEW SCOPE comp: " << *e << std::endl;
           //scopes.emplace_back(scopes.back(), comp->e());
 
           for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
             if(comp->e()->type().isvarbool() && comp->where(i) && comp->where(i)->type().isPar()) {
-              comp->e()->addAnnotation(data(envi, stack.size(), comp->where(i)));
+              comp->e()->addAnnotation(data(envi, depth, comp->where(i)));
             }
             if(comp->e()->type().isvarbool() && comp->in(i)->type().isPar()) {
-              comp->e()->addAnnotation(data(envi, stack.size(), comp->in(i)));
+              comp->e()->addAnnotation(data(envi, depth, comp->in(i)));
             }
-            stack.push_back(comp->where(i));
-            stack.push_back(comp->in(i));
+            stack.emplace_back(depth+1,comp->where(i));
+            stack.emplace_back(depth+1,comp->in(i));
             for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
               if(comp->e()->type().isvarbool() && comp->in(i)->type().isPar()) {
-                comp->e()->addAnnotation(data(envi, stack.size(), comp->decl(i, j)->id()));
+                comp->e()->addAnnotation(data(envi, depth, comp->decl(i, j)->id()));
               }
-              stack.push_back(comp->decl(i, j));
+              stack.emplace_back(depth+1,comp->decl(i, j));
             }
           }
         }
@@ -194,7 +204,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
       case Expression::E_ITE:
         {
           ITE* ite = e->template cast<ITE>();
-          stack.push_back(ite->elseExpr());
+          stack.emplace_back(depth+1,ite->elseExpr());
           //scopes.emplace_back(scopes.back(), ite->elseExpr());
           //for (size_t j = 0; j < ite->size(); j++) {
           //  scopes.back().par_deps.insert(
@@ -206,7 +216,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
           for (size_t j = 0; j < ite->size(); j++) {
             if(ite->elseExpr()->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
               ite->elseExpr()->addAnnotation(
-                  data(envi, stack.size(),
+                  data(envi, depth,
                     new UnOp(
                       Location().introduce(),
                       UOT_NOT,
@@ -216,8 +226,8 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
 
 
           for (size_t i = 0; i < ite->size(); i++) {
-            stack.push_back(ite->thenExpr(i));
-            stack.push_back(ite->ifExpr(i));
+            stack.emplace_back(depth+1,ite->thenExpr(i));
+            stack.emplace_back(depth+1,ite->ifExpr(i));
             //scopes.emplace_back(scopes.back(), ite->thenExpr(i));
             //for (size_t j = 0; j < i; j++) {
             //  scopes.back().par_deps.insert(
@@ -231,7 +241,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
               if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(j)->type().isPar()) {
                 ite->thenExpr(i)->addAnnotation(
                     data(envi,
-                      stack.size(),
+                      depth,
                       new UnOp(
                         Location().introduce(),
                         UOT_NOT,
@@ -240,34 +250,34 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
             }
             if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(i)->type().isPar()) {
               ite->thenExpr(i)->addAnnotation(
-                  data(envi, stack.size(), ite->ifExpr(i)));
+                  data(envi, depth, ite->ifExpr(i)));
             }
           }
         }
         break;
       case Expression::E_BINOP:
-        stack.push_back(e->template cast<BinOp>()->rhs());
-        stack.push_back(e->template cast<BinOp>()->lhs());
+        stack.emplace_back(depth+1,e->template cast<BinOp>()->rhs());
+        stack.emplace_back(depth+1,e->template cast<BinOp>()->lhs());
         break;
       case Expression::E_UNOP:
-        stack.push_back(e->template cast<UnOp>()->e());
+        stack.emplace_back(depth+1,e->template cast<UnOp>()->e());
         break;
       case Expression::E_CALL:
         for (unsigned int i = 0; i < e->template cast<Call>()->argCount(); i++) {
-          stack.push_back(e->template cast<Call>()->arg(i));
+          stack.emplace_back(depth+1,e->template cast<Call>()->arg(i));
         }
         break;
       case Expression::E_VARDECL:
-        stack.push_back(e->template cast<VarDecl>()->e());
+        stack.emplace_back(depth+1,e->template cast<VarDecl>()->e());
         break;
       case Expression::E_LET:
         // Have to find solution for this
-        stack.push_back(e->template cast<Let>()->in());
-        pushVec(stack, e->template cast<Let>()->let());
+        stack.emplace_back(depth+1,e->template cast<Let>()->in());
+        pushVec(depth+1, stack, e->template cast<Let>()->let());
         break;
       case Expression::E_TI:
-        stack.push_back(e->template cast<TypeInst>()->domain());
-        pushVec(stack, e->template cast<TypeInst>()->ranges());
+        stack.emplace_back(depth+1,e->template cast<TypeInst>()->domain());
+        pushVec(depth+1, stack, e->template cast<TypeInst>()->ranges());
         break;
       case Expression::E_TIID:
         break;
