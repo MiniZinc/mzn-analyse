@@ -15,28 +15,29 @@ using std::string;
 using std::vector;
 
 
-FunctionI* construct_data_ann() {
+FunctionI* construct_data_ann(int nargs) {
   vector<VarDecl*> params;
-  // string: type
-  params.push_back(
-      new VarDecl(
-        Location().introduce(),
-        new TypeInst(Location().introduce(), Type::parstring()),
-        "type"));
   // int: depth
   params.push_back(
       new VarDecl(
         Location().introduce(),
         new TypeInst(Location().introduce(), Type::parint()),
         "depth"));
+  // string: type
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "name"));
   // list of string: args
-  {
-    ASTExprVec<TypeInst> ranges = ASTExprVec<TypeInst>( { new TypeInst(Location().introduce(), Type::parint()) });
+  for(int i=0; i<nargs; i++) {
+    std::stringstream ss;
+    ss << "arg_" << i << "_";
     params.push_back(
         new VarDecl(
           Location().introduce(),
-          new TypeInst(Location().introduce(), Type::parstring(), ranges),
-          "args"));
+          new TypeInst(Location().introduce(), Type::parstring()),
+          ss.str()));
   }
   TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
 
@@ -59,27 +60,30 @@ Expression* toShow(EnvI& envi, Expression* e) {
   return new Call(Location().introduce(), "show", {without_anns(envi, e)});
 }
 
-Expression* data_ann(EnvI& envi, string type, size_t depth, vector<Expression*> exprs) {
+Expression* data_ann(EnvI& envi, size_t depth, string type, vector<Expression*> exprs) {
   // Construct data(string: type, int: depth, list of string: args);
   vector<Expression*> args;
-  args.push_back(new StringLit(Location().introduce(), type));
   args.push_back(IntLit::a(depth));
-  args.push_back(new ArrayLit(Location().introduce(), exprs));
+  args.push_back(new StringLit(Location().introduce(), type));
+  args.insert(args.end(), exprs.begin(), exprs.end());
   Call* ca = new Call(Location().introduce(), "data", args);
   ca->type(Type::ann());
   return ca;
 }
 
-Expression* data_eq(EnvI& envi, size_t depth, Expression* id) {
-  return data_ann(envi, "eq", depth, { toStringLit(envi, id), toShow(envi, id) });
+Expression* data_eq(EnvI& envi, size_t depth, Expression* e) {
+  if(e->isa<IntLit>() || e->isa<BoolLit>() || e->isa<SetLit>() || e->isa<ArrayLit>() || e->isa<StringLit>()) {
+    return data_ann(envi, depth, "lit", { toShow(envi, e) });
+  }
+  return data_ann(envi, depth, "eq", { toStringLit(envi, e), toShow(envi, e) });
 }
 
 Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
-  return data_ann(envi, "in", depth, { toStringLit(envi, id), toStringLit(envi, in) });
+  return data_ann(envi, depth, "in", { toStringLit(envi, id), toStringLit(envi, in) });
 }
 
 Expression* data_if(EnvI& envi, size_t depth, Expression* where) {
-  return data_ann(envi, "if", depth, { toStringLit(envi, where) });
+  return data_ann(envi, depth, "if", { toStringLit(envi, where) });
 }
 
 struct Frame {
@@ -279,7 +283,8 @@ int main(int argc, char**argv) {
     if(verbose)
       std::cerr << std::endl;
   }
-  m->addItem(construct_data_ann());
+  m->addItem(construct_data_ann(1));
+  m->addItem(construct_data_ann(2));
 
   Printer pp(std::cout, 80);
   pp.print(m);
