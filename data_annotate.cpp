@@ -86,6 +86,36 @@ Expression* data_if(EnvI& envi, size_t depth, Expression* where) {
   return data_ann(envi, depth, "if", { toStringLit(envi, where) });
 }
 
+//Expression* data_if_exists(EnvI& envi, size_t depth, Expression* e) {
+//  Call* exists = e->cast<Call>();
+//  Comprehension* comp = exists->args(0)->dyn_cast<Comprehension*>();
+//
+//  // exists(i in A, j in B where i < j) ( p[i,j] ) ->
+//  //
+//  // let {
+//  //   int: tmp_i = arg_max(i in A) (exists(j in B where i < j) ( p[i,j] );
+//  //   int: tmp_j = arg_max(j in B where tmp_i < j) ( p[tmp_i, j] )
+//  // } in join(", ", ["i=" ++ show(A[tmp_i]), "j=" ++ show(B[tmp_j])]);
+//
+//  vector<Expression*> vars(comp->numberOfGenerators());
+//  vector<Expression*> string_exps(2*comp->numberOfGenerators());
+//
+//  for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
+//    for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
+//      VarDecl* new_var = new VarDecl(Location().introduce(),
+//          "tmp" + comp->);
+//  }
+//
+//  Expression* in = new Call(Location().introduce(), "concat", string_exps);
+//  Let* let = new Let(envi, vars, in);
+//  std::cerr << "Exists let: " << *exists << "\n======\n" << *let << "\n";
+//
+//  exit(EXIT_FAILURE);
+//
+//  return data_ann(envi, depth, "if_exists", { toStringLit(envi, where) });
+//}
+
+
 struct Frame {
   size_t depth;
   Expression* e;
@@ -198,8 +228,14 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
               }
             }
             if(ite->thenExpr(i)->type().isvarbool() && ite->ifExpr(i)->type().isPar()) {
+              Expression* if_expr = ite->ifExpr(i);
+              // Special behaviour for exists
+              //if(if_expr->isa<Call>() && if_expr->cast<Call>()->id() == "exists") {
+              //  data_if_exists(envi, depth, if_expr);
+              //}
+              // Copy the condition directly
               ite->thenExpr(i)->addAnnotation(
-                  data_if(envi, depth, ite->ifExpr(i)));
+                  data_if(envi, depth, if_expr));
             }
           }
         }

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 #include <minizinc/model.hh>
 #include <minizinc/file_utils.hh>
@@ -14,7 +15,27 @@ using std::string;
 using std::vector;
 using std::ostream;
 
+int prec(string s) {
+  if (s == "in") return 0;
+  if (s == "if_eq") return 1;
+  if (s == "if") return 2;
+  if (s == "if_exists") return 3;
+  if (s == "lit") return 4;
+  return 10;
+}
+
 ostream& operator<<(ostream& os, vector<Call*>& calls) {
+  std::sort(calls.begin(), calls.end(), [](const auto& lhs, const auto& rhs) {
+    int l_depth = lhs->arg(0)->cast<IntLit>()->v().toInt();
+    int r_depth = rhs->arg(0)->cast<IntLit>()->v().toInt();
+
+    int l_type = prec(lhs->arg(1)->cast<StringLit>()->v().c_str());
+    int r_type = prec(rhs->arg(1)->cast<StringLit>()->v().c_str());
+
+    return l_depth < r_depth ||
+           (l_depth == r_depth && l_type < r_type);
+  });
+
   if(calls.empty()) {
     os << "[]";
   } else {
@@ -24,25 +45,23 @@ ostream& operator<<(ostream& os, vector<Call*>& calls) {
       int depth = ca->arg(0)->cast<IntLit>()->v().toInt();
       string type = ca->arg(1)->cast<StringLit>()->v().c_str();
 
-      os << "    {"
-        << "\"depth\": " << depth << ", "
-        << "\"type\": \"" << type << "\", ";
+      os << "    ["
+        // << depth << ", "
+        << "\"" << type << "\", ";
 
       if(type == "lit") {
-        os << "\"lit\": " << *ca->arg(2);
+        os << *ca->arg(2);
       } else if(type == "if") {
-        os << "\"if\": " << *ca->arg(2);
+        os << *ca->arg(2);
       } else if(type == "eq") {
-        os << "\"id\": " << *ca->arg(2);
-        os << ", \"val\": " << *ca->arg(3);
+        os << *ca->arg(2) << ", " << *ca->arg(3);
       } else if(type == "in") {
-        os << "\"id\": " << *ca->arg(2);
-        os << ", \"index_set\": " << *ca->arg(3);
+        os << *ca->arg(2) << ", " << *ca->arg(3);
       } else {
         std::cerr << "UNKNOWN ANNOTATION: " << *ca << std::endl;
       }
 
-      os << "}" << (i != calls.size()-1 ? "," : "") << (i != calls.size()-1 ? "\n" : "");
+      os << "]" << (i != calls.size()-1 ? "," : "") << (i != calls.size()-1 ? "\n" : "");
     }
     os << "]";
   }
@@ -75,10 +94,9 @@ int main(int argc, char**argv) {
   string out_json = output_base + ".cons";
   std::cerr << "Writing constraint data to: " << out_json << std::endl;
   std::ofstream out_json_os {out_json};
-  out_json_os << "{\n";
+  out_json_os << "{\"constraint_info\": [\n";
 
   bool first = true;
-  size_t con_id = 0;
   for(ConstraintI& ci : m->constraints()) {
     vector<Call*> entries;
 
@@ -95,12 +113,10 @@ int main(int argc, char**argv) {
       ci.e()->ann().remove(ca);
     }
 
-    out_json_os << "  \"" << con_id << "\": " << entries;
-
-    con_id++;
+    out_json_os << "  " << entries;
   }
 
-  out_json_os << "}" << std::endl;
+  out_json_os << "]}" << std::endl;
   out_json_os.close();
 
   // Write clean fzn file
