@@ -15,33 +15,37 @@ using std::vector;
 using std::ostream;
 
 ostream& operator<<(ostream& os, vector<Call*>& calls) {
-  os << "{";
-  for(int i=0; i<calls.size(); i++) {
-    Call* ca = calls[i];
-    int depth = ca->arg(0)->cast<IntLit>()->v().toInt();
-    string type = ca->arg(1)->cast<StringLit>()->v().c_str();
+  if(calls.empty()) {
+    os << "[]";
+  } else {
+    os << "[\n";
+    for(int i=0; i<calls.size(); i++) {
+      Call* ca = calls[i];
+      int depth = ca->arg(0)->cast<IntLit>()->v().toInt();
+      string type = ca->arg(1)->cast<StringLit>()->v().c_str();
 
-    os << "{"
-      << "\"depth\": " << depth << ", "
-      << "\"type\": \"" << type << "\", ";
+      os << "    {"
+        << "\"depth\": " << depth << ", "
+        << "\"type\": \"" << type << "\", ";
 
-    if(type == "lit") {
-      os << "\"lit\": " << *ca->arg(2);
-    } else if(type == "if") {
-      os << "\"if\": " << *ca->arg(2);
-    } else if(type == "eq") {
-      os << "\"id\": " << *ca->arg(2) << ",";
-      os << "\"val\": " << *ca->arg(3);
-    } else if(type == "in") {
-      os << "\"id\": " << *ca->arg(2) << ",";
-      os << "\"index_set\": " << *ca->arg(3);
-    } else {
-      std::cerr << "UNKNOWN ANNOTATION: " << *ca << std::endl;
+      if(type == "lit") {
+        os << "\"lit\": " << *ca->arg(2);
+      } else if(type == "if") {
+        os << "\"if\": " << *ca->arg(2);
+      } else if(type == "eq") {
+        os << "\"id\": " << *ca->arg(2);
+        os << ", \"val\": " << *ca->arg(3);
+      } else if(type == "in") {
+        os << "\"id\": " << *ca->arg(2);
+        os << ", \"index_set\": " << *ca->arg(3);
+      } else {
+        std::cerr << "UNKNOWN ANNOTATION: " << *ca << std::endl;
+      }
+
+      os << "}" << (i != calls.size()-1 ? "," : "") << (i != calls.size()-1 ? "\n" : "");
     }
-
-    os << "}" << (i != calls.size()-1 ? "," : "") << "\n";
+    os << "]";
   }
-  os << "}";
   return os;
 }
 
@@ -67,33 +71,39 @@ int main(int argc, char**argv) {
     return EXIT_FAILURE;
   }
 
-  // Collect all data entries
-  vector<vector<Call*> > entries;
-  for(ConstraintI& ci : m->constraints()) {
-    entries.emplace_back();
-    for(Call* ca = ci.e()->ann().getCall(ASTString("data"));
-        ca != nullptr;
-        ca = ci.e()->ann().getCall(ASTString("data"))) {
-      entries.back().push_back(ca);
-      ci.e()->ann().remove(ca);
-    }
-  }
-
-  // Write data entries
+  // Collect and write data entries
   string out_json = output_base + ".cons";
   std::cerr << "Writing constraint data to: " << out_json << std::endl;
   std::ofstream out_json_os {out_json};
   out_json_os << "{\n";
-  for(size_t i=0; i<entries.size(); i++) {
-    out_json_os << "  \"" << i << "\": "
-      << entries[i]
-      << (i != entries.size()-1 ? "," : "")
-      << "\n";
+
+  bool first = true;
+  size_t con_id = 0;
+  for(ConstraintI& ci : m->constraints()) {
+    vector<Call*> entries;
+
+    if(first) {
+      first = false;
+    } else {
+      out_json_os << ",\n";
+    }
+
+    for(Call* ca = ci.e()->ann().getCall(ASTString("data"));
+        ca != nullptr;
+        ca = ci.e()->ann().getCall(ASTString("data"))) {
+      entries.push_back(ca);
+      ci.e()->ann().remove(ca);
+    }
+
+    out_json_os << "  \"" << con_id << "\": " << entries;
+
+    con_id++;
   }
+
   out_json_os << "}" << std::endl;
   out_json_os.close();
 
-  // Write clean file
+  // Write clean fzn file
   string out_fzn = output_base + ".clean.fzn";
   std::cerr << "Writing clean fzn to: " << out_fzn << std::endl;
   std::ofstream out_fzn_os {out_fzn};
