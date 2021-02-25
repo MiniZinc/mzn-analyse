@@ -26,11 +26,11 @@ int prec(string s) {
 
 ostream& operator<<(ostream& os, vector<Call*>& calls) {
   std::sort(calls.begin(), calls.end(), [](const auto& lhs, const auto& rhs) {
-    int l_depth = lhs->arg(0)->cast<IntLit>()->v().toInt();
-    int r_depth = rhs->arg(0)->cast<IntLit>()->v().toInt();
+    int l_depth = lhs->arg(0)->template cast<IntLit>()->v().toInt();
+    int r_depth = rhs->arg(0)->template cast<IntLit>()->v().toInt();
 
-    int l_type = prec(lhs->arg(1)->cast<StringLit>()->v().c_str());
-    int r_type = prec(rhs->arg(1)->cast<StringLit>()->v().c_str());
+    int l_type = prec(lhs->arg(1)->template cast<StringLit>()->v().c_str());
+    int r_type = prec(rhs->arg(1)->template cast<StringLit>()->v().c_str());
 
     return l_depth < r_depth ||
            (l_depth == r_depth && l_type < r_type);
@@ -42,18 +42,16 @@ ostream& operator<<(ostream& os, vector<Call*>& calls) {
     os << "[\n";
     for(int i=0; i<calls.size(); i++) {
       Call* ca = calls[i];
-      int depth = ca->arg(0)->cast<IntLit>()->v().toInt();
       string type = ca->arg(1)->cast<StringLit>()->v().c_str();
 
       os << "    ["
-        // << depth << ", "
         << "\"" << type << "\", ";
 
       if(type == "lit") {
         os << *ca->arg(2);
       } else if(type == "if") {
         os << *ca->arg(2);
-      } else if(type == "eq") {
+      } else if(type == "eq" || type == "assign") {
         os << *ca->arg(2) << ", " << *ca->arg(3);
       } else if(type == "in") {
         os << *ca->arg(2) << ", " << *ca->arg(3);
@@ -84,7 +82,7 @@ int main(int argc, char**argv) {
   string output_base = fzn_path.substr(0, fzn_path.size() - 4);
 
   Env env;
-  Model* m = parse(env, {fzn_path}, {}, "", "", includes, false, false, false, false, std::cerr);
+  Model* m = parse(env, {fzn_path}, {}, "", "", includes, true, false, false, false, std::cerr);
   if(!m) {
     std::cerr << argv[0] << ": Failed to parse file" << std::endl;
     return EXIT_FAILURE;
@@ -120,10 +118,9 @@ int main(int argc, char**argv) {
   out_json_os.close();
 
   // Write clean fzn file
-  string out_fzn = output_base + ".clean.fzn";
-  std::cerr << "Writing clean fzn to: " << out_fzn << std::endl;
-  std::ofstream out_fzn_os {out_fzn};
-  Printer p(out_fzn_os, 0);
+  std::cerr << "Overwriting original fzn." << std::endl;
+  std::ofstream out_fzn_os {fzn_path};
+  Printer p(out_fzn_os, 0, true);
   p.print(m);
   out_fzn_os.close();
 

@@ -77,6 +77,12 @@ Expression* data_eq(EnvI& envi, size_t depth, Expression* e) {
   }
   return data_ann(envi, depth, "eq", { toStringLit(envi, e), toShow(envi, e) });
 }
+Expression* data_assign(EnvI& envi, size_t depth, Expression* e) {
+  if(e->isa<IntLit>() || e->isa<BoolLit>() || e->isa<SetLit>() || e->isa<ArrayLit>() || e->isa<StringLit>()) {
+    return data_ann(envi, depth, "lit", { toShow(envi, e) });
+  }
+  return data_ann(envi, depth, "assign", { toStringLit(envi, e), toShow(envi, e) });
+}
 
 Expression* data_in(EnvI& envi, size_t depth, Expression* id, Expression* in) {
   return data_ann(envi, depth, "in", { toStringLit(envi, id), toStringLit(envi, in) });
@@ -186,7 +192,7 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
             for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
               if(comp->e()->type().isvarbool()) {
                 if(comp->decl(i, j)->type().isPar()) {
-                  comp->e()->addAnnotation(data_eq(envi, depth, comp->decl(i, j)->id()));
+                  comp->e()->addAnnotation(data_assign(envi, depth, comp->decl(i, j)->id()));
                   if(comp->in(i)->type().isPar()) {
                     comp->e()->addAnnotation(data_in(envi, depth, comp->decl(i, j)->id(), comp->in(i)));
                   }
@@ -322,7 +328,7 @@ int main(int argc, char**argv) {
   m->addItem(construct_data_ann(1));
   m->addItem(construct_data_ann(2));
 
-  Printer pp(std::cout, 80);
+  Printer pp(std::cout, 80, false);
   pp.print(m);
 
   return EXIT_SUCCESS;
