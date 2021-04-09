@@ -1,7 +1,8 @@
 #include <iostream>
 #include <vector>
 #include <string>
-#include <unordered_set>
+#include <sstream>
+#include <unordered_map>
 
 #include <minizinc/model.hh>
 #include <minizinc/copy.hh>
@@ -12,8 +13,9 @@
 
 using namespace MiniZinc;
 using std::string;
+using std::stringstream;
 using std::vector;
-
+using std::unordered_map;
 
 FunctionI* construct_data_ann(int nargs) {
   vector<VarDecl*> params;
@@ -41,8 +43,65 @@ FunctionI* construct_data_ann(int nargs) {
   }
   TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
 
-  return new FunctionI(Location().introduce(), "data", ti, params);
+  return new FunctionI(Location().introduce(), string("data"), ti, params);
 }
+FunctionI* construct_data_term_ann() {
+  vector<VarDecl*> params;
+  // int: depth
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parint()),
+        "depth"));
+
+  // string: type
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "name"));
+
+  // list of string: generators
+  {
+    vector<TypeInst*> t_idx = { new TypeInst(Location().introduce(), Type::parint()) };
+    TypeInst* ti = new TypeInst(Location().introduce(), Type::parstring());
+    ti->setRanges(t_idx);
+    params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        ti, "gens"));
+  }
+  
+  // string: location
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "locs"));
+
+  // list of string: coefs
+  {
+    vector<TypeInst*> t_idx = { new TypeInst(Location().introduce(), Type::parint()) };
+    TypeInst* ti = new TypeInst(Location().introduce(), Type::parstring());
+    ti->setRanges(t_idx);
+    params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        ti, "coefs"));
+  }
+
+  // string: variable
+  params.push_back(
+      new VarDecl(
+        Location().introduce(),
+        new TypeInst(Location().introduce(), Type::parstring()),
+        "variable"));
+
+  TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
+
+  return new FunctionI(Location().introduce(), string("data"), ti, params);
+}
+
 
 Expression* without_anns(EnvI& envi, Expression* e) {
   Expression* e_copy = copy(envi, e);
@@ -137,7 +196,8 @@ void pushVec(size_t depth, std::vector<Frame>& stack, ASTExprVec<E> v) {
   }
 }
 
-void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
+void annotateWithData(EnvI& envi, Expression* root,
+                      unordered_map<Id*, Expression*>& assigns) {
   std::vector<Frame> stack;
   stack.emplace_back(0, root);
 
@@ -247,8 +307,22 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
         }
         break;
       case Expression::E_BINOP:
-        stack.emplace_back(depth+1,e->template cast<BinOp>()->rhs());
-        stack.emplace_back(depth+1,e->template cast<BinOp>()->lhs());
+        // Collect functional assignments
+        {
+          BinOp* bo = e->template cast<BinOp>();
+
+          if (bo->op() == BOT_EQ) {
+            if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
+              assigns[lhe->decl()->id()] = bo->rhs();
+            }
+            if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
+              assigns[rhe->decl()->id()] = bo->lhs();
+            }
+          }
+
+          stack.emplace_back(depth + 1, bo->rhs());
+          stack.emplace_back(depth + 1, bo->lhs());
+        }
         break;
       case Expression::E_UNOP:
         stack.emplace_back(depth+1,e->template cast<UnOp>()->e());
@@ -277,9 +351,170 @@ void annotateWithData(EnvI& envi, Expression* root, bool verbose = false) {
   }
 }
 
+Expression* buildAnnotation(EnvI& envi, vector<Expression*>& generators,
+                            vector<Expression*>& coefs, Expression* var) {
+  //   create term annotation:
+  //    :: data(0, "term", generators, location, coefs, var)
+  vector<Expression*> args;
+  args.push_back(new ArrayLit(Location().introduce(), generators));
+
+  const string minor_sep = "|";
+
+  Location loc = var->loc();
+  {
+    std::stringstream ss;
+    ss << loc.filename() << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
+      << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << minor_sep;
+    args.push_back(new StringLit(Location().introduce(), ss.str()));
+  }
+
+  args.push_back(new ArrayLit(Location().introduce(), coefs));
+  {
+    stringstream ss;
+    ss << *var;
+    args.push_back(new StringLit(Location().introduce(), ss.str()));
+  }
+
+  return data_ann(envi, 0, "term", args);
+}
+
+struct StackFrame {
+  size_t gen_idx;
+  size_t coef_idx;
+  Expression* e;
+
+  StackFrame(size_t g, size_t c, Expression* exp)
+    : gen_idx{ g }, coef_idx{ c }, e{ exp } {}
+};
+
+void addTermAnnotations(EnvI& envi, SolveI* si,
+  unordered_map<Id*, Expression*>& assigns, Expression* root) {
+  // For now just support:
+  // sum(gens where clauses) (coef1 * var1 + coef2 * var2)
+  vector<Expression*> gens;
+  vector<Expression*> coefs;
+
+  vector<StackFrame> stack;
+  stack.emplace_back(0,0,root);
+
+  while (!stack.empty()) {
+    StackFrame frame = stack.back();
+    while (gens.size() > frame.gen_idx) {
+      gens.pop_back();
+    }
+    while (coefs.size() > frame.coef_idx) {
+      coefs.pop_back();
+    }
+    stack.pop_back();
+
+    std::cerr << "Processing: " << *frame.e << std::endl;
+    for (auto& f : stack) {
+      std::cerr << "\non stack: " << *f.e << std::endl;
+    }
+    std::cerr << std::endl;
+
+    if (Call* call = frame.e->dynamicCast<Call>()) {
+      if (call->id() == "sum") {
+        Comprehension* co = call->arg(0)->cast<Comprehension>();
+        // collect generators
+        for (size_t i = 0; i < co->numberOfGenerators(); i++) {
+          Expression* in = co->in(i);
+          for (size_t j = 0; j < co->numberOfDecls(i); j++) {
+            stringstream ss;
+            VarDecl* idx = co->decl(i, j);
+            ss << *idx->id() << " in " << *in;
+            gens.push_back(new StringLit(Location().introduce(), ss.str()));
+          }
+        }
+        stack.emplace_back(gens.size(), coefs.size(), co->e());
+      } else {
+        Expression* ann = buildAnnotation(envi, gens, coefs, call);
+        si->ann().add(ann);
+      }
+    } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
+      if (bo->op() == BOT_MULT) {
+        if (bo->lhs()->type().isPar()) {
+          stringstream ss;
+          ss << *bo->lhs();
+          coefs.push_back(new StringLit(Location().introduce(), ss.str()));
+          Expression* ann = buildAnnotation(envi, gens, coefs, bo->rhs());
+          si->ann().add(ann);
+        } else {
+          stringstream ss;
+          ss << *bo->rhs();
+          coefs.push_back(new StringLit(Location().introduce(), ss.str()));
+          Expression* ann = buildAnnotation(envi, gens, coefs, bo->lhs());
+          si->ann().add(ann);
+        }
+      } else if (bo->op() == BOT_PLUS) {
+        if (bo->lhs()->type().isvar()) {
+          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
+        }
+        if (bo->rhs()->type().isvar()) {
+          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
+        }
+      } else {
+        std::cerr << "UNHANDLED BinOp type" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+    } else if (Id* id = frame.e->dynamicCast<Id>()) {
+      auto it = assigns.find(id->decl()->id());
+      if (it != assigns.end()) {
+        stack.emplace_back(gens.size(), coefs.size(), it->second);
+      } else {
+        // It is just an ID
+        coefs.push_back(new StringLit(Location().introduce(), id->str()));
+        Expression* ann = buildAnnotation(envi, gens, coefs, id);
+        si->ann().add(ann);
+      }
+    } else {
+      stringstream ss;
+      ss << *frame.e;
+      coefs.push_back(new StringLit(Location().introduce(), ss.str()));
+      Expression* ann = buildAnnotation(envi, gens, coefs, frame.e);
+      si->ann().add(ann);
+    }
+  }
+}
+
+void annotateObjective(EnvI& envi, SolveI* si,
+                       unordered_map<Id*,Expression*>& assigns) {
+  Expression* obj_e = si->e();
+  if(!obj_e) {
+    std::cerr << "No objective function" << std::endl;
+    return;
+  }
+
+  Expression* e = obj_e;
+  while(Id* id = e->dynamicCast<Id>()) {
+    e = id->decl()->e();
+    if(!e) {
+      auto it = assigns.find(id->decl()->id());
+      if(it != assigns.end()) {
+        e = it->second;
+      }
+      if(!e) return;
+    }
+  }
+  if(!e) return;
+
+  std::cerr << "Objective function: " << *e << std::endl;
+
+  addTermAnnotations(envi, si, assigns, e);
+
+  // a = c1 * a1 + c2 * a2
+  // b = sum([c[i] * b[i] | i in 1..3])
+  // objective = a + b
+
+  // objective = sum ([
+  //   deadline[i, 2] * max(0, deadline[i, 1] - s[i]) +
+  //   deadline[i, 3] * max(0, s[i] - deadline[i, 1])
+  //   | i in Tasks]);
+
+}
+
 int main(int argc, char**argv) {
   GCLock lock;
-  bool verbose = false;
   if(argc < 2) {
     std::cerr << argv[0] << ": Invalid arguments." << std::endl;
     std::cerr << "Usage: " << argv[0] << " <mzn>" << std::endl;
@@ -287,8 +522,10 @@ int main(int argc, char**argv) {
   }
   vector<string> mzn_paths;
   for(int i=1; i<argc; i++) {
-    if(string(argv[i]) == "-v") {
-      verbose = true;
+    if(string(argv[i]) == "--help") {
+      std::cerr << argv[0] << ": Invalid arguments." << std::endl;
+      std::cerr << "Usage: " << argv[0] << " <mzn>" << std::endl;
+      return EXIT_FAILURE;
     } else {
       mzn_paths.push_back(argv[i]);
     }
@@ -320,14 +557,21 @@ int main(int argc, char**argv) {
     return EXIT_FAILURE;
   }
 
+  // Collect functional assignments for objective processing
+  unordered_map<Id*, Expression*> assigns;
+
+  // Add data annotations
   for(ConstraintI& ci : m->constraints()) {
-    annotateWithData(env.envi(), ci.e(), verbose);
-    if(verbose)
-      std::cerr << std::endl;
+    annotateWithData(env.envi(), ci.e(), assigns);
   }
   m->addItem(construct_data_ann(1));
   m->addItem(construct_data_ann(2));
+  m->addItem(construct_data_term_ann());
 
+  // Add coef annotations to objective terms
+  annotateObjective(env.envi(), m->solveItem(), assigns);
+
+  // Write annotated model to stdout
   Printer pp(std::cout, 80, false);
   pp.print(m);
 
