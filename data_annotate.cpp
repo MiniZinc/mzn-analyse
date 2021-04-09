@@ -375,6 +375,12 @@ Expression* buildAnnotation(EnvI& envi, vector<Expression*>& generators,
     args.push_back(new StringLit(Location().introduce(), ss.str()));
   }
 
+  std::cerr
+    << "TERM: Location:   " << *args[1] << "\n"
+    << "      Generators: " << *args[0] << "\n"
+    << "      Coefs:      " << *args[2] << "\n"
+    << "      Variable:   " << *args[3] << "\n";
+
   return data_ann(envi, 0, "term", args);
 }
 
@@ -407,12 +413,6 @@ void addTermAnnotations(EnvI& envi, SolveI* si,
     }
     stack.pop_back();
 
-    std::cerr << "Processing: " << *frame.e << std::endl;
-    for (auto& f : stack) {
-      std::cerr << "\non stack: " << *f.e << std::endl;
-    }
-    std::cerr << std::endl;
-
     if (Call* call = frame.e->dynamicCast<Call>()) {
       if (call->id() == "sum") {
         Comprehension* co = call->arg(0)->cast<Comprehension>();
@@ -437,14 +437,12 @@ void addTermAnnotations(EnvI& envi, SolveI* si,
           stringstream ss;
           ss << *bo->lhs();
           coefs.push_back(new StringLit(Location().introduce(), ss.str()));
-          Expression* ann = buildAnnotation(envi, gens, coefs, bo->rhs());
-          si->ann().add(ann);
+          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
         } else {
           stringstream ss;
           ss << *bo->rhs();
           coefs.push_back(new StringLit(Location().introduce(), ss.str()));
-          Expression* ann = buildAnnotation(envi, gens, coefs, bo->lhs());
-          si->ann().add(ann);
+          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
         }
       } else if (bo->op() == BOT_PLUS) {
         if (bo->lhs()->type().isvar()) {
@@ -468,9 +466,6 @@ void addTermAnnotations(EnvI& envi, SolveI* si,
         si->ann().add(ann);
       }
     } else {
-      stringstream ss;
-      ss << *frame.e;
-      coefs.push_back(new StringLit(Location().introduce(), ss.str()));
       Expression* ann = buildAnnotation(envi, gens, coefs, frame.e);
       si->ann().add(ann);
     }
@@ -498,19 +493,7 @@ void annotateObjective(EnvI& envi, SolveI* si,
   }
   if(!e) return;
 
-  std::cerr << "Objective function: " << *e << std::endl;
-
   addTermAnnotations(envi, si, assigns, e);
-
-  // a = c1 * a1 + c2 * a2
-  // b = sum([c[i] * b[i] | i in 1..3])
-  // objective = a + b
-
-  // objective = sum ([
-  //   deadline[i, 2] * max(0, deadline[i, 1] - s[i]) +
-  //   deadline[i, 3] * max(0, s[i] - deadline[i, 1])
-  //   | i in Tasks]);
-
 }
 
 int main(int argc, char**argv) {
