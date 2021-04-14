@@ -66,63 +66,61 @@ ostream& operator<<(ostream& os, vector<Call*>& calls) {
   return os;
 }
 
-int main(int argc, char**argv) {
-  GCLock lock;
-  if(argc < 2) {
-    std::cerr << argv[0] << ": Invalid arguments." << std::endl;
-    std::cerr << "Usage: " << argv[0] << " <mzn>" << std::endl;
-    return EXIT_FAILURE;
-  }
+namespace MznData {
+  void extract(std::vector<std::string>& mzn_paths) {
+    GCLock lock;
 
-  vector<string> includes;
-  string mzn_stdlib_dir = FileUtils::share_directory();
-  includes.push_back(mzn_stdlib_dir + "/std/");
+    vector<string> includes;
+    string mzn_stdlib_dir = FileUtils::share_directory();
+    includes.push_back(mzn_stdlib_dir + "/std/");
 
-  string fzn_path = argv[1];
-  string output_base = fzn_path.substr(0, fzn_path.size() - 4);
+    if(mzn_paths.size() > 1) {
+      std::cerr << "data extract: Warning: too many arguments sent to 'extract'." << std::endl;
+    }
+    string fzn_path = mzn_paths[0];
+    string output_base = fzn_path.substr(0, fzn_path.size() - 4);
 
-  Env env;
-  Model* m = parse(env, {fzn_path}, {}, "", "", includes, true, false, false, false, std::cerr);
-  if(!m) {
-    std::cerr << argv[0] << ": Failed to parse file" << std::endl;
-    return EXIT_FAILURE;
-  }
-
-  // Collect and write data entries
-  string out_json = output_base + ".cons";
-  std::cerr << "Writing constraint data to: " << out_json << std::endl;
-  std::ofstream out_json_os {out_json};
-  out_json_os << "{\"constraint_info\": [\n";
-
-  bool first = true;
-  for(ConstraintI& ci : m->constraints()) {
-    vector<Call*> entries;
-
-    if(first) {
-      first = false;
-    } else {
-      out_json_os << ",\n";
+    Env env;
+    Model* m = parse(env, {fzn_path}, {}, "", "", includes, true, false, false, false, std::cerr);
+    if(!m) {
+      std::cerr << "data extract: Failed to parse file" << std::endl;
+      return;
     }
 
-    for(Call* ca = ci.e()->ann().getCall(ASTString("data"));
-        ca != nullptr;
-        ca = ci.e()->ann().getCall(ASTString("data"))) {
-      entries.push_back(ca);
-      ci.e()->ann().remove(ca);
+    // Collect and write data entries
+    string out_json = output_base + ".cons";
+    std::cerr << "Writing constraint data to: " << out_json << std::endl;
+    std::ofstream out_json_os {out_json};
+    out_json_os << "{\"constraint_info\": [\n";
+
+    bool first = true;
+    for(ConstraintI& ci : m->constraints()) {
+      vector<Call*> entries;
+
+      if(first) {
+        first = false;
+      } else {
+        out_json_os << ",\n";
+      }
+
+      for(Call* ca = ci.e()->ann().getCall(ASTString("data"));
+          ca != nullptr;
+          ca = ci.e()->ann().getCall(ASTString("data"))) {
+        entries.push_back(ca);
+        ci.e()->ann().remove(ca);
+      }
+
+      out_json_os << "  " << entries;
     }
 
-    out_json_os << "  " << entries;
+    out_json_os << "]}" << std::endl;
+    out_json_os.close();
+
+    // Write clean fzn file
+    std::cerr << "Overwriting original fzn." << std::endl;
+    std::ofstream out_fzn_os {fzn_path};
+    Printer p(out_fzn_os, 0, true);
+    p.print(m);
+    out_fzn_os.close();
   }
-
-  out_json_os << "]}" << std::endl;
-  out_json_os.close();
-
-  // Write clean fzn file
-  std::cerr << "Overwriting original fzn." << std::endl;
-  std::ofstream out_fzn_os {fzn_path};
-  Printer p(out_fzn_os, 0, true);
-  p.print(m);
-  out_fzn_os.close();
-
-  return EXIT_SUCCESS;
-}
+};
