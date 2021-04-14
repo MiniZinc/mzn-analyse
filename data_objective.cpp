@@ -192,33 +192,9 @@ string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*,Expression*>& assigns
 }
 
 namespace MznData {
-  void objective(std::vector<std::string>& mzn_paths) {
-    GCLock lock;
-    vector<string> includes;
-    string mzn_stdlib_dir = FileUtils::share_directory();
-    includes.push_back(mzn_stdlib_dir + "/std/");
-
-    Env env;
-    Model* m = parse(env, mzn_paths, {}, "", "", includes, false, false, false, false, std::cerr);
-    vector<TypeError> typeErrors;
-    try {
-      typecheck(env, m, typeErrors, true, true, true);
-    } catch (TypeError &e) {
-      typeErrors.push_back(e);
-    }
-    if (typeErrors.size() > 0) {
-      for (unsigned int i = 0; i < typeErrors.size(); i++) {
-        std::cerr << typeErrors[i].loc() << ":" << std::endl;
-        std::cerr << typeErrors[i].what() << ":" << typeErrors[i].msg()
-          << std::endl;
-      }
-      exit(EXIT_FAILURE);
-    }
-
-    if(!m) {
-      std::cerr << "data objective: Failed to parse file" << std::endl;
-      return;
-    }
+  void objective(Model* m) {
+    string mzn_path = m->filepath().c_str();
+    string output_base = mzn_path.substr(0, mzn_path.size() - 4);
 
     // Collect functional assignments for objective processing
     unordered_map<Id*, Expression*> assigns;
@@ -247,7 +223,7 @@ namespace MznData {
 
     // Write term types to json file
     {
-      string terms_json_path = mzn_paths[0] + ".terms.json";
+      string terms_json_path = output_base + ".terms.json";
       std::cerr << "Writing solveless model to: " << terms_json_path << std::endl;
       std::ofstream of(terms_json_path);
       of << terms_json;
@@ -256,7 +232,7 @@ namespace MznData {
 
     // Write model without solve item to file
     {
-      string clean_model_path = mzn_paths[0] + ".solveless.mzn";
+      string clean_model_path = output_base + ".solveless.mzn";
       std::ofstream of(clean_model_path);
       std::cerr << "Writing solveless model to: " << clean_model_path << std::endl;
       Printer pp(of, 80, false);

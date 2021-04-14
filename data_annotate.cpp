@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <fstream>
 #include <unordered_map>
 
 #include <minizinc/model.hh>
@@ -353,46 +354,29 @@ void annotateWithData(EnvI& envi, Expression* root,
 
 
 namespace MznData {
-  void annotate(std::vector<std::string>& mzn_paths) {
-    GCLock lock;
-    vector<string> includes;
-    string mzn_stdlib_dir = FileUtils::share_directory();
-    includes.push_back(mzn_stdlib_dir + "/std/");
-
-    Env env;
-    Model* m = parse(env, mzn_paths, {}, "", "", includes, false, false, false, false, std::cerr);
-    vector<TypeError> typeErrors;
-    try {
-      typecheck(env, m, typeErrors, true, true, true);
-    } catch (TypeError &e) {
-      typeErrors.push_back(e);
-    }
-    if (typeErrors.size() > 0) {
-      for (unsigned int i = 0; i < typeErrors.size(); i++) {
-        std::cerr << typeErrors[i].loc() << ":" << std::endl;
-        std::cerr << typeErrors[i].what() << ":" << typeErrors[i].msg()
-          << std::endl;
-      }
-      exit(EXIT_FAILURE);
-    }
-
-    if(!m) {
-      std::cerr << "data annotate: Failed to parse file" << std::endl;
-      return;
-    }
+  void annotate(EnvI& envi, Model* m) {
+    string mzn_path = m->filepath().c_str();
+    string output_base = mzn_path.substr(0, mzn_path.size() - 4);
 
     // Collect functional assignments for objective processing
     unordered_map<Id*, Expression*> assigns;
 
     // Add data annotations
     for(ConstraintI& ci : m->constraints()) {
-      annotateWithData(env.envi(), ci.e(), assigns);
+      annotateWithData(envi, ci.e(), assigns);
     }
     m->addItem(construct_data_ann(1));
     m->addItem(construct_data_ann(2));
 
-    // Write annotated model to stdout
-    Printer pp(std::cout, 80, false);
-    pp.print(m);
+    // Write model without solve item to file
+    {
+      string annotated_model_path = output_base + "_annotated.mzn";
+      std::ofstream of(annotated_model_path);
+      std::cerr << "Writing annotated model to: " << annotated_model_path << std::endl;
+      Printer pp(of, 80, false);
+      pp.print(m);
+      of.close();
+    }
+
   }
 };

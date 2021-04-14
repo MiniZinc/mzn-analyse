@@ -2,7 +2,7 @@
 #include <string>
 
 namespace MznData {
-  void annotate(std::vector<std::string>& mzn_paths);
-  void extract(std::vector<std::string>& mzn_paths);
-  void objective(std::vector<std::string>& mzn_paths);
+  void annotate(MiniZinc::EnvI& envi, MiniZinc::Model* model);
+  void extract(MiniZinc::Model* model);
+  void objective(MiniZinc::Model* model);
 };
