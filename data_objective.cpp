@@ -1,22 +1,22 @@
-#include <iostream>
-#include <vector>
-#include <string>
 #include <fstream>
+#include <iostream>
 #include <sstream>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
-#include <minizinc/model.hh>
+#include <minizinc/astiterator.hh>
 #include <minizinc/copy.hh>
 #include <minizinc/file_utils.hh>
-#include <minizinc/solver.hh>
-#include <minizinc/astiterator.hh>
+#include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
+#include <minizinc/solver.hh>
 
 using namespace MiniZinc;
 using std::string;
 using std::stringstream;
-using std::vector;
 using std::unordered_map;
+using std::vector;
 
 string escape(const string &orig, bool html) {
   string repchars = "\\&\"\'<>";
@@ -49,7 +49,7 @@ string join(const vector<string> &strs, const string &sep, bool quote = false) {
   for (size_t i = 0; i < strs.size(); i++) {
     if (i)
       ss << sep;
-    if(quote) {
+    if (quote) {
       ss << "\"" << strs[i] << "\"";
     } else {
       ss << strs[i];
@@ -58,7 +58,8 @@ string join(const vector<string> &strs, const string &sep, bool quote = false) {
   return ss.str();
 }
 
-string getTermTypeString(vector<string>& gens, vector<string>& coefs, Expression* var) {
+string getTermTypeString(vector<string> &gens, vector<string> &coefs,
+                         Expression *var) {
   const string minor_sep = "|";
   Location loc = var->loc();
 
@@ -67,11 +68,9 @@ string getTermTypeString(vector<string>& gens, vector<string>& coefs, Expression
   ss << "      \"variable\": \"" << *var << "\",\n";
   ss << "      \"coefficients\": [" << join(coefs, ", ", true) << "],\n";
   ss << "      \"generators\": [" << join(gens, ", ", true) << "],\n";
-  ss << "      \"location\": \""
-    << escape(loc.filename().c_str(), false)
-    << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
-    << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn()
-    << "\"\n";
+  ss << "      \"location\": \"" << escape(loc.filename().c_str(), false)
+     << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
+     << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << "\"\n";
   ss << "    }";
 
   return ss.str();
@@ -80,13 +79,14 @@ string getTermTypeString(vector<string>& gens, vector<string>& coefs, Expression
 struct StackFrame {
   size_t gen_idx;
   size_t coef_idx;
-  Expression* e;
+  Expression *e;
 
-  StackFrame(size_t g, size_t c, Expression* exp)
-    : gen_idx{ g }, coef_idx{ c }, e{ exp } {}
+  StackFrame(size_t g, size_t c, Expression *exp)
+      : gen_idx{g}, coef_idx{c}, e{exp} {}
 };
 
-string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
+string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
+                    Expression *root) {
   vector<string> term_strings;
 
   // For now just support:
@@ -95,7 +95,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   vector<string> coefs;
 
   vector<StackFrame> stack;
-  stack.emplace_back(0,0,root);
+  stack.emplace_back(0, 0, root);
 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
@@ -107,15 +107,15 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
     }
     stack.pop_back();
 
-    if (Call* call = frame.e->dynamicCast<Call>()) {
+    if (Call *call = frame.e->dynamicCast<Call>()) {
       if (call->id() == "sum") {
-        Comprehension* co = call->arg(0)->cast<Comprehension>();
+        Comprehension *co = call->arg(0)->cast<Comprehension>();
         // collect generators
         for (size_t i = 0; i < co->numberOfGenerators(); i++) {
-          Expression* in = co->in(i);
+          Expression *in = co->in(i);
           for (size_t j = 0; j < co->numberOfDecls(i); j++) {
             stringstream ss;
-            VarDecl* idx = co->decl(i, j);
+            VarDecl *idx = co->decl(i, j);
             ss << *idx->id() << " in " << *in;
             gens.push_back(ss.str());
           }
@@ -124,7 +124,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
       } else {
         term_strings.push_back(getTermTypeString(gens, coefs, call));
       }
-    } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
+    } else if (BinOp *bo = frame.e->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_MULT) {
         if (bo->lhs()->type().isPar()) {
           stringstream ss;
@@ -148,7 +148,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
       }
-    } else if (Id* id = frame.e->dynamicCast<Id>()) {
+    } else if (Id *id = frame.e->dynamicCast<Id>()) {
       auto it = assigns.find(id->decl()->id());
       if (it != assigns.end()) {
         stack.emplace_back(gens.size(), coefs.size(), it->second);
@@ -168,76 +168,80 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   return ss.str();
 }
 
-string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*,Expression*>& assigns) {
-  Expression* obj_e = si->e();
-  if(!obj_e) {
+string getObjectiveTermsJSON(SolveI *si,
+                             unordered_map<Id *, Expression *> &assigns) {
+  Expression *obj_e = si->e();
+  if (!obj_e) {
     std::cerr << "No objective function" << std::endl;
     return "";
   }
 
-  Expression* e = obj_e;
-  while(Id* id = e->dynamicCast<Id>()) {
+  Expression *e = obj_e;
+  while (Id *id = e->dynamicCast<Id>()) {
     e = id->decl()->e();
-    if(!e) {
+    if (!e) {
       auto it = assigns.find(id->decl()->id());
-      if(it != assigns.end()) {
+      if (it != assigns.end()) {
         e = it->second;
       }
-      if(!e) return "";
+      if (!e)
+        return "";
     }
   }
-  if(!e) return "";
+  if (!e)
+    return "";
 
   return getTermsJSON(assigns, e);
 }
 
 namespace MznData {
-  void objective(Model* m) {
-    string mzn_path = m->filepath().c_str();
-    string output_base = mzn_path.substr(0, mzn_path.size() - 4);
+void objective(Model *m) {
+  string mzn_path = m->filepath().c_str();
+  string output_base = mzn_path.substr(0, mzn_path.size() - 4);
 
-    // Collect functional assignments for objective processing
-    unordered_map<Id*, Expression*> assigns;
+  // Collect functional assignments for objective processing
+  unordered_map<Id *, Expression *> assigns;
 
-    // Add data annotations
-    for(ConstraintI& ci : m->constraints()) {
-      if(BinOp* bo = ci.e()->dynamicCast<BinOp>()) {
-        if (bo->op() == BOT_EQ) {
-          if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
-            assigns[lhe->decl()->id()] = bo->rhs();
-          }
-          if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
-            assigns[rhe->decl()->id()] = bo->lhs();
-          }
+  // Add data annotations
+  for (ConstraintI &ci : m->constraints()) {
+    if (BinOp *bo = ci.e()->dynamicCast<BinOp>()) {
+      if (bo->op() == BOT_EQ) {
+        if (Id *lhe = bo->lhs()->dynamicCast<Id>()) {
+          assigns[lhe->decl()->id()] = bo->rhs();
+        }
+        if (Id *rhe = bo->rhs()->dynamicCast<Id>()) {
+          assigns[rhe->decl()->id()] = bo->lhs();
         }
       }
     }
-
-    // Add coef annotations to objective terms
-    string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
-
-    // Remove solve item and output
-    m->solveItem()->remove();
-    m->outputItem()->remove();
-    m->compact();
-
-    // Write term types to json file
-    {
-      string terms_json_path = output_base + ".terms.json";
-      std::cerr << "Writing solveless model to: " << terms_json_path << std::endl;
-      std::ofstream of(terms_json_path);
-      of << terms_json;
-      of.close();
-    }
-
-    // Write model without solve item to file
-    {
-      string clean_model_path = output_base + ".solveless.mzn";
-      std::ofstream of(clean_model_path);
-      std::cerr << "Writing solveless model to: " << clean_model_path << std::endl;
-      Printer pp(of, 80, false);
-      pp.print(m);
-      of.close();
-    }
   }
-};
+
+  // Add coef annotations to objective terms
+  string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
+
+  // Remove solve item and output
+  m->solveItem()->remove();
+  m->outputItem()->remove();
+  m->compact();
+
+  // Write term types to json file
+  {
+    string terms_json_path = output_base + ".terms.json";
+    std::cerr << "Writing solveless model to: " << terms_json_path << std::endl;
+    std::ofstream of(terms_json_path);
+    of << terms_json;
+    of.close();
+  }
+
+  // Write model without solve item to file
+  {
+    string clean_model_path = output_base + ".solveless.mzn";
+    std::ofstream of(clean_model_path);
+    std::cerr << "Writing solveless model to: " << clean_model_path
+              << std::endl;
+    Printer pp(of, 80, false);
+    pp.print(m);
+    of.close();
+  }
+}
+}; // namespace MznData
