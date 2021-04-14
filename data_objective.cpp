@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <fstream>
 #include <sstream>
 #include <unordered_map>
 
@@ -17,33 +18,63 @@ using std::stringstream;
 using std::vector;
 using std::unordered_map;
 
-void buildAnnotation(EnvI& envi, vector<Expression*>& generators,
-                     vector<Expression*>& coefs, Expression* var) {
-  vector<Expression*> args;
-  args.push_back(new ArrayLit(Location().introduce(), generators));
+string escape(const string &orig, bool html) {
+  string repchars = "\\&\"\'<>";
+  vector<string> repstrs;
+  if (html)
+    repstrs = {"\\", "&amp;", "&quot;", "&apos;", "&lt;", "&gt;"};
+  else
+    repstrs = {"\\\\", "&", "\\\"", "'", "<", ">"};
 
+  stringstream out;
+  size_t last = 0;
+  size_t found = orig.find_first_of(repchars);
+  while (found != string::npos) {
+    out << orig.substr(last, found - last);
+    for (size_t i = 0; i < repchars.size(); i++) {
+      if (orig[found] == repchars[i]) {
+        out << repstrs[i];
+        break;
+      }
+    }
+    last = found + 1;
+    found = orig.find_first_of(repchars, found + 1);
+  }
+  out << orig.substr(last);
+  return out.str();
+}
+
+string join(const vector<string> &strs, const string &sep, bool quote = false) {
+  std::stringstream ss;
+  for (size_t i = 0; i < strs.size(); i++) {
+    if (i)
+      ss << sep;
+    if(quote) {
+      ss << "\"" << strs[i] << "\"";
+    } else {
+      ss << strs[i];
+    }
+  }
+  return ss.str();
+}
+
+string getTermTypeString(vector<string>& gens, vector<string>& coefs, Expression* var) {
   const string minor_sep = "|";
-
   Location loc = var->loc();
-  {
-    std::stringstream ss;
-    ss << loc.filename() << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
-      << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << minor_sep;
-    args.push_back(new StringLit(Location().introduce(), ss.str()));
-  }
 
-  args.push_back(new ArrayLit(Location().introduce(), coefs));
-  {
-    stringstream ss;
-    ss << *var;
-    args.push_back(new StringLit(Location().introduce(), ss.str()));
-  }
+  stringstream ss;
+  ss << "\n    {\n";
+  ss << "      \"variable\": \"" << *var << "\",\n";
+  ss << "      \"coefficients\": [" << join(coefs, ", ", true) << "],\n";
+  ss << "      \"generators\": [" << join(gens, ", ", true) << "],\n";
+  ss << "      \"location\": \""
+    << escape(loc.filename().c_str(), false)
+    << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
+    << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn()
+    << "\"\n";
+  ss << "    }";
 
-  std::cerr
-    << "TERM: Location:   " << *args[1] << "\n"
-    << "      Generators: " << *args[0] << "\n"
-    << "      Coefs:      " << *args[2] << "\n"
-    << "      Variable:   " << *args[3] << "\n";
+  return ss.str();
 }
 
 struct StackFrame {
@@ -55,12 +86,13 @@ struct StackFrame {
     : gen_idx{ g }, coef_idx{ c }, e{ exp } {}
 };
 
-void addTermAnnotations(EnvI& envi, SolveI* si,
-  unordered_map<Id*, Expression*>& assigns, Expression* root) {
+string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
+  vector<string> term_strings;
+
   // For now just support:
   // sum(gens where clauses) (coef1 * var1 + coef2 * var2)
-  vector<Expression*> gens;
-  vector<Expression*> coefs;
+  vector<string> gens;
+  vector<string> coefs;
 
   vector<StackFrame> stack;
   stack.emplace_back(0,0,root);
@@ -85,24 +117,24 @@ void addTermAnnotations(EnvI& envi, SolveI* si,
             stringstream ss;
             VarDecl* idx = co->decl(i, j);
             ss << *idx->id() << " in " << *in;
-            gens.push_back(new StringLit(Location().introduce(), ss.str()));
+            gens.push_back(ss.str());
           }
         }
         stack.emplace_back(gens.size(), coefs.size(), co->e());
       } else {
-        buildAnnotation(envi, gens, coefs, call);
+        term_strings.push_back(getTermTypeString(gens, coefs, call));
       }
     } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_MULT) {
         if (bo->lhs()->type().isPar()) {
           stringstream ss;
           ss << *bo->lhs();
-          coefs.push_back(new StringLit(Location().introduce(), ss.str()));
+          coefs.push_back(ss.str());
           stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
         } else {
           stringstream ss;
           ss << *bo->rhs();
-          coefs.push_back(new StringLit(Location().introduce(), ss.str()));
+          coefs.push_back(ss.str());
           stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
         }
       } else if (bo->op() == BOT_PLUS) {
@@ -122,21 +154,25 @@ void addTermAnnotations(EnvI& envi, SolveI* si,
         stack.emplace_back(gens.size(), coefs.size(), it->second);
       } else {
         // It is just an ID
-        coefs.push_back(new StringLit(Location().introduce(), id->str()));
-        buildAnnotation(envi, gens, coefs, id);
+        coefs.push_back(id->str().c_str());
+        term_strings.push_back(getTermTypeString(gens, coefs, id));
       }
     } else {
-      buildAnnotation(envi, gens, coefs, frame.e);
+      term_strings.push_back(getTermTypeString(gens, coefs, frame.e));
     }
   }
+
+  // The printing bit
+  stringstream ss;
+  ss << "{\n  \"term_types\": [" << join(term_strings, ", ") << "]\n}\n";
+  return ss.str();
 }
 
-void annotateObjective(EnvI& envi, SolveI* si,
-                       unordered_map<Id*,Expression*>& assigns) {
+string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*,Expression*>& assigns) {
   Expression* obj_e = si->e();
   if(!obj_e) {
     std::cerr << "No objective function" << std::endl;
-    return;
+    return "";
   }
 
   Expression* e = obj_e;
@@ -147,12 +183,12 @@ void annotateObjective(EnvI& envi, SolveI* si,
       if(it != assigns.end()) {
         e = it->second;
       }
-      if(!e) return;
+      if(!e) return "";
     }
   }
-  if(!e) return;
+  if(!e) return "";
 
-  addTermAnnotations(envi, si, assigns, e);
+  return getTermsJSON(assigns, e);
 }
 
 namespace MznData {
@@ -202,13 +238,30 @@ namespace MznData {
     }
 
     // Add coef annotations to objective terms
-    annotateObjective(env.envi(), m->solveItem(), assigns);
+    string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
+
+    // Remove solve item and output
     m->solveItem()->remove();
     m->outputItem()->remove();
     m->compact();
 
-    // Write annotated model to stdout
-    Printer pp(std::cout, 80, false);
-    pp.print(m);
+    // Write term types to json file
+    {
+      string terms_json_path = mzn_paths[0] + ".terms.json";
+      std::cerr << "Writing solveless model to: " << terms_json_path << std::endl;
+      std::ofstream of(terms_json_path);
+      of << terms_json;
+      of.close();
+    }
+
+    // Write model without solve item to file
+    {
+      string clean_model_path = mzn_paths[0] + ".solveless.mzn";
+      std::ofstream of(clean_model_path);
+      std::cerr << "Writing solveless model to: " << clean_model_path << std::endl;
+      Printer pp(of, 80, false);
+      pp.print(m);
+      of.close();
+    }
   }
 };
