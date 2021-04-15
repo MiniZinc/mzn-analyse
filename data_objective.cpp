@@ -195,10 +195,7 @@ string getObjectiveTermsJSON(SolveI *si,
 }
 
 namespace MznData {
-void objective(Model *m) {
-  string mzn_path = m->filepath().c_str();
-  string output_base = mzn_path.substr(0, mzn_path.size() - 4);
-
+void objective(Model *m, string& model_output, string& termtype_output) {
   // Collect functional assignments for objective processing
   unordered_map<Id *, Expression *> assigns;
 
@@ -224,24 +221,23 @@ void objective(Model *m) {
   m->outputItem()->remove();
   m->compact();
 
-  // Write term types to json file
-  {
-    string terms_json_path = output_base + ".terms.json";
-    std::cerr << "Writing solveless model to: " << terms_json_path << std::endl;
-    std::ofstream of(terms_json_path);
-    of << terms_json;
-    of.close();
-  }
-
   // Write model without solve item to file
   {
-    string clean_model_path = output_base + ".solveless.mzn";
-    std::ofstream of(clean_model_path);
-    std::cerr << "Writing solveless model to: " << clean_model_path
+    std::ofstream of(model_output);
+    std::cerr << "Writing solveless model to: " << model_output
               << std::endl;
     Printer pp(of, 80, false);
     pp.print(m);
     of.close();
   }
+
+  // Write term types to json file
+  {
+    std::cerr << "Writing term types to: " << termtype_output << std::endl;
+    std::ofstream of(termtype_output);
+    of << terms_json;
+    of.close();
+  }
+
 }
 }; // namespace MznData

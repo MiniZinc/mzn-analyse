@@ -72,11 +72,9 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
 }
 
 namespace MznData {
-void extract(Model *m) {
+void extract(Model *m, string& out_json) {
   // Collect and write data entries
   string fzn_path = m->filepath().c_str();
-  string output_base = fzn_path.substr(0, fzn_path.size() - 4);
-  string out_json = output_base + ".cons";
   std::cerr << "Writing constraint data to: " << out_json << std::endl;
   std::ofstream out_json_os{out_json};
   out_json_os << "{\"constraint_info\": [\n";

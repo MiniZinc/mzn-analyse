@@ -58,6 +58,9 @@ int main(int argc, char **argv) {
 
   Mode mode = ANNOTATE;
   string mzn_path;
+  string output_1;
+  string output_2;
+
   for (int i = 1; i < argc; i++) {
     if (string(argv[i]) == "annotate") {
       mode = ANNOTATE;
@@ -66,25 +69,46 @@ int main(int argc, char **argv) {
     } else if (string(argv[i]) == "objective") {
       mode = OBJECTIVE;
     } else {
-      if (!mzn_path.empty()) {
-        std::cerr << "Warning ignoring previous path: " << mzn_path
-                  << std::endl;
+      if(mzn_path.empty()) {
+        mzn_path = argv[i];
+      } else if(output_1.empty()) {
+        output_1 = argv[i];
+      } else if(output_2.empty()) {
+        output_2 = argv[i];
+      } else {
+        std::cerr << "mzn_data: Too many arguments" << std::endl;
+        return EXIT_FAILURE;
       }
-      mzn_path = argv[i];
     }
   }
 
   Env env;
-
+  string output_base = mzn_path.substr(0, mzn_path.size() - 4);
   if (mode == ANNOTATE) {
     parse_path(env, mzn_path);
-    annotate(env.envi(), env.model());
+    string annotated_model_path = output_base + "_annotated.mzn";
+    if(!output_1.empty()) {
+      annotated_model_path = output_1;
+    }
+    annotate(env.envi(), env.model(), annotated_model_path);
   } else if (mode == EXTRACT) {
     parse_path(env, mzn_path, true);
-    extract(env.model());
+    string out_json = output_base + ".cons";
+    if(!output_1.empty()) {
+      out_json = output_1;
+    }
+    extract(env.model(), out_json);
   } else if (mode == OBJECTIVE) {
     parse_path(env, mzn_path);
-    objective(env.model());
+    string model_output = output_base + ".solveless.mzn";
+    if(!output_1.empty()) {
+      model_output = output_1;
+    }
+    string json_output = output_base + ".terms.json";
+    if(!output_2.empty()) {
+      json_output = output_2;
+    }
+    objective(env.model(), model_output, json_output);
   }
 
   return EXIT_SUCCESS;

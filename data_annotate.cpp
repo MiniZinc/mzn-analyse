@@ -331,9 +331,7 @@ void annotateWithData(EnvI &envi, Expression *root,
 }
 
 namespace MznData {
-void annotate(EnvI &envi, Model *m) {
-  string mzn_path = m->filepath().c_str();
-  string output_base = mzn_path.substr(0, mzn_path.size() - 4);
+void annotate(EnvI &envi, Model *m, string& annotated_model_path) {
 
   // Collect functional assignments for objective processing
   unordered_map<Id *, Expression *> assigns;
@@ -347,7 +345,6 @@ void annotate(EnvI &envi, Model *m) {
 
   // Write model without solve item to file
   {
-    string annotated_model_path = output_base + "_annotated.mzn";
     std::ofstream of(annotated_model_path);
     std::cerr << "Writing annotated model to: " << annotated_model_path
               << std::endl;
