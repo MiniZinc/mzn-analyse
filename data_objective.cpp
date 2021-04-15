@@ -194,10 +194,19 @@ string getObjectiveTermsJSON(SolveI *si,
   return getTermsJSON(assigns, e);
 }
 
+
 namespace MznData {
 void objective(Model *m, string& model_output, string& termtype_output) {
   // Collect functional assignments for objective processing
   unordered_map<Id *, Expression *> assigns;
+
+  class AnnotationRemover : public EVisitor {
+    public:
+    bool enter(Expression* e) {
+      e->ann().removeCall(ASTString("data"));
+      return true;
+    }
+  } remover;
 
   // Add data annotations
   for (ConstraintI &ci : m->constraints()) {
@@ -211,6 +220,7 @@ void objective(Model *m, string& model_output, string& termtype_output) {
         }
       }
     }
+    top_down(remover, ci.e());
   }
 
   // Add coef annotations to objective terms
