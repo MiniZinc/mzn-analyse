@@ -7,12 +7,29 @@ include(cmake-helpers/configure_cpp_14.cmake)
 message("-- Configuring: libminzinc")
 include(cmake-helpers/configure_libminizinc.cmake)
 
-add_executable(mzn_data mzn_data.cpp
-  data_annotate.cpp
-  data_extract.cpp
-  data_objective.cpp
-  inline_includes.cpp
-  )
-target_link_libraries(mzn_data mzn ${CMAKE_THREAD_LIBS_INIT})
+add_executable(mzn_tool mzn_tool.cpp
+  lib/tool_pass.cpp
+  lib/pass_annotate_data_deps.cpp
+  lib/pass_inline_includes.cpp
+  lib/pass_remove_stdlib.cpp
+  lib/pass_remove_solve.cpp
+  lib/pass_remove_output.cpp
+  lib/pass_remove_annotations.cpp
+  lib/pass_get_term_types.cpp
+  lib/pass_get_data_deps.cpp
 
-include(format.cmake)
+  include/tool_pass.hh
+  include/pass_annotate_data_deps.hh
+  include/pass_inline_includes.hh
+  include/pass_remove_stdlib.hh
+  include/pass_remove_solve.hh
+  include/pass_remove_output.hh
+  include/pass_remove_annotations.hh
+  include/pass_get_term_types.hh
+  include/pass_get_data_deps.hh
+  )
+
+target_include_directories(mzn_tool PRIVATE include)
+target_link_libraries(mzn_tool mzn ${CMAKE_THREAD_LIBS_INIT})
+
+include(cmake-helpers/format.cmake)

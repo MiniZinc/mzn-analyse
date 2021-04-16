@@ -1,3 +1,5 @@
+#include "pass_get_data_deps.hh"
+
 #include <algorithm>
 #include <fstream>
 #include <iostream>
@@ -71,12 +73,15 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
   return os;
 }
 
-namespace MznData {
-void extract(Model *m, string& out_json) {
+GetDataDeps::GetDataDeps(const std::string& out_path) : output_path{out_path} {}
+
+MiniZinc::Env* GetDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
+  Model* m = e->model();
   // Collect and write data entries
   string fzn_path = m->filepath().c_str();
-  std::cerr << "Writing constraint data to: " << out_json << std::endl;
-  std::ofstream out_json_os{out_json};
+
+  std::cerr << "Writing constraint data to: " << output_path << std::endl;
+  std::ofstream out_json_os{output_path};
   out_json_os << "{\"constraint_info\": [\n";
 
   bool first = true;
@@ -101,11 +106,5 @@ void extract(Model *m, string& out_json) {
   out_json_os << "]}" << std::endl;
   out_json_os.close();
 
-  // Write clean fzn file
-  std::cerr << "Overwriting original fzn." << std::endl;
-  std::ofstream out_fzn_os{fzn_path};
-  Printer p(out_fzn_os, 0, true);
-  p.print(m);
-  out_fzn_os.close();
+  return e;
 }
-}; // namespace MznData

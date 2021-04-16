@@ -1,3 +1,5 @@
+#include "pass_get_term_types.hh"
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -194,19 +196,12 @@ string getObjectiveTermsJSON(SolveI *si,
   return getTermsJSON(assigns, e);
 }
 
+GetTermTypes::GetTermTypes(const std::string& out_path) : output_path{out_path} {}
 
-namespace MznData {
-void objective(Model *m, string& model_output, string& termtype_output) {
+MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
   // Collect functional assignments for objective processing
+  Model* m = e->model();
   unordered_map<Id *, Expression *> assigns;
-
-  class AnnotationRemover : public EVisitor {
-    public:
-    bool enter(Expression* e) {
-      e->ann().removeCall(ASTString("data"));
-      return true;
-    }
-  } remover;
 
   // Add data annotations
   for (ConstraintI &ci : m->constraints()) {
@@ -220,34 +215,18 @@ void objective(Model *m, string& model_output, string& termtype_output) {
         }
       }
     }
-    top_down(remover, ci.e());
   }
 
   // Add coef annotations to objective terms
   string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
 
-  // Remove solve item and output
-  m->solveItem()->remove();
-  m->outputItem()->remove();
-  m->compact();
-
-  // Write model without solve item to file
-  {
-    std::ofstream of(model_output);
-    std::cerr << "Writing solveless model to: " << model_output
-              << std::endl;
-    Printer pp(of, 80, false);
-    pp.print(m);
-    of.close();
-  }
-
   // Write term types to json file
   {
-    std::cerr << "Writing term types to: " << termtype_output << std::endl;
-    std::ofstream of(termtype_output);
+    std::cerr << "Writing term types to: " << output_path << std::endl;
+    std::ofstream of(output_path);
     of << terms_json;
     of.close();
   }
 
+  return e;
 }
-}; // namespace MznData

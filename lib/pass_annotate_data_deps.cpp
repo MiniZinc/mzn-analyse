@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "pass_annotate_data_deps.hh"
+
 #include <minizinc/astiterator.hh>
 #include <minizinc/copy.hh>
 #include <minizinc/file_utils.hh>
@@ -182,8 +184,7 @@ void pushVec(size_t depth, std::vector<Frame> &stack, ASTExprVec<E> v) {
   }
 }
 
-void annotateWithData(EnvI &envi, Expression *root,
-                      unordered_map<Id *, Expression *> &assigns) {
+void annotateWithData(EnvI &envi, Expression *root) {
   std::vector<Frame> stack;
   stack.emplace_back(0, root);
 
@@ -290,16 +291,6 @@ void annotateWithData(EnvI &envi, Expression *root,
       // Collect functional assignments
       {
         BinOp *bo = e->template cast<BinOp>();
-
-        if (bo->op() == BOT_EQ) {
-          if (Id *lhe = bo->lhs()->dynamicCast<Id>()) {
-            assigns[lhe->decl()->id()] = bo->rhs();
-          }
-          if (Id *rhe = bo->rhs()->dynamicCast<Id>()) {
-            assigns[rhe->decl()->id()] = bo->lhs();
-          }
-        }
-
         stack.emplace_back(depth + 1, bo->rhs());
         stack.emplace_back(depth + 1, bo->lhs());
       }
@@ -330,27 +321,17 @@ void annotateWithData(EnvI &envi, Expression *root,
   }
 }
 
-namespace MznData {
-void annotate(EnvI &envi, Model *m, string& annotated_model_path) {
+AnnotateDataDeps::AnnotateDataDeps() {}
 
-  // Collect functional assignments for objective processing
-  unordered_map<Id *, Expression *> assigns;
-
+MiniZinc::Env* AnnotateDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
   // Add data annotations
+  Model* m = e->model();
   for (ConstraintI &ci : m->constraints()) {
-    annotateWithData(envi, ci.e(), assigns);
+    annotateWithData(e->envi(), ci.e());
   }
   m->addItem(construct_data_ann(1));
   m->addItem(construct_data_ann(2));
+  m->compact();
 
-  // Write model without solve item to file
-  {
-    std::ofstream of(annotated_model_path);
-    std::cerr << "Writing annotated model to: " << annotated_model_path
-              << std::endl;
-    Printer pp(of, 80, false);
-    pp.print(m);
-    of.close();
-  }
+  return e;
 }
-}; // namespace MznData

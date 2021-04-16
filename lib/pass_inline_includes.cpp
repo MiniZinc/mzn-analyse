@@ -12,25 +12,24 @@
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
 
+#include "pass_inline_includes.hh"
+
 using namespace MiniZinc;
 using std::string;
 using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
-bool isStandardInclude(IncludeI& ii) {
-  string filename = ii.f().c_str();
-  return filename == "solver_redefinitions.mzn"
-    || filename == "stdlib.mzn";
-}
 bool isLocalInclude(IncludeI& ii) {
   string mzn_stdlib_dir = FileUtils::share_directory();
   string filepath = ii.m()->filepath().c_str();
   return !filepath.rfind(mzn_stdlib_dir, 0) == 0;
 }
 
-namespace MznData {
-void inline_local_includes(MiniZinc::Model *model, std::string& output) {
+InlineIncludes::InlineIncludes() {}
+
+Env* InlineIncludes::run(Env* e, std::ostream& log) {
+  Model* model = e->model();
   // Collect functional assignments for objective processing
   unordered_map<Id *, Expression *> assigns;
 
@@ -39,9 +38,7 @@ void inline_local_includes(MiniZinc::Model *model, std::string& output) {
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     if(IncludeI *ii = item->dynamicCast<IncludeI>()) {
-      if(isStandardInclude(*ii)) {
-        ii->remove();
-      } else if(isLocalInclude(*ii)) {
+      if(isLocalInclude(*ii)) {
         ii->remove();
         Model* im = ii->m();
         for(size_t j = 0; j < im->size(); j++) {
@@ -51,14 +48,5 @@ void inline_local_includes(MiniZinc::Model *model, std::string& output) {
     }
   }
   model->compact();
-
-  {
-    std::ofstream of(output);
-    std::cerr << "Writing model with inlined local includes to: " << output
-              << std::endl;
-    Printer pp(of, 80, false);
-    pp.print(model);
-    of.close();
-  }
+  return e;
 }
-}; // namespace MznData
