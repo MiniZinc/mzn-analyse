@@ -34,7 +34,6 @@ void inline_local_includes(MiniZinc::Model *model, std::string& output) {
     Item* item = model->operator[](i);
     if(IncludeI *ii = item->dynamicCast<IncludeI>()) {
       if(isLocalInclude(*ii)) {
-        std::cerr << "Local: ii->m()->filepath() = " << ii->m()->filepath() << std::endl;
         ii->remove();
         Model* im = ii->m();
         for(size_t j = 0; j < im->size(); j++) {
@@ -46,14 +45,12 @@ void inline_local_includes(MiniZinc::Model *model, std::string& output) {
   model->compact();
 
   {
-    //std::ofstream of(output);
+    std::ofstream of(output);
     std::cerr << "Writing model with inlined local includes to: " << output
               << std::endl;
-    Printer pp(std::cout, 80, false);
+    Printer pp(of, 80, false);
     pp.print(model);
-    // Printer pp(of, 80, false);
-    // pp.print(m);
-    // of.close();
+    of.close();
   }
 }
 }; // namespace MznData
