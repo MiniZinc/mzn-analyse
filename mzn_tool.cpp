@@ -8,8 +8,7 @@
 #include "pass_get_term_types.hh"
 #include "pass_inline_includes.hh"
 #include "pass_remove_annotations.hh"
-#include "pass_remove_output.hh"
-#include "pass_remove_solve.hh"
+#include "pass_remove_items.hh"
 #include "pass_remove_stdlib.hh"
 #include "tool_pass.hh"
 
@@ -70,7 +69,7 @@ int main(int argc, char **argv) {
   //        0         1      2         3           4
   // mzn_tool  annotate in.mzn [out.mzn]
   // mzn_tool get_terms in.mzn [out.mzn] [out.terms]
-  // mzn_tool   extract in.fzn [out.fzn] [out.cons]
+  // mzn_tool  get_data in.fzn [out.fzn]  [out.cons]
 
   if (argc < 3) {
     std::cerr << "Incorrect number of arguments\n";
@@ -109,8 +108,7 @@ int main(int argc, char **argv) {
 
     passes.emplace_back(new GetTermTypes(extra_arg));
     passes.emplace_back(new RemoveAnnotations("data"));
-    passes.emplace_back(new RemoveSolve());
-    passes.emplace_back(new RemoveOutput());
+    passes.emplace_back(new RemoveItems({Item::II_SOL, Item::II_OUT}));
   } else if (cmd == "get_data") {
     if (!is_fzn) {
       std::cerr << "get_data must take a fzn file as input" << std::endl;
