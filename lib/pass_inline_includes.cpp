@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -20,24 +21,19 @@ using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
-bool isLocalInclude(IncludeI &ii) {
-  string mzn_stdlib_dir = FileUtils::share_directory();
-  string filepath = ii.m()->filepath().c_str();
-  return filepath.rfind(mzn_stdlib_dir, 0) != 0;
-}
-
-InlineIncludes::InlineIncludes() {}
+InlineIncludes::InlineIncludes(bool lo) : local_only{lo} {}
 
 Env *InlineIncludes::run(Env *e, std::ostream &log) {
   Model *model = e->model();
-  // Collect functional assignments for objective processing
-  unordered_map<Id *, Expression *> assigns;
+  string mzn_stdlib_dir = FileUtils::file_path(FileUtils::share_directory());
 
   // Add data annotations
   for (size_t i = 0; i < model->size(); i++) {
     Item *item = model->operator[](i);
     if (IncludeI *ii = item->dynamicCast<IncludeI>()) {
-      if (isLocalInclude(*ii)) {
+      string filepath = ii->m()->filepath().c_str();
+      if (local_only && filepath.rfind(mzn_stdlib_dir, 0) != 0) {
+
         ii->remove();
         Model *im = ii->m();
         for (size_t j = 0; j < im->size(); j++) {
