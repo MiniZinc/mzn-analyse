@@ -94,10 +94,11 @@ MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
       out_json_os << ",\n";
     }
 
-    for (Call *ca = ci.e()->ann().getCall(ASTString("data")); ca != nullptr;
-         ca = ci.e()->ann().getCall(ASTString("data"))) {
-      entries.push_back(ca);
-      ci.e()->ann().remove(ca);
+    for (Expression *ann_e : ci.e()->ann()) {
+      Call *ca = ann_e->dynamicCast<Call>();
+      if (ca && ca->id() == "data") {
+        entries.push_back(ca);
+      }
     }
 
     out_json_os << "  " << entries;

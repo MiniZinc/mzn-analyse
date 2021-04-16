@@ -2,6 +2,7 @@
 
 #include <minizinc/astiterator.hh>
 #include <minizinc/model.hh>
+#include <minizinc/prettyprinter.hh>
 #include <string>
 #include <vector>
 
@@ -9,9 +10,8 @@ using namespace MiniZinc;
 using std::string;
 using std::vector;
 
-RemoveAnnotations::RemoveAnnotations(std::string a) { ann_names.push_back(a); }
-
-RemoveAnnotations::RemoveAnnotations(std::vector<string> &as) : ann_names{as} {}
+RemoveAnnotations::RemoveAnnotations(const std::vector<string> &as)
+    : ann_names{as} {}
 
 MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
   Model *m = e->model();
@@ -23,10 +23,18 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
   public:
     AnnotationRemover(vector<string> &as) : ann_names{as} {}
     bool enter(Expression *e) {
-      for (string &name : ann_names) {
-        if (Expression *ann_e = MiniZinc::get_annotation(e->ann(), name)) {
-          e->ann().remove(ann_e);
+      vector<Expression *> toRemove;
+      for (Expression *ann_e : e->ann()) {
+        for (string &name : ann_names) {
+          if ((ann_e->isa<Id>() && ann_e->cast<Id>()->str() == name) ||
+              (ann_e->isa<Call>() && ann_e->cast<Call>()->id() == name)) {
+            toRemove.push_back(ann_e);
+            break;
+          }
         }
+      }
+      for (Expression *ann_e : toRemove) {
+        e->ann().remove(ann_e);
       }
       return true;
     }

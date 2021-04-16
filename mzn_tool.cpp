@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     }
 
     passes.emplace_back(new GetTermTypes(extra_arg));
-    passes.emplace_back(new RemoveAnnotations("data"));
+    passes.emplace_back(new RemoveAnnotations({"data"}));
     passes.emplace_back(new RemoveItems({Item::II_SOL, Item::II_OUT}));
   } else if (cmd == "get_data") {
     if (!is_fzn) {
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
       extra_arg = output_base + ".cons";
     }
     passes.emplace_back(new GetDataDeps(extra_arg));
-    passes.emplace_back(new RemoveAnnotations("data"));
+    passes.emplace_back(new RemoveAnnotations({"data"}));
   } else {
     std::cerr << "Unknown command: " << cmd << std::endl;
     std::cerr << "  valid commands are: annotate, get_terms, get_data"
