@@ -4,7 +4,7 @@
 
 #include <string>
 
-class GetTermTypes : public ToolPass {
+class GetTermTypes : public MiniZinc::Pass {
 private:
   std::string output_path;
 

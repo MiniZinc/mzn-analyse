@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-class RemoveStdlib : public ToolPass {
+class RemoveStdlib : public MiniZinc::Pass {
 
 public:
   RemoveStdlib();

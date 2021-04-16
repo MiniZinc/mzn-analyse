@@ -12,9 +12,9 @@
 using MiniZinc::Env;
 using MiniZinc::Timer;
 
-Env *multiPassFlatten(Env &e,
-                      const std::vector<std::unique_ptr<ToolPass>> &passes,
-                      std::ostream &_log) {
+Env *multiPassFlatten(
+    Env &e, const std::vector<std::unique_ptr<MiniZinc::Pass>> &passes,
+    std::ostream &_log) {
   Env *pre_env = &e;
   size_t npasses = passes.size();
   pre_env->envi().finalPassNumber = static_cast<unsigned int>(npasses);

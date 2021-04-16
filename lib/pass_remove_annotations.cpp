@@ -24,7 +24,9 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
     AnnotationRemover(vector<string> &as) : ann_names{as} {}
     bool enter(Expression *e) {
       for (string &name : ann_names) {
-        e->ann().removeCall(ASTString(name));
+        if (Expression *ann_e = MiniZinc::get_annotation(e->ann(), name)) {
+          e->ann().remove(ann_e);
+        }
       }
       return true;
     }

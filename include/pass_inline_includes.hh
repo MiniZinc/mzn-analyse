@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-class InlineIncludes : public ToolPass {
+class InlineIncludes : public MiniZinc::Pass {
 private:
   bool local_only;
 

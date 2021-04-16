@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-class AnnotateDataDeps : public ToolPass {
+class AnnotateDataDeps : public MiniZinc::Pass {
 
 public:
   AnnotateDataDeps();

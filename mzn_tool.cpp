@@ -59,7 +59,7 @@ void parse_path(Env &env, string &mzn_path, bool is_fzn) {
 }
 
 int main(int argc, char **argv) {
-  vector<unique_ptr<ToolPass>> passes;
+  vector<unique_ptr<MiniZinc::Pass>> passes;
 
   if (argc == 1) {
     std::cerr << "Incorrect number of arguments" << std::endl;

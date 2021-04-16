@@ -4,7 +4,7 @@
 
 #include <string>
 
-class GetDataDeps : public ToolPass {
+class GetDataDeps : public MiniZinc::Pass {
 private:
   std::string output_path;
 

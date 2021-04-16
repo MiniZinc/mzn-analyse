@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-class RemoveItems : public ToolPass {
+class RemoveItems : public MiniZinc::Pass {
 private:
   std::vector<MiniZinc::Item::ItemId> item_types;
 
