@@ -222,7 +222,9 @@ MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
   string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
 
   // Write term types to json file
-  {
+  if(output_path == "-") {
+    std::cout << terms_json;
+  } else {
     std::cerr << "Writing term types to: " << output_path << std::endl;
     std::ofstream of(output_path);
     of << terms_json;

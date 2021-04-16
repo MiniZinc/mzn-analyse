@@ -73,17 +73,8 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
   return os;
 }
 
-GetDataDeps::GetDataDeps(const std::string &out_path) : output_path{out_path} {}
-
-MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
-  Model *m = e->model();
-  // Collect and write data entries
-  string fzn_path = m->filepath().c_str();
-
-  std::cerr << "Writing constraint data to: " << output_path << std::endl;
-  std::ofstream out_json_os{output_path};
-  out_json_os << "{\"constraint_info\": [\n";
-
+void write_data_deps(Model* m, ostream& os) {
+  os << "{\"constraint_info\": [\n";
   bool first = true;
   for (ConstraintI &ci : m->constraints()) {
     vector<Call *> entries;
@@ -91,7 +82,7 @@ MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
     if (first) {
       first = false;
     } else {
-      out_json_os << ",\n";
+      os << ",\n";
     }
 
     for (Expression *ann_e : ci.e()->ann()) {
@@ -101,11 +92,26 @@ MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
       }
     }
 
-    out_json_os << "  " << entries;
+    os << "  " << entries;
   }
+  os << "]}" << std::endl;
+}
 
-  out_json_os << "]}" << std::endl;
-  out_json_os.close();
+GetDataDeps::GetDataDeps(const std::string &out_path) : output_path{out_path} {}
+
+MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
+  Model *m = e->model();
+  // Collect and write data entries
+  string fzn_path = m->filepath().c_str();
+
+  if (output_path == "-") {
+    write_data_deps(m, std::cout);
+  } else {
+    std::cerr << "Writing constraint data to: " << output_path << std::endl;
+    std::ofstream out_json_os{output_path};
+    write_data_deps(m, out_json_os);
+    out_json_os.close();
+  }
 
   return e;
 }
