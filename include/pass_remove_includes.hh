@@ -1,0 +1,15 @@
+#pragma once
+
+#include "tool_pass.hh"
+#include <string>
+#include <vector>
+
+class RemoveIncludes : public MiniZinc::Pass {
+private:
+  std::vector<std::string> includes;
+
+public:
+  RemoveIncludes(const std::vector<std::string> &is);
+
+  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
+};

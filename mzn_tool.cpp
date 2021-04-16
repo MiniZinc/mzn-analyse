@@ -8,8 +8,8 @@
 #include "pass_get_term_types.hh"
 #include "pass_inline_includes.hh"
 #include "pass_remove_annotations.hh"
+#include "pass_remove_includes.hh"
 #include "pass_remove_items.hh"
-#include "pass_remove_stdlib.hh"
 #include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
@@ -128,7 +128,8 @@ int main(int argc, char **argv) {
               << std::endl;
     return EXIT_FAILURE;
   }
-  passes.emplace_back(new RemoveStdlib());
+  passes.emplace_back(
+      new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"}));
 
   GCLock lock;
   Env env;
