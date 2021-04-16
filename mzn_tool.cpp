@@ -22,6 +22,23 @@ using std::string;
 using std::unique_ptr;
 using std::vector;
 
+vector<string> split(const string &str, char delim, bool include_empty) {
+  std::stringstream ss;
+  ss.str(str);
+  std::string item;
+
+  vector<string> result;
+
+  auto inserter = std::back_inserter(result);
+
+  while (std::getline(ss, item, delim)) {
+    if (!item.empty() || include_empty)
+      *(inserter++) = item;
+  }
+
+  return result;
+}
+
 void parse_path(Env &env, string &mzn_path, bool is_fzn) {
   vector<string> includes;
 
@@ -59,43 +76,40 @@ void parse_path(Env &env, string &mzn_path, bool is_fzn) {
 }
 
 void print_usage() {
-  std::cout
-    << " usage:\n"
-    << "   mzn_tool  sequence in out [passes...]          \n"
-    << "   mzn_tool  annotate in.mzn [out.mzn]            \n"
-    << "   mzn_tool get_terms in.mzn [out.mzn] [out.terms]\n"
-    << "   mzn_tool  get_data in.fzn [out.fzn] [out.cons] \n";
+  std::cout << " usage:\n"
+            << "   mzn_tool  sequence in out [passes...]          \n"
+            << "   mzn_tool  annotate in.mzn [out.mzn]            \n"
+            << "   mzn_tool get_terms in.mzn [out.mzn] [out.terms]\n"
+            << "   mzn_tool  get_data in.fzn [out.fzn] [out.cons] \n";
 
-  std::cout
-    << "\n"
-    << "   annotate => inline-includes                    \n"
-    << "               annotate-data-deps                 \n"
-    << "   get_terms => get-term-types out.terms          \n"
-    << "                remove-anns data end              \n"
-    << "                remove-items solve output end     \n"
-    << "   get_data => get-data-deps out.cons             \n"
-    << "               remove-anns data end               \n";
+  std::cout << "\n"
+            << "   annotate => inline-includes\n"
+            << "               annotate-data-deps\n"
+            << "   get_terms => get-term-types out.terms\n"
+            << "                remove-anns data\n"
+            << "                remove-items solve output\n"
+            << "   get_data => get-data-deps out.cons\n"
+            << "               remove-anns data\n";
 
-  std::cout
-    << "\n"
-    << " passes:\n"
-    << "   inline-includes\n"
-    << "     Inline non-library includes\n"
-    << "   remove-anns name1 [name2...] end \n"
-    << "     Remove Id and Call annotations matching names\n"
-    << "   remove-includes name1 [name2...] end\n"
-    << "     Remove includes matching names\n"
-    << "   remove-items iid1 [iid2...] end\n"
-    << "     Remove items matching iids\n"
-    << "\n"
-    << "   annotate-data-deps\n"
-    << "     Annotate expressions with their data dependencies\n"
-    << "   get-term-types out.terms\n"
-    << "     Write .terms file with types of objective terms\n"
-    << "   get-data-deps out.cons (FlatZinc only)\n"
-    << "     Write .cons file with data dependenceis of\n"
-    << "     FlatZinc constraints\n"
-    << "\n";
+  std::cout << "\n"
+            << " passes:\n"
+            << "   inline-includes\n"
+            << "     Inline non-library includes\n"
+            << "   remove-anns name1,[name2,...]\n"
+            << "     Remove Id and Call annotations matching names\n"
+            << "   remove-includes name1,[name2,...]\n"
+            << "     Remove includes matching names\n"
+            << "   remove-items iid1,[iid2,...]\n"
+            << "     Remove items matching iids\n"
+            << "\n"
+            << "   annotate-data-deps\n"
+            << "     Annotate expressions with their data dependencies\n"
+            << "   get-term-types out.terms\n"
+            << "     Write .terms file with types of objective terms\n"
+            << "   get-data-deps out.cons (FlatZinc only)\n"
+            << "     Write .cons file with data dependenceis of\n"
+            << "     FlatZinc constraints\n"
+            << "\n";
 }
 
 int main(int argc, char **argv) {
@@ -144,26 +158,21 @@ int main(int argc, char **argv) {
         string arg = argv[++i];
         passes.emplace_back(new GetDataDeps(arg));
       } else if (seq_cmd == "remove-anns") {
-        string ann = argv[++i];
         vector<string> args;
-        while (ann != "end") {
+        for(string& ann : split(argv[++i], ',', false)) {
           args.push_back(ann);
-          ann = argv[++i];
         }
         passes.emplace_back(new RemoveAnnotations(args));
       } else if (seq_cmd == "remove-includes") {
-        string inc = argv[++i];
         vector<string> args;
-        while (inc != "end") {
+        for(string& inc : split(argv[++i], ',', false)) {
           args.push_back(inc);
-          inc = argv[++i];
         }
         passes.emplace_back(new RemoveIncludes(args));
       } else if (seq_cmd == "remove-items") {
-        string item = argv[++i];
         vector<Item::ItemId> args;
         Item::ItemId iid = Item::II_SOL;
-        while (item != "end") {
+        for(string& item : split(argv[++i], ',', false)) {
           if (item == "include") {
             iid = Item::II_INC;
           } else if (item == "vardecl") {
@@ -184,7 +193,6 @@ int main(int argc, char **argv) {
             return EXIT_FAILURE;
           }
           args.push_back(iid);
-          item = argv[++i];
         }
         passes.emplace_back(new RemoveItems(args));
       } else {
@@ -239,10 +247,15 @@ int main(int argc, char **argv) {
 
   Env *out_env = multiPassFlatten(env, passes, std::cerr);
 
-  std::cerr << "Writing output to: " << out_path << std::endl;
-  std::ofstream of(out_path);
-  Printer pp(of, is_fzn ? 0 : 80, is_fzn);
-  pp.print(out_env->model());
+  if(out_path != "-") {
+    std::cerr << "Writing output to: " << out_path << std::endl;
+    std::ofstream of(out_path);
+    Printer pp(of, is_fzn ? 0 : 80, is_fzn);
+    pp.print(out_env->model());
+  } else {
+    Printer pp(std::cout, is_fzn ? 0 : 80, is_fzn);
+    pp.print(out_env->model());
+  }
 
   return EXIT_SUCCESS;
 }
