@@ -61,27 +61,31 @@ int main(int argc, char **argv) {
   string output_1;
   string output_2;
 
-  for (int i = 1; i < argc; i++) {
-    if (string(argv[i]) == "annotate") {
-      mode = ANNOTATE;
-    } else if (string(argv[i]) == "extract") {
-      mode = EXTRACT;
-    } else if (string(argv[i]) == "objective") {
-      mode = OBJECTIVE;
-    } else if (string(argv[i]) == "inline-includes" ||
-               string(argv[i]) == "ii") {
-      mode = INLINE_LOCAL_INCLUDES;
+  int cmd_idx = 1;
+  if (string(argv[cmd_idx]) == "annotate") {
+    mode = ANNOTATE;
+  } else if (string(argv[cmd_idx]) == "extract") {
+    mode = EXTRACT;
+  } else if (string(argv[cmd_idx]) == "objective") {
+    mode = OBJECTIVE;
+  } else if (string(argv[cmd_idx]) == "inline-includes" ||
+             string(argv[cmd_idx]) == "ii") {
+    mode = INLINE_LOCAL_INCLUDES;
+  } else {
+    std::cerr << "mzn_data: Unknown command: " << argv[cmd_idx] << std::endl;
+    return EXIT_FAILURE;
+  }
+
+  for (int i = 2; i < argc; i++) {
+    if(mzn_path.empty()) {
+      mzn_path = argv[i];
+    } else if(output_1.empty()) {
+      output_1 = argv[i];
+    } else if(output_2.empty()) {
+      output_2 = argv[i];
     } else {
-      if(mzn_path.empty()) {
-        mzn_path = argv[i];
-      } else if(output_1.empty()) {
-        output_1 = argv[i];
-      } else if(output_2.empty()) {
-        output_2 = argv[i];
-      } else {
-        std::cerr << "mzn_data: Too many arguments" << std::endl;
-        return EXIT_FAILURE;
-      }
+      std::cerr << "mzn_data: Too many arguments" << std::endl;
+      return EXIT_FAILURE;
     }
   }
 

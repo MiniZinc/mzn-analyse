@@ -18,6 +18,11 @@ using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
+bool isStandardInclude(IncludeI& ii) {
+  string filename = ii.f().c_str();
+  return filename == "solver_redefinitions.mzn"
+    || filename == "stdlib.mzn";
+}
 bool isLocalInclude(IncludeI& ii) {
   string mzn_stdlib_dir = FileUtils::share_directory();
   string filepath = ii.m()->filepath().c_str();
@@ -30,10 +35,13 @@ void inline_local_includes(MiniZinc::Model *model, std::string& output) {
   unordered_map<Id *, Expression *> assigns;
 
   // Add data annotations
+  size_t orig_size = model->size();
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     if(IncludeI *ii = item->dynamicCast<IncludeI>()) {
-      if(isLocalInclude(*ii)) {
+      if(isStandardInclude(*ii)) {
+        ii->remove();
+      } else if(isLocalInclude(*ii)) {
         ii->remove();
         Model* im = ii->m();
         for(size_t j = 0; j < im->size(); j++) {
