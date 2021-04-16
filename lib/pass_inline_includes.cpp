@@ -23,7 +23,7 @@ using std::vector;
 bool isLocalInclude(IncludeI& ii) {
   string mzn_stdlib_dir = FileUtils::share_directory();
   string filepath = ii.m()->filepath().c_str();
-  return !filepath.rfind(mzn_stdlib_dir, 0) == 0;
+  return filepath.rfind(mzn_stdlib_dir, 0) != 0;
 }
 
 InlineIncludes::InlineIncludes() {}
@@ -34,7 +34,6 @@ Env* InlineIncludes::run(Env* e, std::ostream& log) {
   unordered_map<Id *, Expression *> assigns;
 
   // Add data annotations
-  size_t orig_size = model->size();
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     if(IncludeI *ii = item->dynamicCast<IncludeI>()) {
