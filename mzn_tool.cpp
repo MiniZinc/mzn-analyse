@@ -58,25 +58,58 @@ void parse_path(Env &env, string &mzn_path, bool is_fzn) {
   env.model(m);
 }
 
+void print_usage() {
+  std::cout
+    << " usage:\n"
+    << "   mzn_tool  sequence in out [passes...]          \n"
+    << "   mzn_tool  annotate in.mzn [out.mzn]            \n"
+    << "   mzn_tool get_terms in.mzn [out.mzn] [out.terms]\n"
+    << "   mzn_tool  get_data in.fzn [out.fzn] [out.cons] \n";
+
+  std::cout
+    << "\n"
+    << "   annotate => inline-includes                    \n"
+    << "               annotate-data-deps                 \n"
+    << "   get_terms => get-term-types out.terms          \n"
+    << "                remove-anns data end              \n"
+    << "                remove-items solve output end     \n"
+    << "   get_data => get-data-deps out.cons             \n"
+    << "               remove-anns data end               \n";
+
+  std::cout
+    << "\n"
+    << " passes:\n"
+    << "   inline-includes\n"
+    << "     Inline non-library includes\n"
+    << "   remove-anns name1 [name2...] end \n"
+    << "     Remove Id and Call annotations matching names\n"
+    << "   remove-includes name1 [name2...] end\n"
+    << "     Remove includes matching names\n"
+    << "   remove-items iid1 [iid2...] end\n"
+    << "     Remove items matching iids\n"
+    << "\n"
+    << "   annotate-data-deps\n"
+    << "     Annotate expressions with their data dependencies\n"
+    << "   get-term-types out.terms\n"
+    << "     Write .terms file with types of objective terms\n"
+    << "   get-data-deps out.cons (FlatZinc only)\n"
+    << "     Write .cons file with data dependenceis of\n"
+    << "     FlatZinc constraints\n"
+    << "\n";
+}
+
 int main(int argc, char **argv) {
   vector<unique_ptr<MiniZinc::Pass>> passes;
 
   if (argc == 1) {
     std::cerr << "Incorrect number of arguments" << std::endl;
+    print_usage();
     return EXIT_FAILURE;
   }
 
-  //        0         1      2         3           4
-  // mzn_tool  annotate in.mzn [out.mzn]
-  // mzn_tool  sequence in.mzn out.mzn inline-includes annotate-data-deps
-  // mzn_tool get_terms in.mzn [out.mzn] [out.terms]
-  // mzn_tool  sequence in.mzn out.mzn get-term-types out.terms remove-anns data
-  // end remove-items solve output end mzn_tool  get_data in.fzn [out.fzn]
-  // [out.cons] mzn_tool  sequence in.fzn out.fzn get-data-deps out.cons
-  // remove-anns data end
-
   if (argc < 3) {
     std::cerr << "Incorrect number of arguments\n";
+    print_usage();
     return EXIT_FAILURE;
   }
   string cmd = argv[1];
@@ -147,6 +180,7 @@ int main(int argc, char **argv) {
             iid = Item::II_FUN;
           } else {
             std::cerr << "Unknown item type\n";
+            print_usage();
             return EXIT_FAILURE;
           }
           args.push_back(iid);
@@ -155,6 +189,7 @@ int main(int argc, char **argv) {
         passes.emplace_back(new RemoveItems(args));
       } else {
         std::cerr << "Unknown command: " << seq_cmd << std::endl;
+        print_usage();
         return EXIT_FAILURE;
       }
       i++;
@@ -179,6 +214,7 @@ int main(int argc, char **argv) {
   } else if (cmd == "get_data") {
     if (!is_fzn) {
       std::cerr << "get_data must take a fzn file as input" << std::endl;
+      print_usage();
       return EXIT_FAILURE;
     }
     if (out_path.empty()) {
@@ -191,8 +227,7 @@ int main(int argc, char **argv) {
     passes.emplace_back(new RemoveAnnotations({"data"}));
   } else {
     std::cerr << "Unknown command: " << cmd << std::endl;
-    std::cerr << "  valid commands are: annotate, get_terms, get_data"
-              << std::endl;
+    print_usage();
     return EXIT_FAILURE;
   }
   passes.emplace_back(
