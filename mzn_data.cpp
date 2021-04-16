@@ -17,7 +17,7 @@ using namespace MznData;
 using std::string;
 using std::vector;
 
-enum Mode { ANNOTATE, EXTRACT, OBJECTIVE };
+enum Mode { ANNOTATE, EXTRACT, OBJECTIVE, INLINE_LOCAL_INCLUDES };
 
 void parse_path(Env &env, string &mzn_path, bool is_fzn = false) {
   vector<string> includes;
@@ -68,6 +68,9 @@ int main(int argc, char **argv) {
       mode = EXTRACT;
     } else if (string(argv[i]) == "objective") {
       mode = OBJECTIVE;
+    } else if (string(argv[i]) == "inline-includes" ||
+               string(argv[i]) == "ii") {
+      mode = INLINE_LOCAL_INCLUDES;
     } else {
       if(mzn_path.empty()) {
         mzn_path = argv[i];
@@ -91,6 +94,13 @@ int main(int argc, char **argv) {
       annotated_model_path = output_1;
     }
     annotate(env.envi(), env.model(), annotated_model_path);
+  } else if (mode == INLINE_LOCAL_INCLUDES) {
+    parse_path(env, mzn_path);
+    string inlined_model_path = output_base + "_inlined.mzn";
+    if(!output_1.empty()) {
+      inlined_model_path = output_1;
+    }
+    inline_local_includes(env.model(), inlined_model_path);
   } else if (mode == EXTRACT) {
     parse_path(env, mzn_path, true);
     string out_json = output_base + ".cons";
