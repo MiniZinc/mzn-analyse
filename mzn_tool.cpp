@@ -68,8 +68,12 @@ int main(int argc, char **argv) {
 
   //        0         1      2         3           4
   // mzn_tool  annotate in.mzn [out.mzn]
+  // mzn_tool  sequence in.mzn out.mzn inline-includes annotate-data-deps
   // mzn_tool get_terms in.mzn [out.mzn] [out.terms]
-  // mzn_tool  get_data in.fzn [out.fzn]  [out.cons]
+  // mzn_tool  sequence in.mzn out.mzn get-term-types out.terms remove-anns data
+  // end remove-items solve output end mzn_tool  get_data in.fzn [out.fzn]
+  // [out.cons] mzn_tool  sequence in.fzn out.fzn get-data-deps out.cons
+  // remove-anns data end
 
   if (argc < 3) {
     std::cerr << "Incorrect number of arguments\n";
@@ -92,7 +96,70 @@ int main(int argc, char **argv) {
     extra_arg = argv[4];
   }
 
-  if (cmd == "annotate") {
+  if (cmd == "sequence") {
+    size_t i = 4;
+    while (i < argc) {
+      string seq_cmd = string(argv[i]);
+      if (seq_cmd == "inline-includes") {
+        passes.emplace_back(new InlineIncludes());
+      } else if (seq_cmd == "annotate-data-deps") {
+        passes.emplace_back(new AnnotateDataDeps());
+      } else if (seq_cmd == "get-term-types") {
+        string arg = argv[++i];
+        passes.emplace_back(new GetTermTypes(arg));
+      } else if (seq_cmd == "get-data-deps") {
+        string arg = argv[++i];
+        passes.emplace_back(new GetDataDeps(arg));
+      } else if (seq_cmd == "remove-anns") {
+        string ann = argv[++i];
+        vector<string> args;
+        while (ann != "end") {
+          args.push_back(ann);
+          ann = argv[++i];
+        }
+        passes.emplace_back(new RemoveAnnotations(args));
+      } else if (seq_cmd == "remove-includes") {
+        string inc = argv[++i];
+        vector<string> args;
+        while (inc != "end") {
+          args.push_back(inc);
+          inc = argv[++i];
+        }
+        passes.emplace_back(new RemoveIncludes(args));
+      } else if (seq_cmd == "remove-items") {
+        string item = argv[++i];
+        vector<Item::ItemId> args;
+        Item::ItemId iid = Item::II_SOL;
+        while (item != "end") {
+          if (item == "include") {
+            iid = Item::II_INC;
+          } else if (item == "vardecl") {
+            iid = Item::II_VD;
+          } else if (item == "assign") {
+            iid = Item::II_ASN;
+          } else if (item == "constraint") {
+            iid = Item::II_CON;
+          } else if (item == "solve") {
+            iid = Item::II_SOL;
+          } else if (item == "output") {
+            iid = Item::II_OUT;
+          } else if (item == "function") {
+            iid = Item::II_FUN;
+          } else {
+            std::cerr << "Unknown item type\n";
+            return EXIT_FAILURE;
+          }
+          args.push_back(iid);
+          item = argv[++i];
+        }
+        passes.emplace_back(new RemoveItems(args));
+      } else {
+        std::cerr << "Unknown command: " << seq_cmd << std::endl;
+        return EXIT_FAILURE;
+      }
+      i++;
+    }
+  } else if (cmd == "annotate") {
     if (out_path.empty()) {
       out_path = output_base + ".annotated.mzn";
     }
