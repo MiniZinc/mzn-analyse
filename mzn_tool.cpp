@@ -1,27 +1,27 @@
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <fstream>
 
-#include "tool_pass.hh"
-#include "pass_inline_includes.hh"
-#include "pass_remove_stdlib.hh"
-#include "pass_remove_solve.hh"
-#include "pass_remove_output.hh"
 #include "pass_annotate_data_deps.hh"
-#include "pass_remove_annotations.hh"
-#include "pass_get_term_types.hh"
 #include "pass_get_data_deps.hh"
+#include "pass_get_term_types.hh"
+#include "pass_inline_includes.hh"
+#include "pass_remove_annotations.hh"
+#include "pass_remove_output.hh"
+#include "pass_remove_solve.hh"
+#include "pass_remove_stdlib.hh"
+#include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
-#include <minizinc/solver.hh>
 #include <minizinc/model.hh>
+#include <minizinc/solver.hh>
 
 using namespace MiniZinc;
 
 using std::string;
-using std::vector;
 using std::unique_ptr;
+using std::vector;
 
 void parse_path(Env &env, string &mzn_path, bool is_fzn) {
   vector<string> includes;
@@ -60,9 +60,9 @@ void parse_path(Env &env, string &mzn_path, bool is_fzn) {
 }
 
 int main(int argc, char **argv) {
-  vector<unique_ptr<ToolPass> > passes;
+  vector<unique_ptr<ToolPass>> passes;
 
-  if(argc == 1) {
+  if (argc == 1) {
     std::cerr << "Incorrect number of arguments" << std::endl;
     return EXIT_FAILURE;
   }
@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
   // mzn_tool get_terms in.mzn [out.mzn] [out.terms]
   // mzn_tool   extract in.fzn [out.fzn] [out.cons]
 
-  if(argc < 3) {
+  if (argc < 3) {
     std::cerr << "Incorrect number of arguments\n";
     return EXIT_FAILURE;
   }
@@ -84,26 +84,26 @@ int main(int argc, char **argv) {
   string output_base = in_path.substr(0, in_path.size() - 4);
 
   string out_path;
-  if(argc >= 4) {
+  if (argc >= 4) {
     out_path = argv[3];
   }
 
   string extra_arg;
-  if(argc >= 5) {
+  if (argc >= 5) {
     extra_arg = argv[4];
   }
 
-  if(cmd == "annotate") {
-    if(out_path.empty()) {
+  if (cmd == "annotate") {
+    if (out_path.empty()) {
       out_path = output_base + ".annotated.mzn";
     }
     passes.emplace_back(new InlineIncludes());
     passes.emplace_back(new AnnotateDataDeps());
-  } else if(cmd == "get_terms") {
-    if(out_path.empty()) {
+  } else if (cmd == "get_terms") {
+    if (out_path.empty()) {
       out_path = output_base + ".solveless.mzn";
     }
-    if(extra_arg.empty()) {
+    if (extra_arg.empty()) {
       extra_arg = output_base + ".terms";
     }
 
@@ -111,22 +111,23 @@ int main(int argc, char **argv) {
     passes.emplace_back(new RemoveAnnotations("data"));
     passes.emplace_back(new RemoveSolve());
     passes.emplace_back(new RemoveOutput());
-  } else if(cmd == "get_data") {
-    if(!is_fzn) {
+  } else if (cmd == "get_data") {
+    if (!is_fzn) {
       std::cerr << "get_data must take a fzn file as input" << std::endl;
       return EXIT_FAILURE;
     }
-    if(out_path.empty()) {
+    if (out_path.empty()) {
       out_path = output_base + ".noanns.fzn";
     }
-    if(extra_arg.empty()) {
+    if (extra_arg.empty()) {
       extra_arg = output_base + ".cons";
     }
     passes.emplace_back(new GetDataDeps(extra_arg));
     passes.emplace_back(new RemoveAnnotations("data"));
   } else {
     std::cerr << "Unknown command: " << cmd << std::endl;
-    std::cerr << "  valid commands are: annotate, get_terms, get_data" <<std::endl;
+    std::cerr << "  valid commands are: annotate, get_terms, get_data"
+              << std::endl;
     return EXIT_FAILURE;
   }
   passes.emplace_back(new RemoveStdlib());
@@ -135,7 +136,7 @@ int main(int argc, char **argv) {
   Env env;
   parse_path(env, in_path, is_fzn);
 
-  Env* out_env = multiPassFlatten(env, passes, std::cerr);
+  Env *out_env = multiPassFlatten(env, passes, std::cerr);
 
   std::cerr << "Writing output to: " << out_path << std::endl;
   std::ofstream of(out_path);
@@ -144,4 +145,3 @@ int main(int argc, char **argv) {
 
   return EXIT_SUCCESS;
 }
-

@@ -7,6 +7,5 @@ class RemoveStdlib : public ToolPass {
 public:
   RemoveStdlib();
 
-  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
-

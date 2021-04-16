@@ -196,11 +196,12 @@ string getObjectiveTermsJSON(SolveI *si,
   return getTermsJSON(assigns, e);
 }
 
-GetTermTypes::GetTermTypes(const std::string& out_path) : output_path{out_path} {}
+GetTermTypes::GetTermTypes(const std::string &out_path)
+    : output_path{out_path} {}
 
-MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
+MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
   // Collect functional assignments for objective processing
-  Model* m = e->model();
+  Model *m = e->model();
   unordered_map<Id *, Expression *> assigns;
 
   // Add data annotations

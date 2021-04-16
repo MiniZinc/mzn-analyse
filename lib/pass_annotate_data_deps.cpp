@@ -323,9 +323,9 @@ void annotateWithData(EnvI &envi, Expression *root) {
 
 AnnotateDataDeps::AnnotateDataDeps() {}
 
-MiniZinc::Env* AnnotateDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
+MiniZinc::Env *AnnotateDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
   // Add data annotations
-  Model* m = e->model();
+  Model *m = e->model();
   for (ConstraintI &ci : m->constraints()) {
     annotateWithData(e->envi(), ci.e());
   }

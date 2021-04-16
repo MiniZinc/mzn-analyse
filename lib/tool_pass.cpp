@@ -3,17 +3,19 @@
 #include <minizinc/astiterator.hh>
 #include <minizinc/copy.hh>
 #include <minizinc/file_utils.hh>
+#include <minizinc/flatten.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
-#include <minizinc/flatten.hh>
 #include <minizinc/timer.hh>
 
 using MiniZinc::Env;
 using MiniZinc::Timer;
 
-Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<ToolPass> >& passes, std::ostream& _log) {
-  Env* pre_env = &e;
+Env *multiPassFlatten(Env &e,
+                      const std::vector<std::unique_ptr<ToolPass>> &passes,
+                      std::ostream &_log) {
+  Env *pre_env = &e;
   size_t npasses = passes.size();
   pre_env->envi().finalPassNumber = static_cast<unsigned int>(npasses);
   Timer starttime;
@@ -24,7 +26,7 @@ Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<ToolPass> >& pas
       _log << "Start pass " << i << ":\n";
     }
 
-    Env* out_env = passes[i]->run(pre_env, _log);
+    Env *out_env = passes[i]->run(pre_env, _log);
     if (out_env == nullptr) {
       return nullptr;
     }
@@ -40,4 +42,3 @@ Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<ToolPass> >& pas
 
   return pre_env;
 }
-

@@ -7,6 +7,5 @@ class InlineIncludes : public ToolPass {
 public:
   InlineIncludes();
 
-  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
-

@@ -73,10 +73,10 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
   return os;
 }
 
-GetDataDeps::GetDataDeps(const std::string& out_path) : output_path{out_path} {}
+GetDataDeps::GetDataDeps(const std::string &out_path) : output_path{out_path} {}
 
-MiniZinc::Env* GetDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
-  Model* m = e->model();
+MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
+  Model *m = e->model();
   // Collect and write data entries
   string fzn_path = m->filepath().c_str();
 

@@ -7,6 +7,5 @@ class RemoveOutput : public ToolPass {
 public:
   RemoveOutput();
 
-  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
-

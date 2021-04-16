@@ -9,8 +9,7 @@ private:
   std::string output_path;
 
 public:
-  GetTermTypes(const std::string& out_path);
+  GetTermTypes(const std::string &out_path);
 
-  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
-
