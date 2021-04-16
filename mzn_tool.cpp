@@ -144,6 +144,11 @@ int main(int argc, char **argv) {
   }
 
   if (cmd == "sequence") {
+    if(out_path.empty()) {
+      std::cerr << "Incorrect number of arguments\n";
+      print_usage();
+      return EXIT_FAILURE;
+    }
     size_t i = 4;
     while (i < argc) {
       string seq_cmd = string(argv[i]);
