@@ -10,6 +10,7 @@
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
 #include "pass_remove_items.hh"
+#include "pass_write_model.hh"
 #include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
@@ -21,6 +22,16 @@ using namespace MiniZinc;
 using std::string;
 using std::unique_ptr;
 using std::vector;
+
+string join(const vector<string> &strs, const string &sep) {
+  std::stringstream ss;
+  for (size_t i = 0; i < strs.size(); i++) {
+    if (i)
+      ss << sep;
+    ss << strs[i];
+  }
+  return ss.str();
+}
 
 vector<string> split(const string &str, char delim, bool include_empty) {
   std::stringstream ss;
@@ -77,143 +88,164 @@ void parse_path(Env &env, string &mzn_path, bool is_fzn) {
 
 void print_usage() {
   std::cout << " usage:\n"
-            << "   mzn_tool  sequence in out [passes...]          \n"
-            << "   mzn_tool  annotate in.mzn [out.mzn]            \n"
+            << "   mzn_tool  sequence     in [passes...]\n"
+            << "   mzn_tool  annotate in.mzn [out.mzn]\n"
             << "   mzn_tool get_terms in.mzn [out.mzn] [out.terms]\n"
-            << "   mzn_tool  get_data in.fzn [out.fzn] [out.cons] \n";
+            << "   mzn_tool  get_data in.fzn [out.fzn]  [out.cons]\n";
 
   std::cout << "\n"
             << "   annotate => inline-includes\n"
             << "               annotate-data-deps\n"
-            << "   get_terms => get-term-types out.terms\n"
+            << "   get_terms => get-term-types:out.terms\n"
             << "                remove-anns data\n"
-            << "                remove-items solve output\n"
-            << "   get_data => get-data-deps out.cons\n"
-            << "               remove-anns data\n";
+            << "                remove-items:solve,output\n"
+            << "   get_data => get-data-deps:out.cons\n"
+            << "               remove-anns:data\n";
 
   std::cout << "\n"
             << " passes:\n"
+            << "   out:out.mzn\n"
+            << "     Write model to out.mzn (- for stdout)\n"
+            << "   out_fzn:out.fzn\n"
+            << "     Write model to out.fzn (- for stdout)\n"
             << "   inline-includes\n"
             << "     Inline non-library includes\n"
-            << "   remove-anns name1,[name2,...]\n"
+            << "   remove-anns:name1,[name2,...]\n"
             << "     Remove Id and Call annotations matching names\n"
-            << "   remove-includes name1,[name2,...]\n"
+            << "   remove-includes:name1,[name2,...]\n"
             << "     Remove includes matching names\n"
-            << "   remove-items iid1,[iid2,...]\n"
+            << "   remove-stdlib\n"
+            << "     Remove stdlib includes\n"
+            << "   remove-items:iid1,[iid2,...]\n"
             << "     Remove items matching iids\n"
             << "\n"
             << "   annotate-data-deps\n"
             << "     Annotate expressions with their data dependencies\n"
-            << "   get-term-types out.terms\n"
+            << "   get-term-types:out.terms\n"
             << "     Write .terms file with types of objective terms\n"
-            << "   get-data-deps out.cons (FlatZinc only)\n"
+            << "   get-data-deps:out.cons (FlatZinc only)\n"
             << "     Write .cons file with data dependenceis of\n"
             << "     FlatZinc constraints\n"
             << "\n";
 }
 
+struct PassCmd {
+  string cmd;
+  vector<string> args;
+
+  PassCmd(const string& cmd_str) {
+    vector<string> parts = split(cmd_str, ':', false);
+    cmd = parts[0];
+    if(parts.size() > 1 && !parts[1].empty()) {
+      args = split(parts[1], ',', false);
+    }
+  }
+
+  PassCmd(const string& c, const string& a_str) : cmd{c} {
+    args = split(a_str, ',', false);
+  }
+
+  MiniZinc::Pass* getPass() {
+    if (cmd == "inline-includes") {
+      return new InlineIncludes();
+    } else if (cmd == "annotate-data-deps") {
+      return new AnnotateDataDeps();
+    } else if (cmd == "get-term-types") {
+      if(args.empty()) { args.push_back("-"); }
+      return new GetTermTypes(args[0]);
+    } else if (cmd == "get-data-deps") {
+      if(args.empty()) { args.push_back("-"); }
+      return new GetDataDeps(args[0]);
+    } else if (cmd == "remove-anns") {
+      return new RemoveAnnotations(args);
+    } else if (cmd == "remove-includes") {
+      return new RemoveIncludes(args);
+    } else if (cmd == "remove-stdlibs") {
+      return new RemoveIncludes({"solver_redefinitions.mzn",
+                                 "stdlib.mzn"});
+    } else if (cmd == "out") {
+      if(args.empty()) { args.push_back("-"); }
+      return new WriteModel(args[0], false);
+    } else if (cmd == "out_fzn") {
+      if(args.empty()) { args.push_back("-"); }
+      return new WriteModel(args[0], true);
+    } else if (cmd == "remove-items") {
+      vector<Item::ItemId> rm_args;
+      Item::ItemId iid = Item::II_SOL;
+      for(string& item : args) {
+        if (item == "include") {
+          iid = Item::II_INC;
+        } else if (item == "vardecl") {
+          iid = Item::II_VD;
+        } else if (item == "assign") {
+          iid = Item::II_ASN;
+        } else if (item == "constraint") {
+          iid = Item::II_CON;
+        } else if (item == "solve") {
+          iid = Item::II_SOL;
+        } else if (item == "output") {
+          iid = Item::II_OUT;
+        } else if (item == "function") {
+          iid = Item::II_FUN;
+        } else {
+          return nullptr;
+        }
+        rm_args.push_back(iid);
+      }
+      return new RemoveItems(rm_args);
+    }
+    return nullptr;
+  }
+};
+
+std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
+  os << pass.cmd << ":" << join(pass.args, ",");
+  return os;
+}
+
 int main(int argc, char **argv) {
   vector<unique_ptr<MiniZinc::Pass>> passes;
 
-  if (argc == 1) {
+  if (argc < 3) {
     std::cerr << "Incorrect number of arguments" << std::endl;
     print_usage();
     return EXIT_FAILURE;
   }
 
-  if (argc < 3) {
-    std::cerr << "Incorrect number of arguments\n";
-    print_usage();
-    return EXIT_FAILURE;
-  }
   string cmd = argv[1];
   string in_path = argv[2];
-  string extension = in_path.substr(in_path.size() - 4, string::npos);
-  bool is_fzn = extension == ".fzn";
-
-  string output_base = in_path.substr(0, in_path.size() - 4);
 
   string out_path;
-  if (argc >= 4) {
-    out_path = argv[3];
-  }
-
   string extra_arg;
-  if (argc >= 5) {
-    extra_arg = argv[4];
-  }
 
-  if (cmd == "sequence") {
-    if(out_path.empty()) {
-      std::cerr << "Incorrect number of arguments\n";
-      print_usage();
-      return EXIT_FAILURE;
-    }
-    size_t i = 4;
-    while (i < argc) {
-      string seq_cmd = string(argv[i]);
-      if (seq_cmd == "inline-includes") {
-        passes.emplace_back(new InlineIncludes());
-      } else if (seq_cmd == "annotate-data-deps") {
-        passes.emplace_back(new AnnotateDataDeps());
-      } else if (seq_cmd == "get-term-types") {
-        string arg = argv[++i];
-        passes.emplace_back(new GetTermTypes(arg));
-      } else if (seq_cmd == "get-data-deps") {
-        string arg = argv[++i];
-        passes.emplace_back(new GetDataDeps(arg));
-      } else if (seq_cmd == "remove-anns") {
-        vector<string> args;
-        for(string& ann : split(argv[++i], ',', false)) {
-          args.push_back(ann);
-        }
-        passes.emplace_back(new RemoveAnnotations(args));
-      } else if (seq_cmd == "remove-includes") {
-        vector<string> args;
-        for(string& inc : split(argv[++i], ',', false)) {
-          args.push_back(inc);
-        }
-        passes.emplace_back(new RemoveIncludes(args));
-      } else if (seq_cmd == "remove-items") {
-        vector<Item::ItemId> args;
-        Item::ItemId iid = Item::II_SOL;
-        for(string& item : split(argv[++i], ',', false)) {
-          if (item == "include") {
-            iid = Item::II_INC;
-          } else if (item == "vardecl") {
-            iid = Item::II_VD;
-          } else if (item == "assign") {
-            iid = Item::II_ASN;
-          } else if (item == "constraint") {
-            iid = Item::II_CON;
-          } else if (item == "solve") {
-            iid = Item::II_SOL;
-          } else if (item == "output") {
-            iid = Item::II_OUT;
-          } else if (item == "function") {
-            iid = Item::II_FUN;
-          } else {
-            std::cerr << "Unknown item type\n";
-            print_usage();
-            return EXIT_FAILURE;
-          }
-          args.push_back(iid);
-        }
-        passes.emplace_back(new RemoveItems(args));
-      } else {
-        std::cerr << "Unknown command: " << seq_cmd << std::endl;
-        print_usage();
-        return EXIT_FAILURE;
+  bool has_output = false;
+
+  string extension = in_path.substr(in_path.size() - 4, string::npos);
+  bool is_fzn = extension == ".fzn";
+  string output_base = in_path.substr(0, in_path.size() - 4);
+
+  vector<PassCmd> pass_cmdline;
+  if(cmd == "sequence") {
+    for(size_t i = 3; i < argc; i++) {
+      pass_cmdline.emplace_back(string(argv[i]));
+      if(pass_cmdline.back().cmd == "out") {
+        has_output = true;
       }
-      i++;
     }
   } else if (cmd == "annotate") {
+    if (argc > 3) out_path = argv[3];
     if (out_path.empty()) {
       out_path = output_base + ".annotated.mzn";
     }
-    passes.emplace_back(new InlineIncludes());
-    passes.emplace_back(new AnnotateDataDeps());
+    pass_cmdline = { {"inline-includes"},
+                     {"annotate-data-deps"} };
+    pass_cmdline.emplace_back("remove-stdlibs");
+    pass_cmdline.emplace_back("out", out_path);
+    has_output = true;
   } else if (cmd == "get_terms") {
+    if (argc > 3) out_path = argv[3];
+    if (argc > 4) extra_arg = argv[4];
+
     if (out_path.empty()) {
       out_path = output_base + ".solveless.mzn";
     }
@@ -221,9 +253,12 @@ int main(int argc, char **argv) {
       extra_arg = output_base + ".terms";
     }
 
-    passes.emplace_back(new GetTermTypes(extra_arg));
-    passes.emplace_back(new RemoveAnnotations({"data"}));
-    passes.emplace_back(new RemoveItems({Item::II_SOL, Item::II_OUT}));
+    pass_cmdline = { {"get-term-types", extra_arg},
+                     {"remove-anns", "data"},
+                     {"remove-items", "solve,output"} };
+    pass_cmdline.emplace_back("remove-stdlibs");
+    pass_cmdline.emplace_back("out", out_path);
+    has_output = true;
   } else if (cmd == "get_data") {
     if (!is_fzn) {
       std::cerr << "get_data must take a fzn file as input" << std::endl;
@@ -236,31 +271,35 @@ int main(int argc, char **argv) {
     if (extra_arg.empty()) {
       extra_arg = output_base + ".cons";
     }
-    passes.emplace_back(new GetDataDeps(extra_arg));
-    passes.emplace_back(new RemoveAnnotations({"data"}));
+    pass_cmdline = { {"get-data-deps", extra_arg },
+                     { "remove-anns", "data" } };
+    pass_cmdline.emplace_back("remove-stdlibs");
+    pass_cmdline.emplace_back("out_fzn", out_path);
+    has_output = true;
   } else {
     std::cerr << "Unknown command: " << cmd << std::endl;
     print_usage();
     return EXIT_FAILURE;
   }
-  passes.emplace_back(
-      new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"}));
+  pass_cmdline.emplace_back("remove-stdlibs");
+  if(!has_output) {
+    pass_cmdline.emplace_back("out", "-");
+  }
+
+  for(PassCmd& pass : pass_cmdline) {
+    Pass* pass_ptr = pass.getPass();
+    if(pass_ptr == nullptr) {
+      std::cerr << "Cannot process pass: " << pass << std::endl;
+      return EXIT_FAILURE;
+    }
+    passes.emplace_back(pass_ptr);
+  }
 
   GCLock lock;
   Env env;
   parse_path(env, in_path, is_fzn);
 
   Env *out_env = multiPassFlatten(env, passes, std::cerr);
-
-  if(out_path != "-") {
-    std::cerr << "Writing output to: " << out_path << std::endl;
-    std::ofstream of(out_path);
-    Printer pp(of, is_fzn ? 0 : 80, is_fzn);
-    pp.print(out_env->model());
-  } else {
-    Printer pp(std::cout, is_fzn ? 0 : 80, is_fzn);
-    pp.print(out_env->model());
-  }
 
   return EXIT_SUCCESS;
 }
