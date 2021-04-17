@@ -12,7 +12,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_annotate_data_deps.cpp
   lib/pass_inline_includes.cpp
   lib/pass_remove_includes.cpp
-  lib/pass_remove_items.cpp
+  lib/pass_filter_items.cpp
   lib/pass_get_items.cpp
   lib/pass_remove_annotations.cpp
   lib/pass_get_term_types.cpp
@@ -23,7 +23,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_annotate_data_deps.hh
   include/pass_inline_includes.hh
   include/pass_remove_includes.hh
-  include/pass_remove_items.hh
+  include/pass_filter_items.hh
   include/pass_get_items.hh
   include/pass_remove_annotations.hh
   include/pass_get_term_types.hh

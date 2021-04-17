@@ -7,17 +7,8 @@
 using namespace MiniZinc;
 using std::string;
 
-GetItems::GetItems(const std::vector<MiniZinc::Item::ItemId> &types) {
-  const std::vector<Item::ItemId> all_ids = {
-    Item::II_INC, Item::II_VD,  Item::II_ASN,
-    Item::II_CON, Item::II_SOL, Item::II_OUT,
-    Item::II_FUN
-  };
-  for (MiniZinc::Item::ItemId iid : all_ids) {
-    if(std::find(types.begin(), types.end(), iid) == types.end()) {
-      item_types.push_back(iid);
-    }
-  }
+GetItems::GetItems(const std::vector<size_t> &idxs) {
+  indexes.insert(idxs.begin(), idxs.end());
 }
 
 Env *GetItems::run(Env *e, std::ostream &log) {
@@ -25,11 +16,8 @@ Env *GetItems::run(Env *e, std::ostream &log) {
 
   for (size_t i = 0; i < model->size(); i++) {
     Item *item = model->operator[](i);
-    for (MiniZinc::Item::ItemId iid : item_types) {
-      if (item->iid() == iid) {
-        item->remove();
-        break;
-      }
+    if (indexes.find(i) == indexes.end()) {
+      item->remove();
     }
   }
   model->compact();

@@ -9,8 +9,8 @@
 #include "pass_inline_includes.hh"
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
-#include "pass_remove_items.hh"
 #include "pass_get_items.hh"
+#include "pass_filter_items.hh"
 #include "pass_write_model.hh"
 #include "tool_pass.hh"
 
@@ -119,8 +119,10 @@ void print_usage() {
             << "     Remove includes matching names\n"
             << "   remove-stdlib\n"
             << "     Remove stdlib includes\n"
-            << "   get-items:iid1,[iid2,...]\n"
-            << "     Remove items not matching iids\n"
+            << "   get-items:idx1,[idx2,...]\n"
+            << "     Narrow to items indexed by idx1,...\n"
+            << "   filter-items:iid1,[iid2,...]\n"
+            << "     Remove items matching iids\n"
             << "   remove-items:iid1,[iid2,...]\n"
             << "     Remove items matching iids\n"
             << "\n"
@@ -183,7 +185,15 @@ struct PassCmd {
         args.push_back("-");
       }
       return new WriteModel(args[0], true);
-    } else if (cmd == "remove-items" || cmd == "get-items") {
+    } else if (cmd == "get-items") {
+      vector<size_t> idxs;
+      for(const string& idx_str : args) {
+        int idx = stoi(idx_str);
+        if(idx < 0) return nullptr;
+        idxs.push_back(idx);
+      }
+      return new GetItems(idxs);
+    } else if (cmd == "remove-items" || cmd == "filter-items") {
       vector<Item::ItemId> rm_args;
       Item::ItemId iid = Item::II_SOL;
       for (string &item : args) {
@@ -207,9 +217,9 @@ struct PassCmd {
         rm_args.push_back(iid);
       }
       if(cmd == "remove-items") {
-        return new RemoveItems(rm_args);
-      } else if(cmd == "get-items") {
-        return new GetItems(rm_args);
+        return new FilterItems(rm_args, true);
+      } else if(cmd == "filter-items") {
+        return new FilterItems(rm_args, false);
       }
     }
     return nullptr;
