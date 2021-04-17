@@ -25,11 +25,15 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
     bool enter(Expression *e) {
       vector<Expression *> toRemove;
       for (Expression *ann_e : e->ann()) {
-        for (string &name : ann_names) {
-          if ((ann_e->isa<Id>() && ann_e->cast<Id>()->str() == name) ||
-              (ann_e->isa<Call>() && ann_e->cast<Call>()->id() == name)) {
-            toRemove.push_back(ann_e);
-            break;
+        if(ann_names.empty()) {
+          toRemove.push_back(ann_e);
+        } else {
+          for (string &name : ann_names) {
+            if ((ann_e->isa<Id>() && ann_e->cast<Id>()->str() == name) ||
+                (ann_e->isa<Call>() && ann_e->cast<Call>()->id() == name)) {
+              toRemove.push_back(ann_e);
+              break;
+            }
           }
         }
       }
