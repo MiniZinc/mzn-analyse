@@ -10,6 +10,7 @@
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
 #include "pass_remove_items.hh"
+#include "pass_get_items.hh"
 #include "pass_write_model.hh"
 #include "tool_pass.hh"
 
@@ -116,6 +117,8 @@ void print_usage() {
             << "     Remove includes matching names\n"
             << "   remove-stdlib\n"
             << "     Remove stdlib includes\n"
+            << "   get-items:iid1,[iid2,...]\n"
+            << "     Remove items not matching iids\n"
             << "   remove-items:iid1,[iid2,...]\n"
             << "     Remove items matching iids\n"
             << "\n"
@@ -176,7 +179,7 @@ struct PassCmd {
         args.push_back("-");
       }
       return new WriteModel(args[0], true);
-    } else if (cmd == "remove-items") {
+    } else if (cmd == "remove-items" || cmd == "get-items") {
       vector<Item::ItemId> rm_args;
       Item::ItemId iid = Item::II_SOL;
       for (string &item : args) {
@@ -199,7 +202,11 @@ struct PassCmd {
         }
         rm_args.push_back(iid);
       }
-      return new RemoveItems(rm_args);
+      if(cmd == "remove-items") {
+        return new RemoveItems(rm_args);
+      } else if(cmd == "get-items") {
+        return new GetItems(rm_args);
+      }
     }
     return nullptr;
   }
@@ -234,10 +241,12 @@ int main(int argc, char **argv) {
   vector<PassCmd> pass_cmdline;
   if (cmd == "sequence") {
     for (size_t i = 3; i < argc; i++) {
-      pass_cmdline.emplace_back(string(argv[i]));
-      if (pass_cmdline.back().cmd == "out") {
+      PassCmd pass {string(argv[i])};
+      if (pass.cmd == "out" || pass.cmd == "out_fzn") {
         has_output = true;
+        pass_cmdline.emplace_back("remove-stdlibs");
       }
+      pass_cmdline.push_back(pass);
     }
   } else if (cmd == "annotate") {
     if (argc > 3)
@@ -289,8 +298,8 @@ int main(int argc, char **argv) {
     print_usage();
     return EXIT_FAILURE;
   }
-  pass_cmdline.emplace_back("remove-stdlibs");
   if (!has_output) {
+    pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out", "-");
   }
 

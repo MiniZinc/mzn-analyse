@@ -13,6 +13,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_inline_includes.cpp
   lib/pass_remove_includes.cpp
   lib/pass_remove_items.cpp
+  lib/pass_get_items.cpp
   lib/pass_remove_annotations.cpp
   lib/pass_get_term_types.cpp
   lib/pass_get_data_deps.cpp
@@ -23,6 +24,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_inline_includes.hh
   include/pass_remove_includes.hh
   include/pass_remove_items.hh
+  include/pass_get_items.hh
   include/pass_remove_annotations.hh
   include/pass_get_term_types.hh
   include/pass_get_data_deps.hh
