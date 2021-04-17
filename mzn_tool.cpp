@@ -111,6 +111,8 @@ void print_usage() {
             << "     Write model to out.fzn (- for stdout)\n"
             << "   inline-includes\n"
             << "     Inline non-library includes\n"
+            << "   inline-all-includes\n"
+            << "     Inline all includes\n"
             << "   remove-anns:name1,[name2,...]\n"
             << "     Remove Id and Call annotations matching names\n"
             << "   remove-includes:name1,[name2,...]\n"
@@ -151,6 +153,8 @@ struct PassCmd {
   MiniZinc::Pass *getPass() {
     if (cmd == "inline-includes") {
       return new InlineIncludes();
+    } else if (cmd == "inline-all-includes") {
+      return new InlineIncludes(false);
     } else if (cmd == "annotate-data-deps") {
       return new AnnotateDataDeps();
     } else if (cmd == "get-term-types") {

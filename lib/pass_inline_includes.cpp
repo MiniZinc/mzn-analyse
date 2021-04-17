@@ -32,8 +32,7 @@ Env *InlineIncludes::run(Env *e, std::ostream &log) {
     Item *item = model->operator[](i);
     if (IncludeI *ii = item->dynamicCast<IncludeI>()) {
       string filepath = ii->m()->filepath().c_str();
-      if (local_only && filepath.rfind(mzn_stdlib_dir, 0) != 0) {
-
+      if (!local_only || filepath.rfind(mzn_stdlib_dir, 0) != 0) {
         ii->remove();
         Model *im = ii->m();
         for (size_t j = 0; j < im->size(); j++) {
