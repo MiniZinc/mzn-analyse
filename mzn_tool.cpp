@@ -11,12 +11,11 @@
 #include "pass_remove_includes.hh"
 #include "pass_get_items.hh"
 #include "pass_filter_items.hh"
+#include "pass_read_model.hh"
 #include "pass_write_model.hh"
 #include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
-#include <minizinc/model.hh>
-#include <minizinc/solver.hh>
 
 using namespace MiniZinc;
 
@@ -51,42 +50,6 @@ vector<string> split(const string &str, char delim, bool include_empty) {
   return result;
 }
 
-void parse_path(Env &env, string &mzn_path, bool is_fzn) {
-  vector<string> includes;
-
-  string mzn_stdlib_dir = FileUtils::share_directory();
-  includes.push_back(mzn_stdlib_dir + "/std/");
-
-  vector<string> model_paths(1);
-  model_paths[0] = mzn_path;
-
-  Model *m = parse(env, model_paths, {}, "", "", includes, is_fzn, false, false,
-                   false, std::cerr);
-
-  if (!m) {
-    std::cerr << "mzn_data: Failed to parse file" << std::endl;
-    std::exit(EXIT_FAILURE);
-  }
-  if (!is_fzn) {
-    vector<TypeError> typeErrors;
-    try {
-      typecheck(env, m, typeErrors, true, true, true);
-    } catch (TypeError &e) {
-      typeErrors.push_back(e);
-    }
-    if (typeErrors.size() > 0) {
-      for (unsigned int i = 0; i < typeErrors.size(); i++) {
-        std::cerr << typeErrors[i].loc() << ":" << std::endl;
-        std::cerr << typeErrors[i].what() << ":" << typeErrors[i].msg()
-                  << std::endl;
-      }
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  env.model(m);
-}
-
 void print_usage() {
   std::cout << " usage:\n"
             << "   mzn_tool  sequence     in [passes...]\n"
@@ -105,6 +68,8 @@ void print_usage() {
 
   std::cout << "\n"
             << " passes:\n"
+            << "   in:in.mzn\n"
+            << "     Read input file (no support for stdout)\n"
             << "   out:out.mzn\n"
             << "     Write model to out.mzn (- for stdout)\n"
             << "   out_fzn:out.fzn\n"
@@ -175,6 +140,11 @@ struct PassCmd {
       return new RemoveIncludes(args);
     } else if (cmd == "remove-stdlibs") {
       return new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"});
+    } else if (cmd == "in") {
+      if (args.empty()) {
+        return nullptr;
+      }
+      return new ReadModel(args[0]);
     } else if (cmd == "out") {
       if (args.empty()) {
         args.push_back("-");
@@ -253,6 +223,7 @@ int main(int argc, char **argv) {
   string output_base = in_path.substr(0, in_path.size() - 4);
 
   vector<PassCmd> pass_cmdline;
+  pass_cmdline.emplace_back("in", in_path);
   if (cmd == "sequence") {
     for (size_t i = 3; i < argc; i++) {
       PassCmd pass {string(argv[i])};
@@ -328,8 +299,6 @@ int main(int argc, char **argv) {
 
   GCLock lock;
   Env env;
-  parse_path(env, in_path, is_fzn);
-
   Env *out_env = multiPassFlatten(env, passes, std::cerr);
 
   return EXIT_SUCCESS;

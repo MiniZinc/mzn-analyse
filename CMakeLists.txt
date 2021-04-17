@@ -17,6 +17,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_remove_annotations.cpp
   lib/pass_get_term_types.cpp
   lib/pass_get_data_deps.cpp
+  lib/pass_read_model.cpp
   lib/pass_write_model.cpp
 
   include/tool_pass.hh
@@ -28,6 +29,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_remove_annotations.hh
   include/pass_get_term_types.hh
   include/pass_get_data_deps.hh
+  include/pass_read_model.hh
   include/pass_write_model.hh
   )
 
