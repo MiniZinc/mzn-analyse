@@ -73,7 +73,7 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
   return os;
 }
 
-void write_data_deps(Model* m, ostream& os) {
+void write_data_deps(Model *m, ostream &os) {
   os << "{\"constraint_info\": [\n";
   bool first = true;
   for (ConstraintI &ci : m->constraints()) {

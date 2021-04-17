@@ -133,46 +133,53 @@ struct PassCmd {
   string cmd;
   vector<string> args;
 
-  PassCmd(const string& cmd_str) {
+  PassCmd(const string &cmd_str) {
     vector<string> parts = split(cmd_str, ':', false);
     cmd = parts[0];
-    if(parts.size() > 1 && !parts[1].empty()) {
+    if (parts.size() > 1 && !parts[1].empty()) {
       args = split(parts[1], ',', false);
     }
   }
 
-  PassCmd(const string& c, const string& a_str) : cmd{c} {
+  PassCmd(const string &c, const string &a_str) : cmd{c} {
     args = split(a_str, ',', false);
   }
 
-  MiniZinc::Pass* getPass() {
+  MiniZinc::Pass *getPass() {
     if (cmd == "inline-includes") {
       return new InlineIncludes();
     } else if (cmd == "annotate-data-deps") {
       return new AnnotateDataDeps();
     } else if (cmd == "get-term-types") {
-      if(args.empty()) { args.push_back("-"); }
+      if (args.empty()) {
+        args.push_back("-");
+      }
       return new GetTermTypes(args[0]);
     } else if (cmd == "get-data-deps") {
-      if(args.empty()) { args.push_back("-"); }
+      if (args.empty()) {
+        args.push_back("-");
+      }
       return new GetDataDeps(args[0]);
     } else if (cmd == "remove-anns") {
       return new RemoveAnnotations(args);
     } else if (cmd == "remove-includes") {
       return new RemoveIncludes(args);
     } else if (cmd == "remove-stdlibs") {
-      return new RemoveIncludes({"solver_redefinitions.mzn",
-                                 "stdlib.mzn"});
+      return new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"});
     } else if (cmd == "out") {
-      if(args.empty()) { args.push_back("-"); }
+      if (args.empty()) {
+        args.push_back("-");
+      }
       return new WriteModel(args[0], false);
     } else if (cmd == "out_fzn") {
-      if(args.empty()) { args.push_back("-"); }
+      if (args.empty()) {
+        args.push_back("-");
+      }
       return new WriteModel(args[0], true);
     } else if (cmd == "remove-items") {
       vector<Item::ItemId> rm_args;
       Item::ItemId iid = Item::II_SOL;
-      for(string& item : args) {
+      for (string &item : args) {
         if (item == "include") {
           iid = Item::II_INC;
         } else if (item == "vardecl") {
@@ -198,7 +205,7 @@ struct PassCmd {
   }
 };
 
-std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
+std::ostream &operator<<(std::ostream &os, const PassCmd &pass) {
   os << pass.cmd << ":" << join(pass.args, ",");
   return os;
 }
@@ -225,26 +232,28 @@ int main(int argc, char **argv) {
   string output_base = in_path.substr(0, in_path.size() - 4);
 
   vector<PassCmd> pass_cmdline;
-  if(cmd == "sequence") {
-    for(size_t i = 3; i < argc; i++) {
+  if (cmd == "sequence") {
+    for (size_t i = 3; i < argc; i++) {
       pass_cmdline.emplace_back(string(argv[i]));
-      if(pass_cmdline.back().cmd == "out") {
+      if (pass_cmdline.back().cmd == "out") {
         has_output = true;
       }
     }
   } else if (cmd == "annotate") {
-    if (argc > 3) out_path = argv[3];
+    if (argc > 3)
+      out_path = argv[3];
     if (out_path.empty()) {
       out_path = output_base + ".annotated.mzn";
     }
-    pass_cmdline = { {"inline-includes"},
-                     {"annotate-data-deps"} };
+    pass_cmdline = {{"inline-includes"}, {"annotate-data-deps"}};
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out", out_path);
     has_output = true;
   } else if (cmd == "get_terms") {
-    if (argc > 3) out_path = argv[3];
-    if (argc > 4) extra_arg = argv[4];
+    if (argc > 3)
+      out_path = argv[3];
+    if (argc > 4)
+      extra_arg = argv[4];
 
     if (out_path.empty()) {
       out_path = output_base + ".solveless.mzn";
@@ -253,9 +262,9 @@ int main(int argc, char **argv) {
       extra_arg = output_base + ".terms";
     }
 
-    pass_cmdline = { {"get-term-types", extra_arg},
-                     {"remove-anns", "data"},
-                     {"remove-items", "solve,output"} };
+    pass_cmdline = {{"get-term-types", extra_arg},
+                    {"remove-anns", "data"},
+                    {"remove-items", "solve,output"}};
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out", out_path);
     has_output = true;
@@ -271,8 +280,7 @@ int main(int argc, char **argv) {
     if (extra_arg.empty()) {
       extra_arg = output_base + ".cons";
     }
-    pass_cmdline = { {"get-data-deps", extra_arg },
-                     { "remove-anns", "data" } };
+    pass_cmdline = {{"get-data-deps", extra_arg}, {"remove-anns", "data"}};
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out_fzn", out_path);
     has_output = true;
@@ -282,13 +290,13 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
   pass_cmdline.emplace_back("remove-stdlibs");
-  if(!has_output) {
+  if (!has_output) {
     pass_cmdline.emplace_back("out", "-");
   }
 
-  for(PassCmd& pass : pass_cmdline) {
-    Pass* pass_ptr = pass.getPass();
-    if(pass_ptr == nullptr) {
+  for (PassCmd &pass : pass_cmdline) {
+    Pass *pass_ptr = pass.getPass();
+    if (pass_ptr == nullptr) {
       std::cerr << "Cannot process pass: " << pass << std::endl;
       return EXIT_FAILURE;
     }
