@@ -239,7 +239,8 @@ int main(int argc, char **argv) {
     if (out_path.empty()) {
       out_path = output_base + ".annotated.mzn";
     }
-    pass_cmdline = {{"inline-includes"}, {"annotate-data-deps"}};
+    pass_cmdline.emplace_back("inline-includes");
+    pass_cmdline.emplace_back("annotate-data-deps");
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out", out_path);
     has_output = true;
@@ -255,10 +256,9 @@ int main(int argc, char **argv) {
     if (extra_arg.empty()) {
       extra_arg = output_base + ".terms";
     }
-
-    pass_cmdline = {{"get-term-types", extra_arg},
-                    {"remove-anns", "data"},
-                    {"remove-items", "solve,output"}};
+    pass_cmdline.emplace_back("get-term-types", extra_arg);
+    pass_cmdline.emplace_back("remove-anns", "data");
+    pass_cmdline.emplace_back("remove-items", "solve,output");
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out", out_path);
     has_output = true;
@@ -274,7 +274,8 @@ int main(int argc, char **argv) {
     if (extra_arg.empty()) {
       extra_arg = output_base + ".cons";
     }
-    pass_cmdline = {{"get-data-deps", extra_arg}, {"remove-anns", "data"}};
+    pass_cmdline.emplace_back("get-data-deps", extra_arg);
+    pass_cmdline.emplace_back("remove-anns", "data");
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back("out_fzn", out_path);
     has_output = true;
