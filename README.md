@@ -10,6 +10,58 @@ where `[passes]` is the list of passes and arguments for those passes (`cmd:arg1
 An implicit `out:-` command (or `out_fzn:-` if reading FlatZinc) is appended at the end of the pipeline if no `out` commands occur in the sequence.
 An explicit final `out` must be added to the end if you wish to output models throughout the pipeline.
 
+## Help text:
+
+```
+ usage:
+   mzn_tool  sequence     in [passes...]
+   mzn_tool  annotate in.mzn [out.mzn]
+   mzn_tool get_terms in.mzn [out.mzn] [out.terms]
+   mzn_tool  get_data in.fzn [out.fzn]  [out.cons]
+
+   annotate => inline-includes
+               annotate-data-deps
+   get_terms => get-term-types:out.terms
+                remove-anns data
+                remove-items:solve,output
+   get_data => get-data-deps:out.cons
+               remove-anns:data
+
+ passes:
+   in:in.mzn
+     Read input file (no support for stdout)
+   out:out.mzn
+     Write model to out.mzn (- for stdout)
+   out_fzn:out.fzn
+     Write model to out.fzn (- for stdout)
+   no_out
+     Disable automatic output insertion
+   inline-includes
+     Inline non-library includes
+   inline-all-includes
+     Inline all includes
+   remove-anns:name1,[name2,...]
+     Remove Id and Call annotations matching names
+   remove-includes:name1,[name2,...]
+     Remove includes matching names
+   remove-stdlib
+     Remove stdlib includes
+   get-items:idx1,[idx2,...]
+     Narrow to items indexed by idx1,...
+   filter-items:iid1,[iid2,...]
+     Only keep items matching iids
+   remove-items:iid1,[iid2,...]
+     Remove items matching iids
+
+   annotate-data-deps
+     Annotate expressions with their data dependencies
+   get-term-types:out.terms
+     Write .terms file with types of objective terms
+   get-data-deps:out.cons (FlatZinc only)
+     Write .cons file with data dependenceis of
+     FlatZinc constraints
+```
+
 ## Hardcoded Pipelines
 
 There are three hardcoded pipelines that have their own argument parsing: `annotate`, `get_data`, `get_terms`.
@@ -18,7 +70,7 @@ Example:
 ```
 mzn_tool get_terms in.mzn out.mzn out.terms
 ```
-Is translated to:
+This is translated to:
 
 ```
 mzn_tool sequence in.mzn get-term-types:out.terms remove-anns:data remove-items:solve,output out:out.mzn
