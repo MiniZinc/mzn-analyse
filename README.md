@@ -27,18 +27,19 @@ mzn_tool sequence in.mzn get-term-types:out.terms remove-anns:data remove-items:
 ## Examples
 
 
-1. This will remove the solve and output items from the model and write the model to solveless.mzn. It then inlines the local includes and outputs to stdout as "FlatZinc" (no linebreaks while printing an item).
+1. Remove the solve and output items from the model and write the model to solveless.mzn. It then inlines the local includes and outputs to stdout as "FlatZinc" (no linebreaks while printing an item).
 ```
-mzn_tool sequence in.mzn remove-items:solve,output out:solveless.mzn inline-inlcudes out_fzn
+mzn_tool sequence in.mzn remove-items:solve,output out:solveless.mzn inline-includes out_fzn
 ```
 
-2. This will remove all items except constraint items, it then just picks out the 50th constraint and removes any annotations before outputting.
-The implicit output will default to out_fzn since the input was fzn.
+2. Remove all items except constraint items, picks out the 50th constraint, remove any annotations, then output to stdout.
+The implicit output will default to `out_fzn` since the input was fzn.
 ```
 mzn_tool sequence in.fzn filter-items:constraint get-items:50 remove-anns
 ```
 
-3. The following requests the data-deps information for constraints 60, 61, and 62 from a FlatZinc file. The `no_out` command disables the automatic insertion of `out_fzn`.
+3. The following requests the data-deps information for constraints 60, 61, and 62 from a FlatZinc file.
+The `no_out` command disables the automatic insertion of `out_fzn`.
 
 ```
 $ ./mzn_tool.exe sequence rcpsp-wet-r0.annotated.fzn filter-items:constraint get-items:60,61,62 get-data-deps no_out
