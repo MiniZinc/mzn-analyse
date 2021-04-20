@@ -74,6 +74,8 @@ void print_usage() {
             << "     Write model to out.mzn (- for stdout)\n"
             << "   out_fzn:out.fzn\n"
             << "     Write model to out.fzn (- for stdout)\n"
+            << "   no_out\n"
+            << "     Disable automatic output insertion\n"
             << "   inline-includes\n"
             << "     Inline non-library includes\n"
             << "   inline-all-includes\n"
@@ -217,6 +219,7 @@ int main(int argc, char **argv) {
   string extra_arg;
 
   bool has_output = false;
+  bool no_out = false;
 
   string extension = in_path.substr(in_path.size() - 4, string::npos);
   bool is_fzn = extension == ".fzn";
@@ -227,6 +230,10 @@ int main(int argc, char **argv) {
   if (cmd == "sequence") {
     for (size_t i = 3; i < argc; i++) {
       PassCmd pass{string(argv[i])};
+      if (pass.cmd == "no_out") {
+        no_out = true;
+        continue;
+      }
       if (pass.cmd == "out" || pass.cmd == "out_fzn") {
         has_output = true;
         pass_cmdline.emplace_back("remove-stdlibs");
@@ -284,7 +291,7 @@ int main(int argc, char **argv) {
     print_usage();
     return EXIT_FAILURE;
   }
-  if (!has_output) {
+  if (!no_out && !has_output) {
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back(is_fzn ? "out_fzn" : "out", "-");
   }

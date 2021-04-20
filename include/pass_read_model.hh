@@ -7,7 +7,6 @@
 class ReadModel : public MiniZinc::Pass {
 private:
   std::string in_path;
-  bool is_fzn;
 
 public:
   ReadModel(const std::string &ip);
