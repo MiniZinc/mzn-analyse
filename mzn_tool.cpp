@@ -4,14 +4,14 @@
 #include <vector>
 
 #include "pass_annotate_data_deps.hh"
+#include "pass_filter_items.hh"
 #include "pass_get_data_deps.hh"
+#include "pass_get_items.hh"
 #include "pass_get_term_types.hh"
 #include "pass_inline_includes.hh"
+#include "pass_read_model.hh"
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
-#include "pass_get_items.hh"
-#include "pass_filter_items.hh"
-#include "pass_read_model.hh"
 #include "pass_write_model.hh"
 #include "tool_pass.hh"
 
@@ -87,7 +87,7 @@ void print_usage() {
             << "   get-items:idx1,[idx2,...]\n"
             << "     Narrow to items indexed by idx1,...\n"
             << "   filter-items:iid1,[iid2,...]\n"
-            << "     Remove items matching iids\n"
+            << "     Only keep items matching iids\n"
             << "   remove-items:iid1,[iid2,...]\n"
             << "     Remove items matching iids\n"
             << "\n"
@@ -157,9 +157,10 @@ struct PassCmd {
       return new WriteModel(args[0], true);
     } else if (cmd == "get-items") {
       vector<size_t> idxs;
-      for(const string& idx_str : args) {
+      for (const string &idx_str : args) {
         int idx = stoi(idx_str);
-        if(idx < 0) return nullptr;
+        if (idx < 0)
+          return nullptr;
         idxs.push_back(idx);
       }
       return new GetItems(idxs);
@@ -186,9 +187,9 @@ struct PassCmd {
         }
         rm_args.push_back(iid);
       }
-      if(cmd == "remove-items") {
+      if (cmd == "remove-items") {
         return new FilterItems(rm_args, true);
-      } else if(cmd == "filter-items") {
+      } else if (cmd == "filter-items") {
         return new FilterItems(rm_args, false);
       }
     }
@@ -202,7 +203,6 @@ std::ostream &operator<<(std::ostream &os, const PassCmd &pass) {
 }
 
 int main(int argc, char **argv) {
-  vector<unique_ptr<MiniZinc::Pass>> passes;
 
   if (argc < 3) {
     std::cerr << "Incorrect number of arguments" << std::endl;
@@ -226,7 +226,7 @@ int main(int argc, char **argv) {
   pass_cmdline.emplace_back("in", in_path);
   if (cmd == "sequence") {
     for (size_t i = 3; i < argc; i++) {
-      PassCmd pass {string(argv[i])};
+      PassCmd pass{string(argv[i])};
       if (pass.cmd == "out" || pass.cmd == "out_fzn") {
         has_output = true;
         pass_cmdline.emplace_back("remove-stdlibs");
@@ -286,9 +286,11 @@ int main(int argc, char **argv) {
   }
   if (!has_output) {
     pass_cmdline.emplace_back("remove-stdlibs");
-    pass_cmdline.emplace_back("out", "-");
+    pass_cmdline.emplace_back(is_fzn ? "out_fzn" : "out", "-");
   }
 
+  // Build actual passes pipeline
+  vector<unique_ptr<MiniZinc::Pass>> passes;
   for (PassCmd &pass : pass_cmdline) {
     Pass *pass_ptr = pass.getPass();
     if (pass_ptr == nullptr) {

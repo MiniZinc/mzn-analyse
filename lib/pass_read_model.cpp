@@ -3,9 +3,9 @@
 #include <fstream>
 #include <string>
 
-#include <minizinc/prettyprinter.hh>
 #include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
+#include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
 
 using namespace MiniZinc;
@@ -15,7 +15,7 @@ using std::vector;
 ReadModel::ReadModel(const string &ip) : in_path{ip} {}
 
 Env *ReadModel::run(Env *e, std::ostream &log) {
-  Env* nenv = new Env;
+  Env *nenv = new Env;
 
   string extension = in_path.substr(in_path.size() - 4, string::npos);
   bool is_fzn = extension == ".fzn";
@@ -28,8 +28,8 @@ Env *ReadModel::run(Env *e, std::ostream &log) {
   vector<string> model_paths(1);
   model_paths[0] = in_path;
 
-  Model *m = parse(*nenv, model_paths, {}, "", "", includes, is_fzn, false, false,
-                   false, std::cerr);
+  Model *m = parse(*nenv, model_paths, {}, "", "", includes, is_fzn, false,
+                   false, false, std::cerr);
 
   if (!m) {
     std::cerr << "mzn_data: Failed to parse file" << std::endl;

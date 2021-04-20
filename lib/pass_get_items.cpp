@@ -1,8 +1,8 @@
 #include "pass_get_items.hh"
 
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 using namespace MiniZinc;
 using std::string;

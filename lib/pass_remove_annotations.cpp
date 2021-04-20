@@ -25,7 +25,7 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
     bool enter(Expression *e) {
       vector<Expression *> toRemove;
       for (Expression *ann_e : e->ann()) {
-        if(ann_names.empty()) {
+        if (ann_names.empty()) {
           toRemove.push_back(ann_e);
         } else {
           for (string &name : ann_names) {

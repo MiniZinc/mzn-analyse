@@ -1,23 +1,22 @@
 #include "pass_filter_items.hh"
 
+#include <algorithm>
 #include <string>
 #include <vector>
-#include <algorithm>
 
 using namespace MiniZinc;
 using std::string;
 
-FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types, bool omit) {
+FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
+                         bool omit) {
   const std::vector<Item::ItemId> all_ids = {
-    Item::II_INC, Item::II_VD,  Item::II_ASN,
-    Item::II_CON, Item::II_SOL, Item::II_OUT,
-    Item::II_FUN
-  };
-  if(omit) {
+      Item::II_INC, Item::II_VD,  Item::II_ASN, Item::II_CON,
+      Item::II_SOL, Item::II_OUT, Item::II_FUN};
+  if (omit) {
     item_types = types;
   } else {
     for (MiniZinc::Item::ItemId iid : all_ids) {
-      if(std::find(types.begin(), types.end(), iid) == types.end()) {
+      if (std::find(types.begin(), types.end(), iid) == types.end()) {
         item_types.push_back(iid);
       }
     }
