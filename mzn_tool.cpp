@@ -108,10 +108,12 @@ struct PassCmd {
   vector<string> args;
 
   PassCmd(const string &cmd_str) {
-    vector<string> parts = split(cmd_str, ':', false);
-    cmd = parts[0];
-    if (parts.size() > 1 && !parts[1].empty()) {
-      args = split(parts[1], ',', false);
+    size_t idx = cmd_str.find(':');
+    if (idx == string::npos) {
+      cmd = cmd_str;
+    } else {
+      cmd = cmd_str.substr(0, idx);
+      args = split(cmd_str.substr(idx + 1, cmd_str.size()), ',', false);
     }
   }
 
@@ -275,6 +277,10 @@ int main(int argc, char **argv) {
       print_usage();
       return EXIT_FAILURE;
     }
+    if (argc > 3)
+      out_path = argv[3];
+    if (argc > 4)
+      extra_arg = argv[4];
     if (out_path.empty()) {
       out_path = output_base + ".noanns.fzn";
     }
