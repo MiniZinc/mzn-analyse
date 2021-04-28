@@ -196,6 +196,19 @@ struct PassCmd {
       } else if (cmd == "filter-items") {
         return new FilterItems(rm_args, false);
       }
+    } else if (cmd == "filter-typeinst") {
+      vector<Item::ItemId> keep_args = {Item::II_VD, Item::II_CON};
+      if (args.empty())
+        args.push_back("all");
+      if (args[0] == "all") {
+        return new FilterItems(keep_args, false, FilterItems::ALL);
+      } else if (args[0] == "var") {
+        return new FilterItems(keep_args, false, FilterItems::VAR);
+      } else if (args[0] == "par") {
+        return new FilterItems(keep_args, false, FilterItems::PAR);
+      } else {
+        return nullptr;
+      }
     }
     return nullptr;
   }

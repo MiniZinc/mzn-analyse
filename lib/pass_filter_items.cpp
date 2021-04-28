@@ -5,22 +5,38 @@
 #include <vector>
 
 using namespace MiniZinc;
+using MiniZinc::Type;
 using std::string;
 
 FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
-                         bool omit) {
-  const std::vector<Item::ItemId> all_ids = {
-      Item::II_INC, Item::II_VD,  Item::II_ASN, Item::II_CON,
-      Item::II_SOL, Item::II_OUT, Item::II_FUN};
-  if (omit) {
-    item_types = types;
-  } else {
-    for (MiniZinc::Item::ItemId iid : all_ids) {
-      if (std::find(types.begin(), types.end(), iid) == types.end()) {
-        item_types.push_back(iid);
+                         bool omit, FilterItems::FilterTypeInst ti)
+    : item_types{types}, exclude{omit}, typeinst{ti} {}
+
+bool FilterItems::should_remove(Item *item) {
+  MiniZinc::Type::TypeInst mti =
+      (typeinst == FilterItems::VAR ? MiniZinc::Type::TI_VAR
+                                    : MiniZinc::Type::TI_PAR);
+  for (MiniZinc::Item::ItemId iid : item_types) {
+    if (item->iid() == iid) {
+      if (typeinst == FilterItems::ALL) {
+        return exclude;
+      }
+      if (VarDeclI *vdi = item->dynamicCast<VarDeclI>()) {
+        if (vdi->e()->type().ti() == mti) {
+          return exclude;
+        }
+      } else if (ConstraintI *ci = item->dynamicCast<ConstraintI>()) {
+        if (ci->e()->type().ti() == mti) {
+          return exclude;
+        }
+      } else if (AssignI *ai = item->dynamicCast<AssignI>()) {
+        if (ai->decl()->type().ti() == mti && ai->e()->type().ti() == mti) {
+          return exclude;
+        }
       }
     }
   }
+  return !exclude;
 }
 
 Env *FilterItems::run(Env *e, std::ostream &log) {
@@ -28,11 +44,8 @@ Env *FilterItems::run(Env *e, std::ostream &log) {
 
   for (size_t i = 0; i < model->size(); i++) {
     Item *item = model->operator[](i);
-    for (MiniZinc::Item::ItemId iid : item_types) {
-      if (item->iid() == iid) {
-        item->remove();
-        break;
-      }
+    if (should_remove(item)) {
+      item->remove();
     }
   }
   model->compact();
