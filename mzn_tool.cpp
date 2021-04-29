@@ -3,16 +3,22 @@
 #include <string>
 #include <vector>
 
-#include "pass_annotate_data_deps.hh"
-#include "pass_filter_items.hh"
-#include "pass_get_data_deps.hh"
-#include "pass_get_items.hh"
-#include "pass_get_term_types.hh"
-#include "pass_inline_includes.hh"
 #include "pass_read_model.hh"
+#include "pass_write_model.hh"
+
+#include "pass_annotate_data_deps.hh"
+
+#include "pass_get_data_deps.hh"
+#include "pass_get_exprs.hh"
+#include "pass_get_term_types.hh"
+
+#include "pass_filter_items.hh"
+#include "pass_get_items.hh"
+
+#include "pass_inline_includes.hh"
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
-#include "pass_write_model.hh"
+
 #include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
@@ -102,6 +108,9 @@ void print_usage() {
             << "   get-data-deps:out.cons (FlatZinc only)\n"
             << "     Write .cons file with data dependenceis of\n"
             << "     FlatZinc constraints\n"
+            << "   get-exprs:location1,location2\n"
+            << "     Extract list of expressions occurring inside location\n"
+            << "     location = path.mzn|sl|sc|el|ec
             << "\n";
 }
 
@@ -140,6 +149,8 @@ struct PassCmd {
         args.push_back("-");
       }
       return new GetDataDeps(args[0]);
+    } else if (cmd == "get-exprs") {
+      return new GetExprs(args);
     } else if (cmd == "remove-anns") {
       return new RemoveAnnotations(args);
     } else if (cmd == "remove-includes") {

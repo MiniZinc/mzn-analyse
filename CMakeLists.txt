@@ -19,6 +19,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_get_data_deps.cpp
   lib/pass_read_model.cpp
   lib/pass_write_model.cpp
+  lib/pass_get_exprs.cpp
 
   include/tool_pass.hh
   include/pass_annotate_data_deps.hh
@@ -31,6 +32,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_get_data_deps.hh
   include/pass_read_model.hh
   include/pass_write_model.hh
+  include/pass_get_exprs.hh
   )
 
 target_include_directories(mzn_tool PRIVATE include)
