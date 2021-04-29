@@ -52,6 +52,8 @@ An explicit final `out` must be added to the end if you wish to output models th
      Only keep items matching iids
    remove-items:iid1,[iid2,...]
      Remove items matching iids
+   filter-typeinst:{var|par}
+     Just show var/par parts of model
 
    annotate-data-deps
      Annotate expressions with their data dependencies

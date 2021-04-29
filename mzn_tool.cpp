@@ -92,6 +92,8 @@ void print_usage() {
             << "     Only keep items matching iids\n"
             << "   remove-items:iid1,[iid2,...]\n"
             << "     Remove items matching iids\n"
+            << "   filter-typeinst:{var|par}\n"
+            << "     Just show var/par parts of model\n"
             << "\n"
             << "   annotate-data-deps\n"
             << "     Annotate expressions with their data dependencies\n"
