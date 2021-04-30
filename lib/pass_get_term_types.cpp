@@ -1,4 +1,5 @@
 #include "pass_get_term_types.hh"
+#include "string_utils.hh"
 
 #include <fstream>
 #include <iostream>
@@ -46,20 +47,6 @@ string escape(const string &orig, bool html) {
   return out.str();
 }
 
-string join(const vector<string> &strs, const string &sep, bool quote = false) {
-  std::stringstream ss;
-  for (size_t i = 0; i < strs.size(); i++) {
-    if (i)
-      ss << sep;
-    if (quote) {
-      ss << "\"" << strs[i] << "\"";
-    } else {
-      ss << strs[i];
-    }
-  }
-  return ss.str();
-}
-
 string getTermTypeString(vector<string> &gens, vector<string> &coefs,
                          Expression *var) {
   const string minor_sep = "|";
@@ -68,8 +55,8 @@ string getTermTypeString(vector<string> &gens, vector<string> &coefs,
   stringstream ss;
   ss << "\n    {\n";
   ss << "      \"variable\": \"" << *var << "\",\n";
-  ss << "      \"coefficients\": [" << join(coefs, ", ", true) << "],\n";
-  ss << "      \"generators\": [" << join(gens, ", ", true) << "],\n";
+  ss << "      \"coefficients\": [" << utils::join(coefs, ", ", true) << "],\n";
+  ss << "      \"generators\": [" << utils::join(gens, ", ", true) << "],\n";
   ss << "      \"location\": \"" << escape(loc.filename().c_str(), false)
      << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
      << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << "\"\n";
@@ -166,7 +153,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
 
   // The printing bit
   stringstream ss;
-  ss << "{\n  \"term_types\": [" << join(term_strings, ", ") << "]\n}\n";
+  ss << "{\n  \"term_types\": [" << utils::join(term_strings, ", ") << "]\n}\n";
   return ss.str();
 }
 

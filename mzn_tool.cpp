@@ -20,6 +20,7 @@
 #include "pass_remove_includes.hh"
 
 #include "tool_pass.hh"
+#include "string_utils.hh"
 
 #include <minizinc/file_utils.hh>
 
@@ -28,33 +29,6 @@ using namespace MiniZinc;
 using std::string;
 using std::unique_ptr;
 using std::vector;
-
-string join(const vector<string> &strs, const string &sep) {
-  std::stringstream ss;
-  for (size_t i = 0; i < strs.size(); i++) {
-    if (i)
-      ss << sep;
-    ss << strs[i];
-  }
-  return ss.str();
-}
-
-vector<string> split(const string &str, char delim, bool include_empty) {
-  std::stringstream ss;
-  ss.str(str);
-  std::string item;
-
-  vector<string> result;
-
-  auto inserter = std::back_inserter(result);
-
-  while (std::getline(ss, item, delim)) {
-    if (!item.empty() || include_empty)
-      *(inserter++) = item;
-  }
-
-  return result;
-}
 
 void print_usage() {
   std::cout << " usage:\n"
@@ -110,7 +84,7 @@ void print_usage() {
             << "     FlatZinc constraints\n"
             << "   get-exprs:location1,location2\n"
             << "     Extract list of expressions occurring inside location\n"
-            << "     location = path.mzn|sl|sc|el|ec
+            << "     location = path.mzn|sl|sc|el|ec\n"
             << "\n";
 }
 
@@ -124,12 +98,12 @@ struct PassCmd {
       cmd = cmd_str;
     } else {
       cmd = cmd_str.substr(0, idx);
-      args = split(cmd_str.substr(idx + 1, cmd_str.size()), ',', false);
+      args = utils::split(cmd_str.substr(idx + 1, cmd_str.size()), ',', false);
     }
   }
 
   PassCmd(const string &c, const string &a_str) : cmd{c} {
-    args = split(a_str, ',', false);
+    args = utils::split(a_str, ',', false);
   }
 
   MiniZinc::Pass *getPass() {
@@ -228,7 +202,7 @@ struct PassCmd {
 };
 
 std::ostream &operator<<(std::ostream &os, const PassCmd &pass) {
-  os << pass.cmd << ":" << join(pass.args, ",");
+  os << pass.cmd << ":" << utils::join(pass.args, ",");
   return os;
 }
 

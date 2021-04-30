@@ -8,6 +8,7 @@ message("-- Configuring: libminzinc")
 include(cmake-helpers/configure_libminizinc.cmake)
 
 add_executable(mzn_tool mzn_tool.cpp
+  lib/string_utils.cpp
   lib/tool_pass.cpp
   lib/pass_annotate_data_deps.cpp
   lib/pass_inline_includes.cpp
@@ -21,6 +22,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_write_model.cpp
   lib/pass_get_exprs.cpp
 
+  include/string_utils.hh
   include/tool_pass.hh
   include/pass_annotate_data_deps.hh
   include/pass_inline_includes.hh
