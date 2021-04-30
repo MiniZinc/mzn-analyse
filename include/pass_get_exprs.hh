@@ -16,6 +16,7 @@ struct ShortLoc
     ShortLoc(const std::string& full_path_entry);
     ShortLoc(const MiniZinc::Location& mzn_loc);
 
+    std::string to_string() const;
     bool contains(const ShortLoc& other) const;
 };
 
