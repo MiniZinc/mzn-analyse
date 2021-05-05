@@ -44,6 +44,8 @@ An explicit final `out` must be added to the end if you wish to output models th
      Remove Id and Call annotations matching names
    remove-includes:name1,[name2,...]
      Remove includes matching names
+   output-all
+     Add 'add_to_output' annotation to all VarDecls
    remove-stdlib
      Remove stdlib includes
    get-items:idx1,[idx2,...]
@@ -62,6 +64,10 @@ An explicit final `out` must be added to the end if you wish to output models th
    get-data-deps:out.cons (FlatZinc only)
      Write .cons file with data dependenceis of
      FlatZinc constraints
+   get-exprs:location1,location2
+     Extract list of expressions occurring inside location
+     location = path.mzn|sl|sc|el|ec
+
 ```
 
 ## Hardcoded Pipelines
