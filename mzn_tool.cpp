@@ -18,6 +18,7 @@
 #include "pass_inline_includes.hh"
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
+#include "pass_output_all.hh"
 
 #include "tool_pass.hh"
 #include "string_utils.hh"
@@ -64,6 +65,8 @@ void print_usage() {
             << "     Remove Id and Call annotations matching names\n"
             << "   remove-includes:name1,[name2,...]\n"
             << "     Remove includes matching names\n"
+            << "   output-all\n"
+            << "     Add 'add_to_output' annotation to all VarDecls\n"
             << "   remove-stdlib\n"
             << "     Remove stdlib includes\n"
             << "   get-items:idx1,[idx2,...]\n"
@@ -129,6 +132,8 @@ struct PassCmd {
       return new RemoveAnnotations(args);
     } else if (cmd == "remove-includes") {
       return new RemoveIncludes(args);
+    } else if (cmd == "output-all") {
+      return new OutputAll;
     } else if (cmd == "remove-stdlibs") {
       return new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"});
     } else if (cmd == "in") {
