@@ -93,11 +93,13 @@ struct UniqueCollector {
     std::vector<std::string> entries;
 
     for(auto& loc_exprs : exprs) {
-      std::vector<std::string> unique_exprs { loc_exprs.second.begin(),
-                                              loc_exprs.second.end() };
+      std::vector<std::string> unique_exprs;
+      for(const auto &expr_str : loc_exprs.second) {
+        unique_exprs.push_back(utils::escape(expr_str, false));
+      }
 
       std::stringstream entry_ss;
-      entry_ss << "'" << loc_exprs.first << "': [";
+      entry_ss << "\"" << loc_exprs.first << "\": [";
       entry_ss << utils::join(unique_exprs, ",", true);
       entry_ss << "]";
       entries.push_back(entry_ss.str());
@@ -117,6 +119,14 @@ bool isLit(Expression::ExpressionId eid) {
     eid == Expression::E_SETLIT;
 }
 
+bool isAnn(Expression* e) {
+  if(Call* c = e->dynamicCast<Call>()) {
+    return c->id() == "mzn_constraint_name" ||
+           c->id() == "mzn_expression_name";
+  }
+  return false;
+}
+
 struct ExpressionExtractorEVisitor : public EVisitor {
   UniqueCollector &p;
   const std::vector<ShortLoc> &locs;
@@ -125,7 +135,7 @@ struct ExpressionExtractorEVisitor : public EVisitor {
                               const std::vector<ShortLoc> &locations) : p{p1}, locs{locations} {}
 
   bool enter(Expression *e) {
-    if (e == nullptr || isLit(e->eid())) return false;
+    if (e == nullptr || isLit(e->eid()) || isAnn(e)) return false;
 
     ShortLoc this_loc { e->loc() };
     bool is_parent = locs.empty();
