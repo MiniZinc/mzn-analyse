@@ -52,6 +52,13 @@ string getTermTypeString(vector<string> &gens, vector<string> &coefs,
   const string minor_sep = "|";
   Location loc = var->loc();
 
+  if(ArrayAccess* aa = var->dynamicCast<ArrayAccess>()) {
+    Expression* arr = aa->v();
+    if(Id* id = arr->dynamicCast<Id>()) {
+      loc = id->decl()->id()->loc();
+    }
+  }
+
   stringstream ss;
   ss << "\n    {\n";
   ss << "      \"variable\": \"" << *var << "\",\n";
@@ -143,8 +150,11 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
         stack.emplace_back(gens.size(), coefs.size(), it->second);
       } else {
         // It is just an ID
-        coefs.push_back(id->str().c_str());
-        term_strings.push_back(getTermTypeString(gens, coefs, id));
+        if(id->decl()->id()->type().isPar()) {
+          coefs.push_back(id->str().c_str());
+        } else {
+          term_strings.push_back(getTermTypeString(gens, coefs, id));
+        }
       }
     } else {
       term_strings.push_back(getTermTypeString(gens, coefs, frame.e));
