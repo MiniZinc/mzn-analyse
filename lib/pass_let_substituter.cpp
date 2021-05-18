@@ -314,9 +314,9 @@ struct LetReplacerVisitor {
       entries.push_back(ss.str());
     }
 
-    os << "{\n  \"replacements\": {\n";
+    os << "{\n";
     os << utils::join(entries, ",\n", false);
-    os << "}\n}" << std::endl;
+    os << "\n}" << std::endl;
   }
 };
 
@@ -367,12 +367,18 @@ LetSubstituter::LetSubstituter(const std::vector<std::string> &paths) {
   }
 }
 
+std::string LetSubstituter::get_name() { return "replace-with-newvar"; }
+void LetSubstituter::write_json(std::ostream &os) { os << json_output; }
+
 MiniZinc::Env *LetSubstituter::run(MiniZinc::Env *e, std::ostream &log) {
   Model *m = e->model();
 
   ItemExpressionReplacer ee{locs};
   iter_items(ee, m);
-  ee.lrv.write_json(std::cout);
+
+  std::stringstream ss;
+  ee.lrv.write_json(ss);
+  json_output = ss.str();
 
   return e;
 }

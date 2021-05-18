@@ -58,14 +58,14 @@ void UniqueCollector::write_json(ostream &os) {
     }
 
     std::stringstream entry_ss;
-    entry_ss << "\"" << loc_exprs.first << "\": [";
+    entry_ss << "    \"" << loc_exprs.first << "\": [";
     entry_ss << utils::join(unique_exprs, ",", true);
     entry_ss << "]";
     entries.push_back(entry_ss.str());
   }
 
-  os << "{";
-  os << utils::join(entries, "\n,", false);
+  os << "{\n";
+  os << utils::join(entries, ",\n", false);
   os << "}";
 }
 
@@ -153,7 +153,7 @@ GetExprs::GetExprs(const std::vector<std::string> &paths) : uc{paths} {}
 
 void GetExprs::write_json(ostream &os) { uc.write_json(os); }
 
-std::string GetExprs::get_name() { return "GetExprs"; }
+std::string GetExprs::get_name() { return "get-exprs"; }
 
 MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
   ExpressionExtractor ee{uc};

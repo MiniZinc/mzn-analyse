@@ -163,7 +163,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
 
   // The printing bit
   stringstream ss;
-  ss << "{\n  \"term_types\": [" << utils::join(term_strings, ", ") << "]\n}\n";
+  ss << "[" << utils::join(term_strings, ", ") << "]";
   return ss.str();
 }
 
@@ -196,6 +196,10 @@ string getObjectiveTermsJSON(SolveI *si,
 GetTermTypes::GetTermTypes(const std::string &out_path)
     : output_path{out_path} {}
 
+std::string GetTermTypes::get_name() { return "get-term-types"; }
+
+void GetTermTypes::write_json(std::ostream &os) { os << json_output; }
+
 MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
   // Collect functional assignments for objective processing
   Model *m = e->model();
@@ -216,15 +220,15 @@ MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
   }
 
   // Add coef annotations to objective terms
-  string terms_json = getObjectiveTermsJSON(m->solveItem(), assigns);
+  json_output = getObjectiveTermsJSON(m->solveItem(), assigns);
 
   // Write term types to json file
   if (output_path == "-") {
-    std::cout << terms_json;
-  } else {
+    std::cout << json_output;
+  } else if (!output_path.empty()) {
     std::cerr << "Writing term types to: " << output_path << std::endl;
     std::ofstream of(output_path);
-    of << terms_json;
+    of << json_output;
     of.close();
   }
 

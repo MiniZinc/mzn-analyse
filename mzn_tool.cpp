@@ -129,7 +129,7 @@ struct PassCmd {
       return new AnnotateDataDeps();
     } else if (cmd == "get-term-types") {
       if (args.empty()) {
-        args.push_back("-");
+        args.push_back("");
       }
       return new GetTermTypes(args[0]);
     } else if (cmd == "get-data-deps") {
