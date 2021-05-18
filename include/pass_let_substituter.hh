@@ -6,12 +6,12 @@
 #include <string>
 #include <vector>
 
-class GetExprs : public MiniZinc::Pass {
+class LetSubstituter : public MiniZinc::Pass {
 private:
   std::vector<ShortLoc> locs;
 
 public:
-  GetExprs(const std::vector<std::string>& paths);
+  LetSubstituter(const std::vector<std::string>& paths);
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };

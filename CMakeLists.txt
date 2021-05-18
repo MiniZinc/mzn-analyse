@@ -9,6 +9,7 @@ include(cmake-helpers/configure_libminizinc.cmake)
 
 add_executable(mzn_tool mzn_tool.cpp
   lib/string_utils.cpp
+  lib/location_utils.cpp
   lib/tool_pass.cpp
   lib/pass_annotate_data_deps.cpp
   lib/pass_inline_includes.cpp
@@ -22,8 +23,10 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_read_model.cpp
   lib/pass_write_model.cpp
   lib/pass_get_exprs.cpp
+  lib/pass_let_substituter.cpp
 
   include/string_utils.hh
+  include/location_utils.hh
   include/tool_pass.hh
   include/pass_annotate_data_deps.hh
   include/pass_inline_includes.hh
@@ -37,6 +40,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_read_model.hh
   include/pass_write_model.hh
   include/pass_get_exprs.hh
+  include/pass_let_substituter.hh
   )
 
 target_include_directories(mzn_tool PRIVATE include)

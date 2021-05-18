@@ -20,6 +20,8 @@
 #include "pass_remove_includes.hh"
 #include "pass_output_all.hh"
 
+#include "pass_let_substituter.hh"
+
 #include "tool_pass.hh"
 #include "string_utils.hh"
 
@@ -77,6 +79,8 @@ void print_usage() {
             << "     Remove items matching iids\n"
             << "   filter-typeinst:{var|par}\n"
             << "     Just show var/par parts of model\n"
+            << "   replace-with-newvar:location1,location2\n"
+            << "     Replace expressions with 'let' expressions\n"
             << "\n"
             << "   annotate-data-deps\n"
             << "     Annotate expressions with their data dependencies\n"
@@ -126,6 +130,8 @@ struct PassCmd {
         args.push_back("-");
       }
       return new GetDataDeps(args[0]);
+    } else if (cmd == "replace-with-newvar") {
+      return new LetSubstituter(args);
     } else if (cmd == "get-exprs") {
       return new GetExprs(args);
     } else if (cmd == "remove-anns") {
