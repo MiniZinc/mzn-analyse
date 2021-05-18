@@ -170,7 +170,7 @@ void TopDownReplacer<T>::run(Expression* root) {
             //if(_t.should_replace(ifExpr)) {
             //  ite->ifExpr(i, _t.get_replacement(ifExpr));
             //} else {
-              stack.push_back(ite->ifExpr(i));
+              stack.push_back(ifExpr);
             //}
             if(_t.should_replace(thenExpr)) {
               ite->thenExpr(i, _t.get_replacement(thenExpr));
@@ -264,7 +264,45 @@ void TopDownReplacer<T>::run(Expression* root) {
   }
 }
 
+struct ReplacedInfo {
+  const Expression* expression;
+  const Expression* replacement;
+
+  ReplacedInfo(const Expression* expr,
+               const Expression* rep)
+    : expression{expr}, replacement{rep} {}
+
+  ShortLoc loc() const {
+    return ShortLoc { expression->loc() };
+  }
+
+  std::string to_string() {
+    std::string orig_string;
+    {
+      std::stringstream orig_ss;
+      orig_ss << *expression;
+      orig_string = orig_ss.str();
+    }
+
+    std::string rep_string;
+    {
+      std::stringstream rep_ss;
+      rep_ss << *replacement;
+      rep_string = rep_ss.str();
+    }
+
+    std::stringstream ss;
+    ss << "\n    {\n"
+       << "      \"original\": \"" << utils::escape(orig_string) << "\",\n"
+       << "      \"replacement\": \"" << utils::escape(rep_string) << "\"\n"
+       << "    }";
+
+    return ss.str();
+  }
+};
+
 struct LetReplacerVisitor {
+  std::vector<ReplacedInfo> replacements;
   const std::vector<ShortLoc>& locations;
 
   LetReplacerVisitor(const std::vector<ShortLoc> &locs) : locations{locs} {}
@@ -284,8 +322,27 @@ struct LetReplacerVisitor {
     return found_match;
   }
 
-  Expression* get_replacement(Expression* e) const {
-    return wrap_with_let(e);
+  Expression* get_replacement(Expression* e) {
+    ShortLoc loc {e->loc()};
+    Expression* replacement = wrap_with_let(e);
+    replacements.emplace_back(e, replacement);
+    return replacement;
+  }
+
+  void write_json(ostream &os) {
+    std::vector<std::string> entries;
+
+    for(auto& rep : replacements) {
+      ShortLoc loc = rep.loc();
+      std::stringstream ss;
+      ss << "    \"" << loc << "\": \n"
+         << rep.to_string();
+      entries.push_back(ss.str());
+    }
+
+    os << "{\n  \"replacements\": {\n";
+    os << utils::join(entries, ",\n", false);
+    os << "}\n}" << std::endl;
   }
 };
 
@@ -341,6 +398,7 @@ MiniZinc::Env *LetSubstituter::run(MiniZinc::Env *e, std::ostream &log) {
 
   ItemExpressionReplacer ee {locs};
   iter_items(ee, m);
+  ee.lrv.write_json(std::cout);
 
   return e;
 }
