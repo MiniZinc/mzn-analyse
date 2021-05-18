@@ -1,7 +1,7 @@
 #pragma once
 
-#include "tool_pass.hh"
 #include "location_utils.hh"
+#include "tool_pass.hh"
 
 #include <string>
 #include <vector>
@@ -11,7 +11,7 @@ private:
   std::vector<ShortLoc> locs;
 
 public:
-  LetSubstituter(const std::vector<std::string>& paths);
+  LetSubstituter(const std::vector<std::string> &paths);
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };

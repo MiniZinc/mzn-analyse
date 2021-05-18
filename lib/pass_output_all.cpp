@@ -13,7 +13,7 @@ MiniZinc::Env *OutputAll::run(MiniZinc::Env *e, std::ostream &log) {
   Model *m = e->model();
 
   for (VarDeclI &vdi : m->vardecls()) {
-    VarDecl* vd = vdi.e();
+    VarDecl *vd = vdi.e();
     vd->ann().add(MiniZinc::constants().ann.add_to_output);
   }
 

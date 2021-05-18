@@ -16,14 +16,14 @@
 #include "pass_get_items.hh"
 
 #include "pass_inline_includes.hh"
+#include "pass_output_all.hh"
 #include "pass_remove_annotations.hh"
 #include "pass_remove_includes.hh"
-#include "pass_output_all.hh"
 
 #include "pass_let_substituter.hh"
 
-#include "tool_pass.hh"
 #include "string_utils.hh"
+#include "tool_pass.hh"
 
 #include <minizinc/file_utils.hh>
 

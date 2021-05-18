@@ -6,7 +6,7 @@
 #include <vector>
 
 class ToolPass : public MiniZinc::Pass {
-  virtual void write_json(std::ostream &os) {};
+  virtual void write_json(std::ostream &os){};
 };
 
 MiniZinc::Env *
