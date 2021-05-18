@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-class OutputAll : public MiniZinc::Pass {
+class OutputAll : public ToolPass {
 public:
   OutputAll();
 

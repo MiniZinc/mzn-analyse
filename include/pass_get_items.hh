@@ -3,7 +3,7 @@
 #include "tool_pass.hh"
 #include <set>
 
-class GetItems : public MiniZinc::Pass {
+class GetItems : public ToolPass {
 private:
   std::set<size_t> indexes;
 

@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-class LetSubstituter : public MiniZinc::Pass {
+class LetSubstituter : public ToolPass {
 private:
   std::vector<ShortLoc> locs;
 

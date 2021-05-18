@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-class FilterItems : public MiniZinc::Pass {
+class FilterItems : public ToolPass {
 public:
   enum FilterTypeInst { ALL, VAR, PAR };
 

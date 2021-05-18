@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class RemoveIncludes : public MiniZinc::Pass {
+class RemoveIncludes : public ToolPass {
 private:
   std::vector<std::string> includes;
 

@@ -19,54 +19,54 @@ using std::ostream;
 using std::string;
 using std::vector;
 
+UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations) : locs{locations} {}
 
-struct UniqueCollector {
-  std::vector<ShortLoc> locs;
-  std::unordered_map<std::string, std::unordered_set<std::string> > exprs;
-
-  UniqueCollector(const std::vector<ShortLoc>& locations) : locs{locations} {}
-
-  void add_expr(const ShortLoc& loc, std::string s) {
-    if (s.empty())
-      return;
-    if (s[0] == '"')
-      return;
-
-    std::string loc_key = loc.to_string();
-    std::unordered_set<std::string>& seen = exprs[loc_key];
-    if (seen.find(s) == seen.end()) {
-      seen.insert(s);
-    }
+UniqueCollector::UniqueCollector(const std::vector<std::string>& paths) {
+  for(const string& path : paths) {
+    locs.emplace_back(path);
   }
+}
 
-  void add_expr(const ShortLoc& loc, Expression *e) {
-    std::stringstream ss;
-    MiniZinc::Printer p(ss, 0, true);
-    p.print(e);
-    add_expr(loc, ss.str());
+void UniqueCollector::add_expr(const ShortLoc& loc, std::string s) {
+  if (s.empty())
+    return;
+  if (s[0] == '"')
+    return;
+
+  std::string loc_key = loc.to_string();
+  std::unordered_set<std::string>& seen = exprs[loc_key];
+  if (seen.find(s) == seen.end()) {
+    seen.insert(s);
   }
+}
 
-  void write_json(ostream &os) {
-    std::vector<std::string> entries;
+void UniqueCollector::add_expr(const ShortLoc& loc, Expression *e) {
+  std::stringstream ss;
+  MiniZinc::Printer p(ss, 0, true);
+  p.print(e);
+  add_expr(loc, ss.str());
+}
 
-    for(auto& loc_exprs : exprs) {
-      std::vector<std::string> unique_exprs;
-      for(const auto &expr_str : loc_exprs.second) {
-        unique_exprs.push_back(utils::escape(expr_str, false));
-      }
+void UniqueCollector::write_json(ostream &os) {
+  std::vector<std::string> entries;
 
-      std::stringstream entry_ss;
-      entry_ss << "\"" << loc_exprs.first << "\": [";
-      entry_ss << utils::join(unique_exprs, ",", true);
-      entry_ss << "]";
-      entries.push_back(entry_ss.str());
+  for(auto& loc_exprs : exprs) {
+    std::vector<std::string> unique_exprs;
+    for(const auto &expr_str : loc_exprs.second) {
+      unique_exprs.push_back(utils::escape(expr_str, false));
     }
 
-    os << "{";
-    os << utils::join(entries, "\n,", false);
-    os << "}" << std::endl;
+    std::stringstream entry_ss;
+    entry_ss << "\"" << loc_exprs.first << "\": [";
+    entry_ss << utils::join(unique_exprs, ",", true);
+    entry_ss << "]";
+    entries.push_back(entry_ss.str());
   }
-};
+
+  os << "{";
+  os << utils::join(entries, "\n,", false);
+  os << "}" << std::endl;
+}
 
 bool isLit(Expression::ExpressionId eid) {
   return eid == Expression::E_FLOATLIT ||
@@ -133,8 +133,7 @@ struct ExpressionExtractor : public ItemVisitor {
   UniqueCollector &p;
   ExpressionExtractorEVisitor eev;
 
-  ExpressionExtractor(const std::vector<ShortLoc> &locations,
-                      UniqueCollector &uc) : p{uc}, eev{p, locations} {}
+  ExpressionExtractor(UniqueCollector &uc) : p{uc}, eev{p, uc.locs} {}
 
   bool enter(Item *item) { return !item->isa<IncludeI>(); }
   void vVarDeclI(VarDeclI *vdi) {
@@ -153,10 +152,10 @@ struct ExpressionExtractor : public ItemVisitor {
 };
 
 
-GetExprs::GetExprs(const std::vector<std::string>& paths) {
-  for(const string& path : paths) {
-    locs.emplace_back(path);
-  }
+GetExprs::GetExprs(const std::vector<std::string>& paths) : uc {paths} { }
+
+void GetExprs::write_json(ostream& os) {
+  uc.write_json(os);
 }
 
 MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
@@ -166,8 +165,7 @@ MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
 
   string output_path = "-";
   if (output_path == "-") {
-    UniqueCollector uc {locs};
-    ExpressionExtractor ee {locs, uc};
+    ExpressionExtractor ee {uc};
     iter_items(ee, m);
     uc.write_json(std::cout);
   } else {

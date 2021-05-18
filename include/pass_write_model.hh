@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class WriteModel : public MiniZinc::Pass {
+class WriteModel : public ToolPass {
 private:
   std::string out_path;
   bool is_fzn;

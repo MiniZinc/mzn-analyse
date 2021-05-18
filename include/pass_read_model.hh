@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-class ReadModel : public MiniZinc::Pass {
+class ReadModel : public ToolPass {
 private:
   std::string in_path;
 

@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-class RemoveAnnotations : public MiniZinc::Pass {
+class RemoveAnnotations : public ToolPass {
 private:
   std::vector<std::string> ann_names;
 
