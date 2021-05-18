@@ -6,10 +6,12 @@
 #include <vector>
 
 class ToolPass : public MiniZinc::Pass {
+public:
+  virtual std::string get_name() { return "MznTool"; };
   virtual void write_json(std::ostream &os){};
 };
 
 MiniZinc::Env *
 multiPassFlatten(MiniZinc::Env &e,
                  const std::vector<std::unique_ptr<MiniZinc::Pass>> &passes,
-                 std::ostream &_log);
+                 std::vector<std::string> &json_store, std::ostream &_log);

@@ -66,7 +66,7 @@ void UniqueCollector::write_json(ostream &os) {
 
   os << "{";
   os << utils::join(entries, "\n,", false);
-  os << "}" << std::endl;
+  os << "}";
 }
 
 bool isLit(Expression::ExpressionId eid) {
@@ -153,22 +153,12 @@ GetExprs::GetExprs(const std::vector<std::string> &paths) : uc{paths} {}
 
 void GetExprs::write_json(ostream &os) { uc.write_json(os); }
 
-MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
-  Model *m = e->model();
-  // Collect and write data entries
-  string fzn_path = m->filepath().c_str();
+std::string GetExprs::get_name() { return "GetExprs"; }
 
-  string output_path = "-";
-  if (output_path == "-") {
-    ExpressionExtractor ee{uc};
-    iter_items(ee, m);
-    uc.write_json(std::cout);
-  } else {
-    // std::cerr << "Writing constraint data to: " << output_path << std::endl;
-    // std::ofstream out_json_os{output_path};
-    // write_data_deps(m, out_json_os);
-    // out_json_os.close();
-  }
+MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
+  ExpressionExtractor ee{uc};
+  Model *m = e->model();
+  iter_items(ee, m);
 
   return e;
 }

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "pass_json_tool.hh"
 #include "pass_read_model.hh"
 #include "pass_write_model.hh"
 
@@ -59,6 +60,12 @@ void print_usage() {
             << "     Write model to out.fzn (- for stdout)\n"
             << "   no_out\n"
             << "     Disable automatic output insertion\n"
+            << "   json_out:out.json\n"
+            << "     Write collected json output to out.json (- for stdout)\n"
+            << "   json_clear\n"
+            << "     Clear collected json output\n"
+            << "   no_json\n"
+            << "     Disable automatic json output\n"
             << "   inline-includes\n"
             << "     Inline non-library includes\n"
             << "   inline-all-includes\n"
@@ -113,7 +120,7 @@ struct PassCmd {
     args = utils::split(a_str, ',', false);
   }
 
-  MiniZinc::Pass *getPass() {
+  MiniZinc::Pass *getPass(std::vector<std::string> &json_store) {
     if (cmd == "inline-includes") {
       return new InlineIncludes();
     } else if (cmd == "inline-all-includes") {
@@ -157,6 +164,13 @@ struct PassCmd {
         args.push_back("-");
       }
       return new WriteModel(args[0], true);
+    } else if (cmd == "json_out") {
+      if (args.empty()) {
+        args.push_back("-");
+      }
+      return new JSONTool(json_store, JSONTool::J_Output, args[0]);
+    } else if (cmd == "json_clear") {
+      return new JSONTool(json_store, JSONTool::J_Clear, "");
     } else if (cmd == "get-items") {
       vector<size_t> idxs;
       for (const string &idx_str : args) {
@@ -232,7 +246,9 @@ int main(int argc, char **argv) {
   string extra_arg;
 
   bool has_output = false;
+  bool has_json_output = false;
   bool no_out = false;
+  bool no_json = false;
 
   string extension = in_path.substr(in_path.size() - 4, string::npos);
   bool is_fzn = extension == ".fzn";
@@ -247,9 +263,16 @@ int main(int argc, char **argv) {
         no_out = true;
         continue;
       }
+      if (pass.cmd == "no_json") {
+        no_json = true;
+        continue;
+      }
       if (pass.cmd == "out" || pass.cmd == "out_fzn") {
         has_output = true;
         pass_cmdline.emplace_back("remove-stdlibs");
+      }
+      if (pass.cmd == "json_out") {
+        has_json_output = true;
       }
       pass_cmdline.push_back(pass);
     }
@@ -312,11 +335,15 @@ int main(int argc, char **argv) {
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back(is_fzn ? "out_fzn" : "out", "-");
   }
+  if (!no_json && !has_json_output) {
+    pass_cmdline.emplace_back("json_out");
+  }
 
   // Build actual passes pipeline
+  std::vector<std::string> json_store;
   vector<unique_ptr<MiniZinc::Pass>> passes;
   for (PassCmd &pass : pass_cmdline) {
-    Pass *pass_ptr = pass.getPass();
+    Pass *pass_ptr = pass.getPass(json_store);
     if (pass_ptr == nullptr) {
       std::cerr << "Cannot process pass: " << pass << std::endl;
       return EXIT_FAILURE;
@@ -326,7 +353,8 @@ int main(int argc, char **argv) {
 
   GCLock lock;
   Env env;
-  Env *out_env = multiPassFlatten(env, passes, std::cerr);
+
+  Env *out_env = multiPassFlatten(env, passes, json_store, std::cerr);
 
   return EXIT_SUCCESS;
 }

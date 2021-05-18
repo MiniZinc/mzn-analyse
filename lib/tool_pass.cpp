@@ -14,7 +14,7 @@ using MiniZinc::Timer;
 
 Env *multiPassFlatten(
     Env &e, const std::vector<std::unique_ptr<MiniZinc::Pass>> &passes,
-    std::ostream &_log) {
+    std::vector<std::string> &json_store, std::ostream &_log) {
   Env *pre_env = &e;
   size_t npasses = passes.size();
   pre_env->envi().finalPassNumber = static_cast<unsigned int>(npasses);
@@ -30,6 +30,20 @@ Env *multiPassFlatten(
     if (out_env == nullptr) {
       return nullptr;
     }
+
+    // Collect json output
+    if (ToolPass *tp = dynamic_cast<ToolPass *>(passes[i].get())) {
+      std::stringstream tool_out_stream;
+      tp->write_json(tool_out_stream);
+      std::string tool_output = tool_out_stream.str();
+
+      if (!tool_output.empty()) {
+        std::stringstream ss;
+        ss << "\"" << tp->get_name() << "\": " << tool_output;
+        json_store.push_back(ss.str());
+      }
+    }
+
     if (pre_env != &e && pre_env != out_env) {
       delete pre_env;
     }

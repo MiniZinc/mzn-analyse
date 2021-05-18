@@ -24,6 +24,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_write_model.cpp
   lib/pass_get_exprs.cpp
   lib/pass_let_substituter.cpp
+  lib/pass_json_tool.cpp
 
   include/string_utils.hh
   include/location_utils.hh
@@ -41,6 +42,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_write_model.hh
   include/pass_get_exprs.hh
   include/pass_let_substituter.hh
+  include/pass_json_tool.hh
   )
 
 target_include_directories(mzn_tool PRIVATE include)
