@@ -36,10 +36,14 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
     int l_depth = lhs->arg(0)->template cast<IntLit>()->v().toInt();
     int r_depth = rhs->arg(0)->template cast<IntLit>()->v().toInt();
 
-    int l_type = prec(lhs->arg(1)->template cast<StringLit>()->v().c_str());
-    int r_type = prec(rhs->arg(1)->template cast<StringLit>()->v().c_str());
+    int l_index = lhs->arg(1)->template cast<IntLit>()->v().toInt();
+    int r_index = rhs->arg(1)->template cast<IntLit>()->v().toInt();
 
-    return l_depth < r_depth || (l_depth == r_depth && l_type < r_type);
+    int l_type = prec(lhs->arg(2)->template cast<StringLit>()->v().c_str());
+    int r_type = prec(rhs->arg(2)->template cast<StringLit>()->v().c_str());
+
+    return l_depth < r_depth ||
+           (l_depth == r_depth && (l_type < r_type || (l_type == r_type && l_index < r_index)));
   });
 
   if (calls.empty()) {
@@ -48,19 +52,19 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
     os << "[\n";
     for (int i = 0; i < calls.size(); i++) {
       Call *ca = calls[i];
-      string type = ca->arg(1)->cast<StringLit>()->v().c_str();
+      string type = ca->arg(2)->cast<StringLit>()->v().c_str();
 
       os << "    ["
          << "\"" << type << "\", ";
 
       if (type == "lit") {
-        os << *ca->arg(2);
+        os << *ca->arg(3);
       } else if (type == "if") {
-        os << *ca->arg(2);
+        os << *ca->arg(3);
       } else if (type == "eq" || type == "assign") {
-        os << *ca->arg(2) << ", " << *ca->arg(3);
+        os << *ca->arg(3) << ", " << *ca->arg(4);
       } else if (type == "in") {
-        os << *ca->arg(2) << ", " << *ca->arg(3);
+        os << *ca->arg(3) << ", " << *ca->arg(4);
       } else {
         std::cerr << "UNKNOWN ANNOTATION: " << *ca << std::endl;
       }
