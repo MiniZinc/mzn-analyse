@@ -7,9 +7,11 @@ JSONTool::JSONTool(std::vector<std::string> &store, JSONCommand cmd,
     : json_store{store}, command{cmd}, out_path{out} {}
 
 void write_to_os(std::ostream &os, std::vector<std::string> &store) {
-  os << "{\n";
-  os << utils::join(store, ",\n");
-  os << "\n}" << std::endl;
+  if (!store.empty()) {
+    os << "{\n";
+    os << utils::join(store, ",\n");
+    os << "\n}" << std::endl;
+  }
 }
 
 MiniZinc::Env *JSONTool::run(MiniZinc::Env *e, std::ostream &log) {
