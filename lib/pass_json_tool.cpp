@@ -10,7 +10,7 @@ void write_to_os(std::ostream &os, std::vector<std::string> &store) {
   if (!store.empty()) {
     os << "{\n";
     os << utils::join(store, ",\n");
-    os << "\n}" << std::endl;
+    os << "}" << std::endl;
   }
 }
 

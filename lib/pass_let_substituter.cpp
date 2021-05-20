@@ -321,7 +321,7 @@ struct LetReplacerVisitor {
 
     os << "{\n";
     os << utils::join(entries, ",\n", false);
-    os << "\n}" << std::endl;
+    os << "}" << std::endl;
   }
 };
 
