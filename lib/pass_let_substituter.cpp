@@ -298,7 +298,6 @@ struct LetReplacerVisitor {
           break;
         }
       }
-      std::cout << "should_replace? e=" << *e << " loc=" << e->loc() << " found_match=" << found_match << std::endl;
     }
     return found_match;
   }
