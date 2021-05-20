@@ -11,6 +11,7 @@ struct ShortLoc {
   size_t el; // end line
   size_t ec; // end column
   std::string model_path;
+  std::string base_path;
   ShortLoc() = default;
   ShortLoc(const std::string &full_path_entry);
   ShortLoc(const MiniZinc::Location &mzn_loc);
