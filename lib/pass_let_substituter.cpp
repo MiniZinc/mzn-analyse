@@ -143,7 +143,12 @@ template <class T> void TopDownReplacer<T>::run(Expression *root) {
             stack.push_back(comp->decl(i, j));
           }
         }
-        stack.push_back(comp->e());
+
+        if (_t.should_replace(comp->e())) {
+          comp->e(_t.get_replacement(comp->e()));
+        } else {
+          stack.push_back(comp->e());
+        }
       }
       break;
     case Expression::E_ITE: {
@@ -293,6 +298,7 @@ struct LetReplacerVisitor {
           break;
         }
       }
+      std::cout << "should_replace? e=" << *e << " loc=" << e->loc() << " found_match=" << found_match << std::endl;
     }
     return found_match;
   }
@@ -310,7 +316,7 @@ struct LetReplacerVisitor {
     for (auto &rep : replacements) {
       ShortLoc loc = rep.loc();
       std::stringstream ss;
-      ss << "    \"" << loc << "\": \n" << rep.to_string();
+      ss << "    \"" << loc << "\": " << rep.to_string();
       entries.push_back(ss.str());
     }
 
@@ -356,7 +362,6 @@ struct ItemExpressionReplacer : public ItemVisitor {
         top_down_replace(lrv, e);
       }
     }
-    top_down_replace(lrv, si->e());
   }
   void vFunctionI(FunctionI *fi) {}
 };
