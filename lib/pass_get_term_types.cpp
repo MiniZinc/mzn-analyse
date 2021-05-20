@@ -52,13 +52,6 @@ string getTermTypeString(vector<string> &gens, vector<string> &coefs,
   const string minor_sep = "|";
   Location loc = var->loc();
 
-  if (ArrayAccess *aa = var->dynamicCast<ArrayAccess>()) {
-    Expression *arr = aa->v();
-    if (Id *id = arr->dynamicCast<Id>()) {
-      loc = id->decl()->id()->loc();
-    }
-  }
-
   stringstream ss;
   ss << "\n    {\n";
   ss << "      \"variable\": \"" << *var << "\",\n";
