@@ -28,6 +28,10 @@ int prec(string s) {
     return 3;
   if (s == "lit")
     return 4;
+  if (s == "assign")
+    return 5;
+  if (s == "eq")
+    return 6;
   return 10;
 }
 
@@ -43,7 +47,7 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
     int r_type = prec(rhs->arg(2)->template cast<StringLit>()->v().c_str());
 
     return l_depth < r_depth ||
-           (l_depth == r_depth && (l_type < r_type || (l_type == r_type && l_index < r_index)));
+           (l_depth == r_depth && (l_type < r_type || (l_type == r_type && l_index > r_index)));
   });
 
   if (calls.empty()) {
