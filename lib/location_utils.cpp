@@ -9,7 +9,7 @@ using namespace MiniZinc;
 
 ShortLoc::ShortLoc(const std::string &full_path_entry) {
   std::vector<std::string> parts = utils::split(full_path_entry, '|');
-  model_path = full_path_entry;
+  model_path = parts[0];
   if (parts.size() >= 5) {
     base_path = FileUtils::base_name(parts[0]);
     sl = stoul(parts[1]);
