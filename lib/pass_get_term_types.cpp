@@ -162,6 +162,10 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
 
 string getObjectiveTermsJSON(SolveI *si,
                              unordered_map<Id *, Expression *> &assigns) {
+  if (!si || si->st() == SolveI::ST_SAT) {
+    return "";
+  }
+
   Expression *obj_e = si->e();
   if (!obj_e) {
     std::cerr << "No objective function" << std::endl;

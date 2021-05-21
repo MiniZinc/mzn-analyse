@@ -220,6 +220,12 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
+  if(std::string(argv[1]) == "help" ||
+     std::string(argv[1]) == "--help" ||
+     std::string(argv[1]) == "-h") {
+    print_usage();
+    return EXIT_SUCCESS;
+  }
   string in_path = argv[1];
 
   string out_path;
@@ -252,6 +258,12 @@ int main(int argc, char **argv) {
     }
     if (pass.cmd == "json_out") {
       has_json_output = true;
+    }
+    if(pass.cmd == "help" ||
+       pass.cmd == "--help" ||
+       pass.cmd == "-h") {
+      print_usage();
+      return EXIT_SUCCESS;
     }
     pass_cmdline.push_back(pass);
   }
