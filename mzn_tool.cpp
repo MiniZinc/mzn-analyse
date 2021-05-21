@@ -36,21 +36,8 @@ using std::vector;
 
 void print_usage() {
   std::cout << " usage:\n"
-            << "   mzn_tool  sequence     in [passes...]\n"
-            << "   mzn_tool  annotate in.mzn [out.mzn]\n"
-            << "   mzn_tool get_terms in.mzn [out.mzn] [out.terms]\n"
-            << "   mzn_tool  get_data in.fzn [out.fzn]  [out.cons]\n";
-
-  std::cout << "\n"
-            << "   annotate => inline-includes\n"
-            << "               annotate-data-deps\n"
-            << "   get_terms => get-term-types:out.terms\n"
-            << "                remove-anns data\n"
-            << "                remove-items:solve,output\n"
-            << "   get_data => get-data-deps:out.cons\n"
-            << "               remove-anns:data\n";
-
-  std::cout << "\n"
+            << "   mzn_tool in.mzn [passes...]\n"
+            << "\n"
             << " passes:\n"
             << "   in:in.mzn\n"
             << "     Read input file (no support for stdout)\n"
@@ -239,8 +226,7 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  string cmd = argv[1];
-  string in_path = argv[2];
+  string in_path = argv[1];
 
   string out_path;
   string extra_arg;
@@ -256,80 +242,24 @@ int main(int argc, char **argv) {
 
   vector<PassCmd> pass_cmdline;
   pass_cmdline.emplace_back("in", in_path);
-  if (cmd == "sequence") {
-    for (size_t i = 3; i < argc; i++) {
-      PassCmd pass{string(argv[i])};
-      if (pass.cmd == "no_out") {
-        no_out = true;
-        continue;
-      }
-      if (pass.cmd == "no_json") {
-        no_json = true;
-        continue;
-      }
-      if (pass.cmd == "out" || pass.cmd == "out_fzn") {
-        has_output = true;
-        pass_cmdline.emplace_back("remove-stdlibs");
-      }
-      if (pass.cmd == "json_out") {
-        has_json_output = true;
-      }
-      pass_cmdline.push_back(pass);
+  for (size_t i = 2; i < argc; i++) {
+    PassCmd pass{string(argv[i])};
+    if (pass.cmd == "no_out") {
+      no_out = true;
+      continue;
     }
-  } else if (cmd == "annotate") {
-    if (argc > 3)
-      out_path = argv[3];
-    if (out_path.empty()) {
-      out_path = output_base + ".annotated.mzn";
+    if (pass.cmd == "no_json") {
+      no_json = true;
+      continue;
     }
-    pass_cmdline.emplace_back("inline-includes");
-    pass_cmdline.emplace_back("annotate-data-deps");
-    pass_cmdline.emplace_back("remove-stdlibs");
-    pass_cmdline.emplace_back("out", out_path);
-    has_output = true;
-  } else if (cmd == "get_terms") {
-    if (argc > 3)
-      out_path = argv[3];
-    if (argc > 4)
-      extra_arg = argv[4];
-
-    if (out_path.empty()) {
-      out_path = output_base + ".solveless.mzn";
+    if (pass.cmd == "out" || pass.cmd == "out_fzn") {
+      has_output = true;
+      pass_cmdline.emplace_back("remove-stdlibs");
     }
-    if (extra_arg.empty()) {
-      extra_arg = output_base + ".terms";
+    if (pass.cmd == "json_out") {
+      has_json_output = true;
     }
-    pass_cmdline.emplace_back("get-term-types", extra_arg);
-    pass_cmdline.emplace_back("remove-anns", "data");
-    pass_cmdline.emplace_back("remove-items", "solve,output");
-    pass_cmdline.emplace_back("remove-stdlibs");
-    pass_cmdline.emplace_back("out", out_path);
-    has_output = true;
-  } else if (cmd == "get_data") {
-    if (!is_fzn) {
-      std::cerr << "get_data must take a fzn file as input" << std::endl;
-      print_usage();
-      return EXIT_FAILURE;
-    }
-    if (argc > 3)
-      out_path = argv[3];
-    if (argc > 4)
-      extra_arg = argv[4];
-    if (out_path.empty()) {
-      out_path = output_base + ".noanns.fzn";
-    }
-    if (extra_arg.empty()) {
-      extra_arg = output_base + ".cons";
-    }
-    pass_cmdline.emplace_back("get-data-deps", extra_arg);
-    pass_cmdline.emplace_back("remove-anns", "data");
-    pass_cmdline.emplace_back("remove-stdlibs");
-    pass_cmdline.emplace_back("out_fzn", out_path);
-    has_output = true;
-  } else {
-    std::cerr << "Unknown command: " << cmd << std::endl;
-    print_usage();
-    return EXIT_FAILURE;
+    pass_cmdline.push_back(pass);
   }
   if (!no_out && !has_output) {
     pass_cmdline.emplace_back("remove-stdlibs");
