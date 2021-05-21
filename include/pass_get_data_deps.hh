@@ -6,10 +6,14 @@
 
 class GetDataDeps : public ToolPass {
 private:
-  std::string output_path;
+  std::unordered_map<size_t, std::vector<MiniZinc::Call*> > data_deps;
+  void collect_data_deps(MiniZinc::Model* m);
 
 public:
-  GetDataDeps(const std::string &out_path);
+  GetDataDeps();
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
+
+  void write_json(std::ostream &os) override;
+  std::string get_name() override;
 };

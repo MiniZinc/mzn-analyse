@@ -1,4 +1,3 @@
-#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,8 +24,6 @@
 
 #include "string_utils.hh"
 #include "tool_pass.hh"
-
-#include <minizinc/file_utils.hh>
 
 using namespace MiniZinc;
 
@@ -120,10 +117,7 @@ struct PassCmd {
       }
       return new GetTermTypes(args[0]);
     } else if (cmd == "get-data-deps") {
-      if (args.empty()) {
-        args.push_back("-");
-      }
-      return new GetDataDeps(args[0]);
+      return new GetDataDeps();
     } else if (cmd == "replace-with-newvar") {
       return new LetSubstituter(args);
     } else if (cmd == "get-exprs") {
@@ -220,7 +214,7 @@ std::ostream &operator<<(std::ostream &os, const PassCmd &pass) {
 
 int main(int argc, char **argv) {
 
-  if (argc < 3) {
+  if (argc < 2) {
     std::cerr << "Incorrect number of arguments" << std::endl;
     print_usage();
     return EXIT_FAILURE;

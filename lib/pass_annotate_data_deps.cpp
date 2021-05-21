@@ -1,4 +1,3 @@
-#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -7,12 +6,9 @@
 
 #include "pass_annotate_data_deps.hh"
 
-#include <minizinc/astiterator.hh>
 #include <minizinc/copy.hh>
-#include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
-#include <minizinc/solver.hh>
 
 using namespace MiniZinc;
 using std::string;

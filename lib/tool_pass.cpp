@@ -1,7 +1,5 @@
 #include "tool_pass.hh"
 
-#include <minizinc/astiterator.hh>
-#include <minizinc/copy.hh>
 #include <minizinc/file_utils.hh>
 #include <minizinc/flatten.hh>
 #include <minizinc/model.hh>

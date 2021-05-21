@@ -1,10 +1,11 @@
 #include "pass_get_data_deps.hh"
+#include "string_utils.hh"
 
-#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <sstream>
 
 #include <minizinc/astiterator.hh>
 #include <minizinc/file_utils.hh>
@@ -81,17 +82,33 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
   return os;
 }
 
-void write_data_deps(Model *m, ostream &os) {
-  os << "{\"constraint_info\": [\n";
-  bool first = true;
-  for (ConstraintI &ci : m->constraints()) {
-    vector<Call *> entries;
+void GetDataDeps::write_json(ostream &os) {
+  std::vector<std::string> constraint_info;
+  for(auto& it : data_deps) {
+    std::stringstream info_ss;
+    info_ss << "  \"" << it.first << "\": " << it.second;
+    constraint_info.push_back(info_ss.str());
+  }
 
-    if (first) {
-      first = false;
-    } else {
-      os << ",\n";
-    }
+  os << "{\n" << utils::join(constraint_info, ",\n") << "}\n";
+}
+
+GetDataDeps::GetDataDeps() {}
+
+std::string GetDataDeps::get_name() { return "get-data-deps"; }
+
+MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
+  Model *m = e->model();
+
+  collect_data_deps(m);
+
+  return e;
+}
+
+void GetDataDeps::collect_data_deps(Model *m) {
+  size_t c_id = 0;
+  for (ConstraintI &ci : m->constraints()) {
+    vector<Call*> entries;
 
     for (Expression *ann_e : ci.e()->ann()) {
       Call *ca = ann_e->dynamicCast<Call>();
@@ -100,26 +117,9 @@ void write_data_deps(Model *m, ostream &os) {
       }
     }
 
-    os << "  " << entries;
+    if(!entries.empty()) {
+      data_deps[c_id] = entries;
+    }
+    c_id++;
   }
-  os << "]}" << std::endl;
-}
-
-GetDataDeps::GetDataDeps(const std::string &out_path) : output_path{out_path} {}
-
-MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
-  Model *m = e->model();
-  // Collect and write data entries
-  string fzn_path = m->filepath().c_str();
-
-  if (output_path == "-") {
-    write_data_deps(m, std::cout);
-  } else {
-    std::cerr << "Writing constraint data to: " << output_path << std::endl;
-    std::ofstream out_json_os{output_path};
-    write_data_deps(m, out_json_os);
-    out_json_os.close();
-  }
-
-  return e;
 }
