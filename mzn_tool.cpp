@@ -112,10 +112,7 @@ struct PassCmd {
     } else if (cmd == "annotate-data-deps") {
       return new AnnotateDataDeps();
     } else if (cmd == "get-term-types") {
-      if (args.empty()) {
-        args.push_back("");
-      }
-      return new GetTermTypes(args[0]);
+      return new GetTermTypes();
     } else if (cmd == "get-data-deps") {
       return new GetDataDeps();
     } else if (cmd == "replace-with-newvar") {
@@ -290,7 +287,7 @@ int main(int argc, char **argv) {
   GCLock lock;
   Env env;
 
-  Env *out_env = multiPassFlatten(env, passes, json_store, std::cerr);
+  multiPassFlatten(env, passes, json_store, std::cerr);
 
   return EXIT_SUCCESS;
 }

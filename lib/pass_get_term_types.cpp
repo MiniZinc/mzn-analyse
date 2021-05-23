@@ -190,8 +190,7 @@ string getObjectiveTermsJSON(SolveI *si,
   return getTermsJSON(assigns, e);
 }
 
-GetTermTypes::GetTermTypes(const std::string &out_path)
-    : output_path{out_path} {}
+GetTermTypes::GetTermTypes() {}
 
 std::string GetTermTypes::get_name() { return "get-term-types"; }
 
@@ -218,16 +217,6 @@ MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
 
   // Add coef annotations to objective terms
   json_output = getObjectiveTermsJSON(m->solveItem(), assigns);
-
-  // Write term types to json file
-  if (output_path == "-") {
-    std::cout << json_output;
-  } else if (!output_path.empty()) {
-    std::cerr << "Writing term types to: " << output_path << std::endl;
-    std::ofstream of(output_path);
-    of << json_output;
-    of.close();
-  }
 
   return e;
 }
