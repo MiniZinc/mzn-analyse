@@ -32,7 +32,7 @@ Env *ReadModel::run(Env *e, std::ostream &log) {
                    false, false, std::cerr);
 
   if (!m) {
-    std::cerr << "mzn_data: Failed to parse file" << std::endl;
+    std::cerr << "ReadModel: Failed to parse file" << std::endl;
     std::exit(EXIT_FAILURE);
   }
   if (!is_fzn) {
