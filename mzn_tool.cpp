@@ -233,7 +233,7 @@ int main(int argc, char **argv) {
   bool no_out = false;
   bool no_json = false;
 
-  string extension = in_path.substr(in_path.size() - 4, string::npos);
+  string extension = in_path.size() > 4 ? in_path.substr(in_path.size() - 4, string::npos) : ".mzn";
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 

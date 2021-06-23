@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <string>
+#include <iterator>
 
 #include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
@@ -17,7 +18,7 @@ ReadModel::ReadModel(const string &ip) : in_path{ip} {}
 Env *ReadModel::run(Env *e, std::ostream &log) {
   Env *nenv = new Env;
 
-  string extension = in_path.substr(in_path.size() - 4, string::npos);
+  string extension = in_path.size() > 4 ? in_path.substr(in_path.size() - 4, string::npos) : ".mzn";
   bool is_fzn = extension == ".fzn";
 
   vector<string> includes;
@@ -28,11 +29,29 @@ Env *ReadModel::run(Env *e, std::ostream &log) {
   vector<string> model_paths(1);
   model_paths[0] = in_path;
 
-  Model *m = parse(*nenv, model_paths, {}, "", "", includes, is_fzn, false,
-                   false, false, std::cerr);
+  Model *m = nullptr;
+
+  if (in_path == "-") {
+    std::vector<MiniZinc::SyntaxError> syntaxErrors;
+    std::string input = std::string(std::istreambuf_iterator<char>(std::cin),
+                                    std::istreambuf_iterator<char>());
+    m = parse_from_string(*nenv, input, "stdin.mzn", includes, is_fzn,
+                          false, false, false, std::cerr, syntaxErrors);
+    if (syntaxErrors.size() > 0) {
+      for (unsigned int i = 0; i < syntaxErrors.size(); i++) {
+        std::cerr << syntaxErrors[i].loc() << ":" << std::endl;
+        std::cerr << syntaxErrors[i].what() << ":" << syntaxErrors[i].msg()
+                  << std::endl;
+      }
+      exit(EXIT_FAILURE);
+    }
+  } else {
+    m = parse(*nenv, model_paths, {}, "", "", includes, is_fzn, false,
+              false, false, std::cerr);
+  }
 
   if (!m) {
-    std::cerr << "ReadModel: Failed to parse file" << std::endl;
+    std::cerr << "ReadModel: Failed to parse file: " << in_path << std::endl;
     std::exit(EXIT_FAILURE);
   }
   if (!is_fzn) {

@@ -13,7 +13,7 @@ FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
     : item_types{types}, exclude{omit}, typeinst{ti} {}
 
 bool FilterItems::should_remove(Item *item) {
-  MiniZinc::Type::TypeInst mti =
+  MiniZinc::Type::Inst mti =
       (typeinst == FilterItems::VAR ? MiniZinc::Type::TI_VAR
                                     : MiniZinc::Type::TI_PAR);
   for (MiniZinc::Item::ItemId iid : item_types) {
