@@ -49,3 +49,8 @@ target_include_directories(mzn_tool PRIVATE include)
 target_link_libraries(mzn_tool mzn ${CMAKE_THREAD_LIBS_INIT})
 
 include(cmake-helpers/format.cmake)
+
+install(TARGETS mzn_tool
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib)
