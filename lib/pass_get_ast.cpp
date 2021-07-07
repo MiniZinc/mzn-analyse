@@ -18,6 +18,28 @@ using std::ostream;
 using std::string;
 using std::vector;
 
+std::string json_escape(const std::string &orig) {
+  std::string repchars = "\\&\"\'<>\n";
+  vector<std::string> repstrs = {"\\\\", "&", "\\\"", "'", "<", ">", "\\n"};
+
+  std::stringstream out;
+  size_t last = 0;
+  size_t found = orig.find_first_of(repchars);
+  while (found != std::string::npos) {
+    out << orig.substr(last, found - last);
+    for (size_t i = 0; i < repchars.size(); i++) {
+      if (orig[found] == repchars[i]) {
+        out << repstrs[i];
+        break;
+      }
+    }
+    last = found + 1;
+    found = orig.find_first_of(repchars, found + 1);
+  }
+  out << orig.substr(last);
+  return out.str();
+}
+
 void json_floatval(std::ostream& os, const FloatVal& fv) {
   std::ostringstream oss;
   if (fv.isFinite()) {
@@ -74,7 +96,21 @@ std::string bt_to_name(Type::BaseType bt) {
   };
 }
 
-std::string op_to_name(BinOpType bot) {
+std::string uot_to_name(UnOpType bot) {
+  switch (bot) {
+    case UOT_NOT:
+      return "UOT_NOT";
+    case UOT_PLUS:
+      return "UOT_PLUS";
+    case UOT_MINUS:
+      return "UOT_MINUS";
+    default:
+      assert(false);
+      return "null";
+  }
+}
+
+std::string bot_to_name(BinOpType bot) {
   switch (bot) {
     case BOT_PLUS:
       return "BOT_PLUS";
@@ -140,9 +176,12 @@ class ExprPrinter {
 
 private:
   bool hide_locations;
+  bool hide_annotations;
 
   public:
-  ExprPrinter(bool hide_locs = false) : hide_locations{hide_locs} {}
+  ExprPrinter(bool hide_locs = false, bool hide_anns = false) 
+    : hide_locations{hide_locs},
+      hide_annotations{hide_anns} {}
 
   std::string to_string(const Location &loc) {
     std::stringstream ss;
@@ -157,7 +196,18 @@ private:
   }
 
   std::string to_string(const ASTString &as) {
-    return utils::escape(std::string(as.c_str()), false);
+    if (as.empty()) return "";
+    return json_escape(std::string(as.c_str()));
+  }
+
+  std::string to_string(const Annotation &anns) {
+    std::vector<std::string> ann_strs;
+    for(auto it = anns.begin(); it != anns.end(); ++it) {
+      ann_strs.push_back(to_string(*it));
+    }
+    std::stringstream ss;
+    ss << "[" << utils::join(ann_strs, ", ") << "]";
+    return ss.str();
   }
 
   std::string to_string(const Type &type) {
@@ -283,7 +333,7 @@ private:
         break;
     }
 
-    if (hide_locations) {
+    if (!hide_locations) {
       std::stringstream ss_loc;
       ss_loc << "\"location\": " << to_string(e->loc());
       records.push_back(ss_loc.str());
@@ -292,6 +342,12 @@ private:
     std::stringstream ss_type;
     ss_type << "\"type\": " << to_string(e->type());
     records.push_back(ss_type.str());
+
+    if (!hide_annotations) {
+      std::stringstream ss_anns;
+      ss_anns << "\"annotations\": " << to_string(e->ann());
+      records.push_back(ss_anns.str());
+    }
 
     std::stringstream ss;
     ss << "{" << utils::join(records, ", ") << "}";
@@ -389,7 +445,7 @@ private:
   /// Visit string literal
   void vStringLit(const StringLit* sl, std::vector<std::string> &records) {
     std::stringstream ss;
-    ss << "\"val\": \"" << to_string(sl->v());
+    ss << "\"val\": \"" << to_string(sl->v()) << "\"";
 
     records.push_back(ss.str());
   }
@@ -484,14 +540,30 @@ private:
   }
 
   /// Visit if-then-else
-  void vITE(const ITE* /*ite*/, std::vector<std::string> &records) {
-    records.push_back("\"ERROR\": \"Not implemented\"");
+  void vITE(const ITE* ite, std::vector<std::string> &records) {
+    std::vector<std::string> branches_strs;
+    for(size_t i=0; i<ite->size(); i++) {
+      std::stringstream ss_branch;
+      ss_branch << "["
+                << to_string(ite->ifExpr(i)) << ", "
+                << to_string(ite->thenExpr(i))
+                << "]";
+      branches_strs.push_back(ss_branch.str());
+    }
+
+    std::stringstream ss_branches;
+    ss_branches << "\"branches\": [" << utils::join(branches_strs, ", ") << "]";
+    records.push_back(ss_branches.str());
+
+    std::stringstream ss_else;
+    ss_else << "\"else\": " << to_string(ite->elseExpr());
+    records.push_back(ss_else.str());
   }
 
   /// Visit binary operator
   void vBinOp(const BinOp* bo, std::vector<std::string> &records) {
     std::stringstream ss_op;
-    ss_op << "\"op\": \"" << op_to_name(bo->op()) << "\"";
+    ss_op << "\"op\": \"" << bot_to_name(bo->op()) << "\"";
     records.push_back(ss_op.str());
 
     std::stringstream ss_lhs;
@@ -504,8 +576,14 @@ private:
   }
 
   /// Visit unary operator
-  void vUnOp(const UnOp* /*uo*/, std::vector<std::string> &records) {
-    records.push_back("\"ERROR\": \"Not implemented\"");
+  void vUnOp(const UnOp* uo, std::vector<std::string> &records) {
+    std::stringstream ss_op;
+    ss_op << "\"op\": \"" << uot_to_name(uo->op()) << "\"";
+    records.push_back(ss_op.str());
+
+    std::stringstream ss_e;
+    ss_e << "\"e\": " << to_string(uo->e());
+    records.push_back(ss_e.str());
   }
 
   /// Visit call
@@ -527,8 +605,22 @@ private:
   }
 
   /// Visit let
-  void vLet(const Let* /*let*/, std::vector<std::string> &records) {
-    records.push_back("\"ERROR\": \"Not implemented\"");
+  void vLet(const Let* let, std::vector<std::string> &records) {
+    std::vector<std::string> decls_strs;
+    auto decl_vec = let->let();
+    for(size_t i=0; i<decl_vec.size(); i++) {
+      std::stringstream ss;
+      ss << to_string(decl_vec[i]);
+      decls_strs.push_back(ss.str());
+    }
+
+    std::stringstream ss_decls;
+    ss_decls << "\"declarations\": [" << utils::join(decls_strs, ", ") << "]";
+    records.push_back(ss_decls.str());
+
+    std::stringstream ss_e;
+    ss_e << "\"in\": " << to_string(let->in());
+    records.push_back(ss_e.str());
   }
 
   /// Visit variable declaration
@@ -655,7 +747,8 @@ void ItemCollector::vSolveI(SolveI* si) {
   }
 
   ss << ", "
-     << "\"expression\": " << ep.to_string(si->e())
+     << "\"expression\": " << ep.to_string(si->e()) << ", "
+     << "\"annotations\": " << ep.to_string(si->ann())
      << "}";
 
   items.push_back(ss.str());
@@ -669,7 +762,8 @@ void ItemCollector::vOutputI(OutputI* oi) {
   ss << "{"
      << "\"ItemType\": \"OutputI\","
      << "\"location\": " << ep.to_string(oi->loc()) << ", "
-     << "\"ERROR\": \"Not implemented\""
+     << "\"annotations\": " << ep.to_string(oi->ann()) << ", "
+     << "\"expression\": " << ep.to_string(oi->e())
      << "}";
 
   items.push_back(ss.str());
@@ -680,10 +774,22 @@ void ItemCollector::vFunctionI(FunctionI* fi) {
   std::stringstream ss;
   ExprPrinter ep;
 
+  std::vector<std::string> param_strs;
+  for(size_t i =0; i<fi->paramCount(); i++) {
+    std::stringstream ss;
+    ss << ep.to_string(fi->param(i));
+    param_strs.push_back(ss.str());
+  }
+
   ss << "{"
      << "\"ItemType\": \"FunctionI\","
      << "\"location\": " << ep.to_string(fi->loc()) << ", "
-     << "\"ERROR\": \"Not implemented\""
+     << "\"id\": \"" << ep.to_string(fi->id()) << "\", "
+     << "\"ti\": " << ep.to_string(fi->ti()) << ", "
+     << "\"fromStdlib\": " << (fi->fromStdLib() ? "true" : "false") << ", "
+     << "\"params\": [" << utils::join(param_strs, ", ") << "],"
+     << "\"expression\": " << ep.to_string(fi->e()) << ", "
+     << "\"annotations\": " << ep.to_string(fi->ann())
      << "}";
 
   items.push_back(ss.str());
