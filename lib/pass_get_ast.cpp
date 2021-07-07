@@ -357,10 +357,9 @@ private:
   /// Visit integer literal
   void vIntLit(const IntLit* il, std::vector<std::string> &records) {
     std::stringstream ss;
-    Printer pp(ss, 0, true);
 
     ss << "\"val\": ";
-    pp.print(il);
+    json_intval(ss, il->v());
 
     records.push_back(ss.str());
   }
@@ -368,10 +367,9 @@ private:
   /// Visit floating point literal
   void vFloatLit(const FloatLit* fl, std::vector<std::string> &records) {
     std::stringstream ss;
-    Printer pp(ss, 0, true);
 
     ss << "\"val\": ";
-    pp.print(fl);
+    json_floatval(ss, fl->v());
 
     records.push_back(ss.str());
   }
