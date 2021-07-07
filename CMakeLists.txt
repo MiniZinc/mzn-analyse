@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.0.0)
-project (data_annotation CXX C)
+project (mzn_tool CXX C)
 
 message("-- Configuring: C++ options")
 include(cmake-helpers/configure_cpp_14.cmake)
@@ -22,6 +22,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/pass_get_data_deps.cpp
   lib/pass_read_model.cpp
   lib/pass_write_model.cpp
+  lib/pass_get_ast.cpp
   lib/pass_get_exprs.cpp
   lib/pass_let_substituter.cpp
   lib/pass_json_tool.cpp
@@ -39,7 +40,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/pass_get_term_types.hh
   include/pass_get_data_deps.hh
   include/pass_read_model.hh
-  include/pass_write_model.hh
+  include/pass_get_ast.hh
   include/pass_get_exprs.hh
   include/pass_let_substituter.hh
   include/pass_json_tool.hh

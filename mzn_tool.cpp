@@ -11,6 +11,7 @@
 #include "pass_get_data_deps.hh"
 #include "pass_get_exprs.hh"
 #include "pass_get_term_types.hh"
+#include "pass_get_ast.hh"
 
 #include "pass_filter_items.hh"
 #include "pass_get_items.hh"
@@ -83,6 +84,8 @@ void print_usage() {
             << "   get-exprs:location1,location2\n"
             << "     Extract list of expressions occurring inside location\n"
             << "     location = path.mzn|sl|sc|el|ec\n"
+            << "   get-ast\n"
+            << "     Build JSON representation of AST, place in json_store\n"
             << "\n";
 }
 
@@ -149,6 +152,8 @@ struct PassCmd {
       return new JSONTool(json_store, JSONTool::J_Output, args[0]);
     } else if (cmd == "json_clear") {
       return new JSONTool(json_store, JSONTool::J_Clear, "");
+    } else if (cmd == "get-ast") {
+      return new GetAST();
     } else if (cmd == "get-items") {
       vector<size_t> idxs;
       for (const string &idx_str : args) {

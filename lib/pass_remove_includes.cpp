@@ -13,10 +13,14 @@ Env *RemoveIncludes::run(Env *e, std::ostream &log) {
   for (size_t i = 0; i < model->size(); i++) {
     Item *item = model->operator[](i);
     if (IncludeI *ii = item->dynamicCast<IncludeI>()) {
-      for (string &iname : includes) {
-        if (ii->f() == iname) {
-          ii->remove();
-          break;
+      if (includes.empty()) {
+        ii->remove();
+      } else {
+        for (string &iname : includes) {
+          if (ii->f() == iname) {
+            ii->remove();
+            break;
+          }
         }
       }
     }
