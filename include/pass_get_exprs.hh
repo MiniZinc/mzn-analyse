@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+typedef std::unordered_map<std::string, std::vector<MiniZinc::Expression*> > LocExprMap;
+
 struct UniqueCollector {
   std::vector<ShortLoc> locs;
   std::unordered_map<std::string, std::unordered_set<std::string>> exprs;
@@ -21,12 +23,47 @@ struct UniqueCollector {
   void write_json(std::ostream &os);
 };
 
+struct ExpressionExtractorEVisitor : public MiniZinc::EVisitor {
+  const std::vector<ShortLoc> &locs;
+  LocExprMap &exprs;
+  bool collect_par;
+  bool collect_exact;
+
+  ExpressionExtractorEVisitor(const std::vector<ShortLoc> &locations,
+                              LocExprMap &expr_store,
+                              bool only_par = true,
+                              bool only_exact = false);
+  bool enter(MiniZinc::Expression *e);
+};
+
+struct ExpressionExtractor : public MiniZinc::ItemVisitor {
+  ExpressionExtractorEVisitor eev;
+
+  ExpressionExtractor(const std::vector<ShortLoc> &locations,
+                      LocExprMap &expr_store,
+                      bool only_par = true,
+                      bool only_exact = false);
+
+  bool enter(MiniZinc::Item *item);
+  void vVarDeclI(MiniZinc::VarDeclI *vdi);
+  void vAssignI(MiniZinc::AssignI *ai);
+  void vConstraintI(MiniZinc::ConstraintI *ci);
+  void vSolveI(MiniZinc::SolveI *si);
+  void vFunctionI(MiniZinc::FunctionI *fi);
+};
+
+LocExprMap get_exprs(const std::vector<ShortLoc> &locs,
+                     MiniZinc::Model *m,
+                     bool only_par = true,
+                     bool only_exact = false);
+
 class GetExprs : public ToolPass {
 private:
   UniqueCollector uc;
+  bool collect_par;
 
 public:
-  GetExprs(const std::vector<std::string> &paths);
+  GetExprs(const std::vector<std::string> &paths, bool only_par = true);
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 

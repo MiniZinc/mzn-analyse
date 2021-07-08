@@ -84,7 +84,7 @@ void print_usage() {
             << "   get-exprs:location1,location2\n"
             << "     Extract list of expressions occurring inside location\n"
             << "     location = path.mzn|sl|sc|el|ec\n"
-            << "   get-ast\n"
+            << "   get-ast:location1,location2\n"
             << "     Build JSON representation of AST, place in json_store\n"
             << "\n";
 }
@@ -153,7 +153,7 @@ struct PassCmd {
     } else if (cmd == "json_clear") {
       return new JSONTool(json_store, JSONTool::J_Clear, "");
     } else if (cmd == "get-ast") {
-      return new GetAST();
+      return new GetAST(args);
     } else if (cmd == "get-items") {
       vector<size_t> idxs;
       for (const string &idx_str : args) {
