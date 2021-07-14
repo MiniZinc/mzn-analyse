@@ -2,31 +2,32 @@
 #include <string>
 #include <vector>
 
-#include "pass_json_tool.hh"
-#include "pass_read_model.hh"
-#include "pass_write_model.hh"
+#include "passes/json_tool.hh"
+#include "passes/read_model.hh"
+#include "passes/write_model.hh"
 
-#include "pass_annotate_data_deps.hh"
+#include "passes/annotate_data_deps.hh"
 
-#include "pass_get_ast.hh"
-#include "pass_get_data_deps.hh"
-#include "pass_get_exprs.hh"
-#include "pass_get_term_types.hh"
+#include "passes/get_ast.hh"
+#include "passes/get_data_deps.hh"
+#include "passes/get_exprs.hh"
+#include "passes/get_term_types.hh"
 
-#include "pass_filter_items.hh"
-#include "pass_get_items.hh"
+#include "passes/filter_items.hh"
+#include "passes/get_items.hh"
 
-#include "pass_inline_includes.hh"
-#include "pass_output_all.hh"
-#include "pass_remove_annotations.hh"
-#include "pass_remove_includes.hh"
+#include "passes/inline_includes.hh"
+#include "passes/output_all.hh"
+#include "passes/remove_annotations.hh"
+#include "passes/remove_includes.hh"
 
-#include "pass_let_substituter.hh"
+#include "passes/let_substituter.hh"
 
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
 using namespace MiniZinc;
+using namespace MznTool;
 
 using std::string;
 using std::unique_ptr;
@@ -280,7 +281,7 @@ int main(int argc, char **argv) {
   std::vector<std::string> json_store;
   vector<unique_ptr<MiniZinc::Pass>> passes;
   for (PassCmd &pass : pass_cmdline) {
-    Pass *pass_ptr = pass.getPass(json_store);
+    MiniZinc::Pass *pass_ptr = pass.getPass(json_store);
     if (pass_ptr == nullptr) {
       std::cerr << "Cannot process pass: " << pass << std::endl;
       return EXIT_FAILURE;
@@ -288,8 +289,8 @@ int main(int argc, char **argv) {
     passes.emplace_back(pass_ptr);
   }
 
-  GCLock lock;
-  Env env;
+  MiniZinc::GCLock lock;
+  MiniZinc::Env env;
 
   multiPassFlatten(env, passes, json_store, std::cerr);
 

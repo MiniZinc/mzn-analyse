@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+namespace MznTool {
+
 class ExprPrinter {
 
 private:
@@ -97,3 +99,4 @@ public:
   void write_json(std::ostream &os) override;
   std::string get_name() override;
 };
+}; // namespace MznTool

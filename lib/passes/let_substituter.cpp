@@ -1,4 +1,4 @@
-#include "pass_let_substituter.hh"
+#include "passes/let_substituter.hh"
 #include "string_utils.hh"
 
 #include <algorithm>
@@ -16,6 +16,8 @@ using namespace MiniZinc;
 using std::ostream;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 // Wrap arbitrary Expression* with let
 // e -> let {var lb(e)..ub(e): x_i;
@@ -385,3 +387,4 @@ MiniZinc::Env *LetSubstituter::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+} // namespace MznTool

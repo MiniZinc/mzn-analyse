@@ -11,39 +11,39 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/string_utils.cpp
   lib/location_utils.cpp
   lib/tool_pass.cpp
-  lib/pass_annotate_data_deps.cpp
-  lib/pass_inline_includes.cpp
-  lib/pass_remove_includes.cpp
-  lib/pass_output_all.cpp
-  lib/pass_filter_items.cpp
-  lib/pass_get_items.cpp
-  lib/pass_remove_annotations.cpp
-  lib/pass_get_term_types.cpp
-  lib/pass_get_data_deps.cpp
-  lib/pass_read_model.cpp
-  lib/pass_write_model.cpp
-  lib/pass_get_ast.cpp
-  lib/pass_get_exprs.cpp
-  lib/pass_let_substituter.cpp
-  lib/pass_json_tool.cpp
+  lib/passes/annotate_data_deps.cpp
+  lib/passes/inline_includes.cpp
+  lib/passes/remove_includes.cpp
+  lib/passes/output_all.cpp
+  lib/passes/filter_items.cpp
+  lib/passes/get_items.cpp
+  lib/passes/remove_annotations.cpp
+  lib/passes/get_term_types.cpp
+  lib/passes/get_data_deps.cpp
+  lib/passes/read_model.cpp
+  lib/passes/write_model.cpp
+  lib/passes/get_ast.cpp
+  lib/passes/get_exprs.cpp
+  lib/passes/let_substituter.cpp
+  lib/passes/json_tool.cpp
 
   include/string_utils.hh
   include/location_utils.hh
   include/tool_pass.hh
-  include/pass_annotate_data_deps.hh
-  include/pass_inline_includes.hh
-  include/pass_remove_includes.hh
-  include/pass_output_all.hh
-  include/pass_filter_items.hh
-  include/pass_get_items.hh
-  include/pass_remove_annotations.hh
-  include/pass_get_term_types.hh
-  include/pass_get_data_deps.hh
-  include/pass_read_model.hh
-  include/pass_get_ast.hh
-  include/pass_get_exprs.hh
-  include/pass_let_substituter.hh
-  include/pass_json_tool.hh
+  include/passes/annotate_data_deps.hh
+  include/passes/inline_includes.hh
+  include/passes/remove_includes.hh
+  include/passes/output_all.hh
+  include/passes/filter_items.hh
+  include/passes/get_items.hh
+  include/passes/remove_annotations.hh
+  include/passes/get_term_types.hh
+  include/passes/get_data_deps.hh
+  include/passes/read_model.hh
+  include/passes/get_ast.hh
+  include/passes/get_exprs.hh
+  include/passes/let_substituter.hh
+  include/passes/json_tool.hh
   )
 
 target_include_directories(mzn_tool PRIVATE include)

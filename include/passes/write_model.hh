@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+namespace MznTool {
+
 class WriteModel : public ToolPass {
 private:
   std::string out_path;
@@ -14,3 +16,4 @@ public:
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
+}; // namespace MznTool

@@ -1,4 +1,4 @@
-#include "pass_remove_annotations.hh"
+#include "passes/remove_annotations.hh"
 
 #include <minizinc/astiterator.hh>
 #include <minizinc/model.hh>
@@ -9,6 +9,8 @@
 using namespace MiniZinc;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 RemoveAnnotations::RemoveAnnotations(const std::vector<string> &as)
     : ann_names{as} {}
@@ -58,3 +60,4 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+}; // namespace MznTool

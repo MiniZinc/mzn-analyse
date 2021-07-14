@@ -1,4 +1,4 @@
-#include "pass_get_items.hh"
+#include "passes/get_items.hh"
 
 #include <algorithm>
 #include <string>
@@ -6,6 +6,8 @@
 
 using namespace MiniZinc;
 using std::string;
+
+namespace MznTool {
 
 GetItems::GetItems(const std::vector<size_t> &idxs) {
   indexes.insert(idxs.begin(), idxs.end());
@@ -23,3 +25,4 @@ Env *GetItems::run(Env *e, std::ostream &log) {
   model->compact();
   return e;
 }
+}; // namespace MznTool

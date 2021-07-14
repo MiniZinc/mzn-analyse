@@ -1,4 +1,4 @@
-#include "pass_get_data_deps.hh"
+#include "passes/get_data_deps.hh"
 #include "string_utils.hh"
 
 #include <fstream>
@@ -17,6 +17,8 @@ using namespace MiniZinc;
 using std::ostream;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 int prec(string s) {
   if (s == "in")
@@ -124,3 +126,4 @@ void GetDataDeps::collect_data_deps(Model *m) {
     c_id++;
   }
 }
+}; // namespace MznTool

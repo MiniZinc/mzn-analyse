@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+namespace MznTool {
+
 class RemoveIncludes : public ToolPass {
 private:
   std::vector<std::string> includes;
@@ -13,3 +15,5 @@ public:
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
+
+}; // namespace MznTool

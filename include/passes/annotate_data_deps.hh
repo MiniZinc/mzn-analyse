@@ -2,12 +2,14 @@
 
 #include "tool_pass.hh"
 
-class InlineIncludes : public ToolPass {
-private:
-  bool local_only;
+namespace MznTool {
+
+class AnnotateDataDeps : public ToolPass {
 
 public:
-  InlineIncludes(bool lo = true);
+  AnnotateDataDeps();
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
+
+}; // namespace MznTool

@@ -1,4 +1,4 @@
-#include "pass_get_term_types.hh"
+#include "passes/get_term_types.hh"
 #include "string_utils.hh"
 
 #include <fstream>
@@ -20,6 +20,8 @@ using std::string;
 using std::stringstream;
 using std::unordered_map;
 using std::vector;
+
+namespace MznTool {
 
 string escape(const string &orig, bool html) {
   string repchars = "\\&\"\'<>";
@@ -220,3 +222,5 @@ MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+
+} // namespace MznTool

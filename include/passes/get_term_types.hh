@@ -4,16 +4,17 @@
 
 #include <string>
 
-class GetDataDeps : public ToolPass {
+namespace MznTool {
+
+class GetTermTypes : public ToolPass {
 private:
-  std::unordered_map<size_t, std::vector<MiniZinc::Call *>> data_deps;
-  void collect_data_deps(MiniZinc::Model *m);
+  std::string json_output;
 
 public:
-  GetDataDeps();
+  GetTermTypes();
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
-
   void write_json(std::ostream &os) override;
   std::string get_name() override;
 };
+}; // namespace MznTool

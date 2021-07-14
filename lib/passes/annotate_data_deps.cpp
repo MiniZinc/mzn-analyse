@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "pass_annotate_data_deps.hh"
+#include "passes/annotate_data_deps.hh"
 
 #include <minizinc/copy.hh>
 #include <minizinc/model.hh>
@@ -15,6 +15,8 @@ using std::string;
 using std::stringstream;
 using std::unordered_map;
 using std::vector;
+
+namespace MznTool {
 
 FunctionI *construct_data_ann(int nargs) {
   vector<VarDecl *> params;
@@ -350,3 +352,4 @@ MiniZinc::Env *AnnotateDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+}; // namespace MznTool

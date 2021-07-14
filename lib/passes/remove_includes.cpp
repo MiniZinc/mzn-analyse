@@ -1,9 +1,11 @@
-#include "pass_remove_includes.hh"
+#include "passes/remove_includes.hh"
 
 #include <string>
 
 using namespace MiniZinc;
 using std::string;
+
+namespace MznTool {
 
 RemoveIncludes::RemoveIncludes(const std::vector<string> &is) : includes{is} {}
 
@@ -28,3 +30,4 @@ Env *RemoveIncludes::run(Env *e, std::ostream &log) {
   model->compact();
   return e;
 }
+}; // namespace MznTool

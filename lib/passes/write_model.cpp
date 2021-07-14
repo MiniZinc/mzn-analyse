@@ -1,4 +1,4 @@
-#include "pass_write_model.hh"
+#include "passes/write_model.hh"
 
 #include <fstream>
 #include <string>
@@ -7,6 +7,8 @@
 
 using namespace MiniZinc;
 using std::string;
+
+namespace MznTool {
 
 WriteModel::WriteModel(const string &op, bool fzn)
     : out_path{op}, is_fzn{fzn} {}
@@ -26,3 +28,4 @@ Env *WriteModel::run(Env *e, std::ostream &log) {
 
   return e;
 }
+}; // namespace MznTool

@@ -2,6 +2,8 @@
 
 #include "tool_pass.hh"
 
+namespace MznTool {
+
 class FilterItems : public ToolPass {
 public:
   enum FilterTypeInst { ALL, VAR, PAR };
@@ -19,3 +21,5 @@ public:
 
   bool should_remove(MiniZinc::Item *item);
 };
+
+}; // namespace MznTool

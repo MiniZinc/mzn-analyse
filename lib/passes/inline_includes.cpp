@@ -12,13 +12,15 @@
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
 
-#include "pass_inline_includes.hh"
+#include "passes/inline_includes.hh"
 
 using namespace MiniZinc;
 using std::string;
 using std::stringstream;
 using std::unordered_map;
 using std::vector;
+
+namespace MznTool {
 
 InlineIncludes::InlineIncludes(bool lo) : local_only{lo} {}
 
@@ -43,3 +45,4 @@ Env *InlineIncludes::run(Env *e, std::ostream &log) {
   model->compact();
   return e;
 }
+}; // namespace MznTool

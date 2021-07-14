@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+namespace MznTool {
+
 typedef std::unordered_map<std::string, std::vector<MiniZinc::Expression *>>
     LocExprMap;
 
@@ -67,3 +69,4 @@ public:
   void write_json(std::ostream &os) override;
   std::string get_name() override;
 };
+}; // namespace MznTool

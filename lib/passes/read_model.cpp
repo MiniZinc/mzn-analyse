@@ -1,4 +1,4 @@
-#include "pass_read_model.hh"
+#include "passes/read_model.hh"
 
 #include <fstream>
 #include <iterator>
@@ -12,6 +12,8 @@
 using namespace MiniZinc;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 ReadModel::ReadModel(const string &ip) : in_path{ip} {}
 
@@ -76,3 +78,4 @@ Env *ReadModel::run(Env *e, std::ostream &log) {
   nenv->model(m);
   return nenv;
 }
+}; // namespace MznTool

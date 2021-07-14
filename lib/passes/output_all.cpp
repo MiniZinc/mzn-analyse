@@ -1,4 +1,4 @@
-#include "pass_output_all.hh"
+#include "passes/output_all.hh"
 
 #include <minizinc/astiterator.hh>
 #include <minizinc/model.hh>
@@ -6,6 +6,8 @@
 using namespace MiniZinc;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 OutputAll::OutputAll() {}
 
@@ -19,3 +21,4 @@ MiniZinc::Env *OutputAll::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+}; // namespace MznTool

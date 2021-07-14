@@ -3,6 +3,8 @@
 #include "tool_pass.hh"
 #include <set>
 
+namespace MznTool {
+
 class GetItems : public ToolPass {
 private:
   std::set<size_t> indexes;
@@ -12,3 +14,5 @@ public:
 
   MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
 };
+
+}; // namespace MznTool

@@ -1,6 +1,8 @@
-#include "pass_json_tool.hh"
+#include "passes/json_tool.hh"
 #include "string_utils.hh"
 #include <fstream>
+
+namespace MznTool {
 
 JSONTool::JSONTool(std::vector<std::string> &store, JSONCommand cmd,
                    const std::string &out)
@@ -29,3 +31,5 @@ MiniZinc::Env *JSONTool::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+
+}; // namespace MznTool

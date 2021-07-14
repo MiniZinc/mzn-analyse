@@ -1,6 +1,6 @@
-#include "pass_get_ast.hh"
+#include "passes/get_ast.hh"
 #include "location_utils.hh"
-#include "pass_get_exprs.hh"
+#include "passes/get_exprs.hh"
 #include "string_utils.hh"
 
 #include <algorithm>
@@ -18,6 +18,8 @@ using namespace MiniZinc;
 using std::ostream;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 std::string json_escape(const std::string &orig) {
   std::string repchars = "\\&\"\'<>\n";
@@ -847,3 +849,5 @@ MiniZinc::Env *GetAST::run(MiniZinc::Env *e, std::ostream &log) {
 }
 
 void GetAST::write_json(ostream &os) { ic.write_json(os); }
+
+} // namespace MznTool

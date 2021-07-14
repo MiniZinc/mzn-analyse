@@ -1,4 +1,4 @@
-#include "pass_filter_items.hh"
+#include "passes/filter_items.hh"
 
 #include <algorithm>
 #include <string>
@@ -7,6 +7,8 @@
 using namespace MiniZinc;
 using MiniZinc::Type;
 using std::string;
+
+namespace MznTool {
 
 FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
                          bool omit, FilterItems::FilterTypeInst ti)
@@ -51,3 +53,4 @@ Env *FilterItems::run(Env *e, std::ostream &log) {
   model->compact();
   return e;
 }
+}; // namespace MznTool

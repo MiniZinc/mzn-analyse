@@ -1,4 +1,4 @@
-#include "pass_get_exprs.hh"
+#include "passes/get_exprs.hh"
 #include "location_utils.hh"
 #include "string_utils.hh"
 
@@ -17,6 +17,8 @@ using namespace MiniZinc;
 using std::ostream;
 using std::string;
 using std::vector;
+
+namespace MznTool {
 
 UniqueCollector::UniqueCollector(const std::vector<ShortLoc> &locations)
     : locs{locations} {}
@@ -191,3 +193,4 @@ MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
 
   return e;
 }
+} // namespace MznTool
