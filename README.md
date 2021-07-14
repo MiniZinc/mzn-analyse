@@ -64,8 +64,9 @@ An explicit final `out` must be added to the end if you wish to output models th
    get-exprs:location1,location2
      Extract list of expressions occurring inside location
      location = path.mzn|sl|sc|el|ec
-   get-ast
-     Build JSON representation of AST, place in json_store
+   get-ast:location1,location2
+     Build JSON representation of AST for whole model or just for
+     expression matching location1 or location2, place in json_store
 ```
 
 ## Examples

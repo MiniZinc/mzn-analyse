@@ -86,7 +86,8 @@ void print_usage() {
             << "     Extract list of expressions occurring inside location\n"
             << "     location = path.mzn|sl|sc|el|ec\n"
             << "   get-ast:location1,location2\n"
-            << "     Build JSON representation of AST, place in json_store\n"
+            << "     Build JSON representation of AST for whole model or just for\n"
+            << "     expression matching location1 or location2, place in json_store\n"
             << "\n";
 }
 
