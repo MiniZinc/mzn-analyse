@@ -82,28 +82,34 @@ bool isAnn(Expression *e) {
 }
 
 ExpressionExtractorEVisitor::ExpressionExtractorEVisitor(
-    const std::vector<ShortLoc> &locations,
-    LocExprMap &expr_store, bool only_par, bool only_exact)
-  : locs{locations}, exprs{expr_store},
-     collect_par{only_par}, collect_exact {only_exact} {}
+    const std::vector<ShortLoc> &locations, LocExprMap &expr_store,
+    bool only_par, bool only_top)
+    : locs{locations}, exprs{expr_store}, collect_par{only_par},
+      no_sub_exprs{only_top} {}
 
 bool ExpressionExtractorEVisitor::enter(Expression *e) {
   if (e == nullptr || isLit(e->eid()) || isAnn(e))
     return false;
 
   ShortLoc this_loc{e->loc()};
-  bool is_parent = locs.empty();
-  bool is_child = locs.empty();
+  bool is_parent = locs.empty() && !no_sub_exprs;
+  bool is_child = locs.empty() && !no_sub_exprs;
 
   std::vector<ShortLoc> parents;
 
   for (const ShortLoc &loc : locs) {
-    if (this_loc.contains(loc)) {
+    if (this_loc == loc) {
       is_parent = true;
-    }
-    if (loc.contains(this_loc)) {
       is_child = true;
       parents.push_back(loc);
+    } else {
+      if (this_loc.contains(loc)) {
+        is_parent = true;
+      }
+      if (loc.contains(this_loc)) {
+        is_child = true;
+        parents.push_back(loc);
+      }
     }
   }
 
@@ -111,26 +117,27 @@ bool ExpressionExtractorEVisitor::enter(Expression *e) {
     if (!collect_par || e->type().ti() == MiniZinc::Type::TI_PAR) {
       if (parents.empty()) {
         exprs[this_loc.to_string()].push_back(e);
+        if (no_sub_exprs && !locs.empty()) {
+          locs.erase(std::find(locs.begin(), locs.end(), this_loc));
+        }
       } else {
         for (const ShortLoc &loc : parents) {
           exprs[loc.to_string()].push_back(e);
+          if (no_sub_exprs && !locs.empty()) {
+            locs.erase(std::find(locs.begin(), locs.end(), loc));
+          }
         }
       }
     }
   }
 
-  if(collect_exact) {
-    return is_parent && is_child;
-  }
-
-  return (is_parent || is_child) && e->eid() != Expression::E_ARRAYACCESS;
+  return (is_parent || is_child) && e->eid() != Expression::E_ARRAYACCESS;;
 }
 
-ExpressionExtractor::ExpressionExtractor(
-    const std::vector<ShortLoc> &locations,
-    LocExprMap &expr_store,
-    bool only_par, bool only_exact)
-  : eev{locations, expr_store, only_par, only_exact}{}
+ExpressionExtractor::ExpressionExtractor(const std::vector<ShortLoc> &locations,
+                                         LocExprMap &expr_store, bool only_par,
+                                         bool only_top)
+    : eev{locations, expr_store, only_par, only_top} {}
 
 bool ExpressionExtractor::enter(Item *item) { return !item->isa<IncludeI>(); }
 void ExpressionExtractor::vVarDeclI(VarDeclI *vdi) {
@@ -141,22 +148,33 @@ void ExpressionExtractor::vAssignI(AssignI *ai) {
   top_down(eev, ai->decl());
   top_down(eev, ai->e());
 }
-void ExpressionExtractor::vConstraintI(ConstraintI *ci) { top_down(eev, ci->e()); }
+void ExpressionExtractor::vConstraintI(ConstraintI *ci) {
+  top_down(eev, ci->e());
+}
 void ExpressionExtractor::vSolveI(SolveI *si) { top_down(eev, si->e()); }
 void ExpressionExtractor::vFunctionI(FunctionI *fi) {}
 
-LocExprMap get_exprs(const std::vector<ShortLoc> &locs, Model* m,
-                     bool only_par, bool only_exact) {
+LocExprMap get_exprs(const std::vector<ShortLoc> &locs, Model *m, bool only_par,
+                     bool only_top) {
   LocExprMap exprs;
 
-  ExpressionExtractor ee{locs, exprs, only_par, only_exact};
-  iter_items(ee, m);
+  if (only_top) {
+    for (const ShortLoc& loc : locs) {
+      std::vector<ShortLoc> tmp_locs;
+      tmp_locs.push_back(loc);
+      ExpressionExtractor ee{tmp_locs, exprs, only_par, true};
+      iter_items(ee, m);
+    }
+  } else {
+    ExpressionExtractor ee{locs, exprs, only_par, false};
+    iter_items(ee, m);
+  }
 
   return exprs;
 }
 
-GetExprs::GetExprs(const std::vector<std::string> &paths,
-                   bool only_par) : uc{paths}, collect_par{only_par} {}
+GetExprs::GetExprs(const std::vector<std::string> &paths, bool only_par)
+    : uc{paths}, collect_par{only_par} {}
 
 void GetExprs::write_json(ostream &os) { uc.write_json(os); }
 
@@ -164,8 +182,8 @@ std::string GetExprs::get_name() { return "get-exprs"; }
 
 MiniZinc::Env *GetExprs::run(MiniZinc::Env *e, std::ostream &log) {
   LocExprMap expr_map = get_exprs(uc.locs, e->model(), collect_par);
-  for(auto &exprs : expr_map) {
-    for(Expression* e : exprs.second) {
+  for (auto &exprs : expr_map) {
+    for (Expression *e : exprs.second) {
       uc.add_expr(exprs.first, e);
     }
   }

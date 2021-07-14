@@ -798,25 +798,21 @@ void ASTCollector::write_json(ostream &os) {
       }
 
       std::stringstream entry_ss;
-      entry_ss << "    \"" << loc_ast.first << "\": [";
-      entry_ss << utils::join(unique_asts, ",", true);
-      entry_ss << "]";
-      entries.push_back(entry_ss.str());
+      entry_ss << "\"" << loc_ast.first << "\": ["
+               << utils::join(unique_asts, ",")
+               << "]";
+      string s = entry_ss.str();
+      entries.push_back(s);
     }
 
     os << "\"exprs\": {\n";
-    os << utils::join(entries, ",\n", false);
+    os << utils::join(entries, ",\n");
     os << "}";
   }
   os << "}";
 }
 
 void ASTCollector::add_ast(const ShortLoc &loc, std::string ast) {
-  if (ast.empty())
-    return;
-  if (ast[0] == '"')
-    return;
-
   std::string loc_key = loc.to_string();
   asts[loc_key].push_back(ast);
 }

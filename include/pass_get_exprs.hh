@@ -24,15 +24,15 @@ struct UniqueCollector {
 };
 
 struct ExpressionExtractorEVisitor : public MiniZinc::EVisitor {
-  const std::vector<ShortLoc> &locs;
+  std::vector<ShortLoc> locs;
   LocExprMap &exprs;
   bool collect_par;
-  bool collect_exact;
+  bool no_sub_exprs;
 
   ExpressionExtractorEVisitor(const std::vector<ShortLoc> &locations,
                               LocExprMap &expr_store,
                               bool only_par = true,
-                              bool only_exact = false);
+                              bool only_top = false);
   bool enter(MiniZinc::Expression *e);
 };
 
@@ -42,7 +42,7 @@ struct ExpressionExtractor : public MiniZinc::ItemVisitor {
   ExpressionExtractor(const std::vector<ShortLoc> &locations,
                       LocExprMap &expr_store,
                       bool only_par = true,
-                      bool only_exact = false);
+                      bool only_top = false);
 
   bool enter(MiniZinc::Item *item);
   void vVarDeclI(MiniZinc::VarDeclI *vdi);
@@ -55,7 +55,7 @@ struct ExpressionExtractor : public MiniZinc::ItemVisitor {
 LocExprMap get_exprs(const std::vector<ShortLoc> &locs,
                      MiniZinc::Model *m,
                      bool only_par = true,
-                     bool only_exact = false);
+                     bool only_top = false);
 
 class GetExprs : public ToolPass {
 private:
