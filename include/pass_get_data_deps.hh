@@ -6,8 +6,8 @@
 
 class GetDataDeps : public ToolPass {
 private:
-  std::unordered_map<size_t, std::vector<MiniZinc::Call*> > data_deps;
-  void collect_data_deps(MiniZinc::Model* m);
+  std::unordered_map<size_t, std::vector<MiniZinc::Call *>> data_deps;
+  void collect_data_deps(MiniZinc::Model *m);
 
 public:
   GetDataDeps();

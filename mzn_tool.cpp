@@ -8,10 +8,10 @@
 
 #include "pass_annotate_data_deps.hh"
 
+#include "pass_get_ast.hh"
 #include "pass_get_data_deps.hh"
 #include "pass_get_exprs.hh"
 #include "pass_get_term_types.hh"
-#include "pass_get_ast.hh"
 
 #include "pass_filter_items.hh"
 #include "pass_get_items.hh"
@@ -222,9 +222,8 @@ int main(int argc, char **argv) {
     return EXIT_FAILURE;
   }
 
-  if(std::string(argv[1]) == "help" ||
-     std::string(argv[1]) == "--help" ||
-     std::string(argv[1]) == "-h") {
+  if (std::string(argv[1]) == "help" || std::string(argv[1]) == "--help" ||
+      std::string(argv[1]) == "-h") {
     print_usage();
     return EXIT_SUCCESS;
   }
@@ -238,7 +237,9 @@ int main(int argc, char **argv) {
   bool no_out = false;
   bool no_json = false;
 
-  string extension = in_path.size() > 4 ? in_path.substr(in_path.size() - 4, string::npos) : ".mzn";
+  string extension = in_path.size() > 4
+                         ? in_path.substr(in_path.size() - 4, string::npos)
+                         : ".mzn";
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 
@@ -261,9 +262,7 @@ int main(int argc, char **argv) {
     if (pass.cmd == "json_out") {
       has_json_output = true;
     }
-    if(pass.cmd == "help" ||
-       pass.cmd == "--help" ||
-       pass.cmd == "-h") {
+    if (pass.cmd == "help" || pass.cmd == "--help" || pass.cmd == "-h") {
       print_usage();
       return EXIT_SUCCESS;
     }

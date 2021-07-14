@@ -131,7 +131,8 @@ bool ExpressionExtractorEVisitor::enter(Expression *e) {
     }
   }
 
-  return (is_parent || is_child) && e->eid() != Expression::E_ARRAYACCESS;;
+  return (is_parent || is_child) && e->eid() != Expression::E_ARRAYACCESS;
+  ;
 }
 
 ExpressionExtractor::ExpressionExtractor(const std::vector<ShortLoc> &locations,
@@ -159,7 +160,7 @@ LocExprMap get_exprs(const std::vector<ShortLoc> &locs, Model *m, bool only_par,
   LocExprMap exprs;
 
   if (only_top) {
-    for (const ShortLoc& loc : locs) {
+    for (const ShortLoc &loc : locs) {
       std::vector<ShortLoc> tmp_locs;
       tmp_locs.push_back(loc);
       ExpressionExtractor ee{tmp_locs, exprs, only_par, true};

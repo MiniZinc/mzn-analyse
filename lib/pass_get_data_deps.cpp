@@ -3,9 +3,9 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
 
 #include <minizinc/astiterator.hh>
 #include <minizinc/file_utils.hh>
@@ -48,7 +48,8 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
     int r_type = prec(rhs->arg(2)->template cast<StringLit>()->v().c_str());
 
     return l_depth < r_depth ||
-           (l_depth == r_depth && (l_type < r_type || (l_type == r_type && l_index > r_index)));
+           (l_depth == r_depth &&
+            (l_type < r_type || (l_type == r_type && l_index > r_index)));
   });
 
   if (calls.empty()) {
@@ -84,7 +85,7 @@ ostream &operator<<(ostream &os, vector<Call *> &calls) {
 
 void GetDataDeps::write_json(ostream &os) {
   std::vector<std::string> constraint_info;
-  for(auto& it : data_deps) {
+  for (auto &it : data_deps) {
     std::stringstream info_ss;
     info_ss << "  \"" << it.first << "\": " << it.second;
     constraint_info.push_back(info_ss.str());
@@ -108,7 +109,7 @@ MiniZinc::Env *GetDataDeps::run(MiniZinc::Env *e, std::ostream &log) {
 void GetDataDeps::collect_data_deps(Model *m) {
   size_t c_id = 0;
   for (ConstraintI &ci : m->constraints()) {
-    vector<Call*> entries;
+    vector<Call *> entries;
 
     for (Expression *ann_e : ci.e()->ann()) {
       Call *ca = ann_e->dynamicCast<Call>();
@@ -117,7 +118,7 @@ void GetDataDeps::collect_data_deps(Model *m) {
       }
     }
 
-    if(!entries.empty()) {
+    if (!entries.empty()) {
       data_deps[c_id] = entries;
     }
     c_id++;
