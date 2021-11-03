@@ -17,11 +17,11 @@ Env *multiPassFlatten(
     std::vector<std::string> &json_store, std::ostream &_log) {
   Env *pre_env = &e;
   size_t npasses = passes.size();
-  pre_env->envi().finalPassNumber = static_cast<unsigned int>(npasses);
+  pre_env->envi().multiPassInfo.finalPassNumber = static_cast<unsigned int>(npasses);
   Timer starttime;
   bool verbose = false;
   for (unsigned int i = 0; i < passes.size(); i++) {
-    pre_env->envi().currentPassNumber = i;
+    pre_env->envi().multiPassInfo.currentPassNumber = i;
     if (verbose) {
       _log << "Start pass " << i << ":\n";
     }
