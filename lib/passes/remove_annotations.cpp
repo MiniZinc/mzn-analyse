@@ -24,11 +24,10 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
 
   public:
     AnnotationRemover(vector<string> &as) : ann_names{as} {}
-    bool enter(Expression *e) {
-      if (!e)
-        return false;
+
+    void removeAnnotations(MiniZinc::Annotation& ann) {
       vector<Expression *> toRemove;
-      for (Expression *ann_e : e->ann()) {
+      for (Expression *ann_e : ann) {
         if (ann_names.empty()) {
           toRemove.push_back(ann_e);
         } else {
@@ -44,8 +43,14 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
         }
       }
       for (Expression *ann_e : toRemove) {
-        e->ann().remove(ann_e);
+        ann.remove(ann_e);
       }
+    }
+
+    bool enter(Expression *e) {
+      if (!e)
+        return false;
+      removeAnnotations(e->ann());
       return true;
     }
   } remover(ann_names);
@@ -57,6 +62,8 @@ MiniZinc::Env *RemoveAnnotations::run(MiniZinc::Env *e, std::ostream &log) {
   for (ConstraintI &ci : m->constraints()) {
     top_down(remover, ci.e());
   }
+
+  remover.removeAnnotations(m->solveItem()->ann());
 
   return e;
 }
