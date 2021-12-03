@@ -100,18 +100,39 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
 
     if (Call *call = frame.e->dynamicCast<Call>()) {
       if (call->id() == "sum") {
-        Comprehension *co = call->arg(0)->cast<Comprehension>();
-        // collect generators
-        for (size_t i = 0; i < co->numberOfGenerators(); i++) {
-          Expression *in = co->in(i);
-          for (size_t j = 0; j < co->numberOfDecls(i); j++) {
-            stringstream ss;
-            VarDecl *idx = co->decl(i, j);
-            ss << *idx->id() << " in " << *in;
-            gens.push_back(ss.str());
+        Expression *body = nullptr;
+        if (call->arg(0)->isa<Comprehension>()) {
+          Comprehension *co = call->arg(0)->cast<Comprehension>();
+          // collect generators
+          for (size_t i = 0; i < co->numberOfGenerators(); i++) {
+            Expression *in = co->in(i);
+            for (size_t j = 0; j < co->numberOfDecls(i); j++) {
+              stringstream ss;
+              VarDecl *idx = co->decl(i, j);
+              ss << *idx->id() << " in " << *in;
+              gens.push_back(ss.str());
+            }
           }
+          body = co->e();
+        } else {
+          // Otherwise:
+          //   arg0: X
+          //   gen: i in index_set(X)
+          //   body: X[i]
+          VarDecl *vd = new VarDecl(
+              Location().introduce(),
+              new TypeInst(Location().introduce(), Type::parint()),
+              "i");
+          Expression *arg0 = call->arg(0);
+
+          stringstream ss;
+          ss << "i in index_set(" << *arg0 << ")";
+          gens.push_back(ss.str());
+
+          ArrayAccess *aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
+          body = aa;
         }
-        stack.emplace_back(gens.size(), coefs.size(), co->e());
+        stack.emplace_back(gens.size(), coefs.size(), body);
       } else {
         term_strings.push_back(getTermTypeString(gens, coefs, call));
       }
@@ -122,17 +143,29 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
           ss << *bo->lhs();
           coefs.push_back(ss.str());
           stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
-        } else {
+        } else if (bo->rhs()->type().isPar()) {
           stringstream ss;
           ss << *bo->rhs();
           coefs.push_back(ss.str());
           stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
+        } else {
+          std::cerr << "Objective is not linear" << std::endl;
+          // TODO: Fail and return object indicating this rather than exiting
+          exit(EXIT_FAILURE);
         }
       } else if (bo->op() == BOT_PLUS) {
         if (bo->lhs()->type().isvar()) {
           stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
         }
         if (bo->rhs()->type().isvar()) {
+          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
+        }
+      } else if (bo->op() == BOT_MINUS) {
+        if (bo->lhs()->type().isvar()) {
+          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
+        }
+        if (bo->rhs()->type().isvar()) {
+          coefs.push_back("-1");
           stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
         }
       } else {
