@@ -49,7 +49,7 @@ string escape(const string &orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(vector<string> &gens, vector<string> &coefs,
+string getTermTypeString(vector<string> &gens, vector<string> &wheres, vector<string> &coefs,
                          Expression *var) {
   const string minor_sep = "|";
   Location loc = var->loc();
@@ -59,6 +59,7 @@ string getTermTypeString(vector<string> &gens, vector<string> &coefs,
   ss << "      \"variable\": \"" << *var << "\",\n";
   ss << "      \"coefficients\": [" << utils::join(coefs, ", ", true) << "],\n";
   ss << "      \"generators\": [" << utils::join(gens, ", ", true) << "],\n";
+  ss << "      \"conditions\": [" << utils::join(wheres, ", ", true) << "],\n";
   ss << "      \"location\": \"" << escape(loc.filename().c_str(), false)
      << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
      << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << "\"\n";
@@ -84,6 +85,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
   // sum(gens where clauses) (coef1 * var1 + coef2 * var2)
   vector<string> gens;
   vector<string> coefs;
+  vector<string> wheres;
 
   vector<StackFrame> stack;
   stack.emplace_back(0, 0, root);
@@ -112,6 +114,12 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
               ss << *idx->id() << " in " << *in;
               gens.push_back(ss.str());
             }
+            Expression* where_e = co->where(i);
+            if (where_e) {
+              stringstream where_ss;
+              where_ss << *where_e;
+              wheres.push_back(where_ss.str());
+            }
           }
           body = co->e();
         } else {
@@ -134,7 +142,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
         }
         stack.emplace_back(gens.size(), coefs.size(), body);
       } else {
-        term_strings.push_back(getTermTypeString(gens, coefs, call));
+        term_strings.push_back(getTermTypeString(gens, wheres, coefs, call));
       }
     } else if (BinOp *bo = frame.e->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_MULT) {
@@ -181,11 +189,11 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
         if (id->decl()->id()->type().isPar()) {
           coefs.push_back(id->str().c_str());
         } else {
-          term_strings.push_back(getTermTypeString(gens, coefs, id));
+          term_strings.push_back(getTermTypeString(gens, wheres, coefs, id));
         }
       }
     } else {
-      term_strings.push_back(getTermTypeString(gens, coefs, frame.e));
+      term_strings.push_back(getTermTypeString(gens, wheres, coefs, frame.e));
     }
   }
 
