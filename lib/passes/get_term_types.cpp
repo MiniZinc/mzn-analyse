@@ -49,10 +49,13 @@ string escape(const string &orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(vector<string> &gens, vector<string> &wheres, vector<string> &coefs,
-                         Expression *var) {
+string getTermTypeString(vector<string> &gens, vector<string> &wheres, vector<string> &coefs, Expression *var) {
   const string minor_sep = "|";
   Location loc = var->loc();
+
+  if (var->isa<Id>()) {
+    loc = var->dynamicCast<Id>()->decl()->loc();
+  }
 
   stringstream ss;
   ss << "\n    {\n";
@@ -77,8 +80,7 @@ struct StackFrame {
       : gen_idx{g}, coef_idx{c}, e{exp} {}
 };
 
-string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
-                    Expression *root) {
+string getTermsJSON(unordered_map<Id *, Expression *> &assigns, Expression *root) {
   vector<string> term_strings;
 
   // For now just support:
@@ -157,9 +159,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
           coefs.push_back(ss.str());
           stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
         } else {
-          std::cerr << "Objective is not linear" << std::endl;
-          // TODO: Fail and return object indicating this rather than exiting
-          exit(EXIT_FAILURE);
+          term_strings.push_back(getTermTypeString(gens, wheres, coefs, bo));
         }
       } else if (bo->op() == BOT_PLUS) {
         if (bo->lhs()->type().isvar()) {
@@ -184,8 +184,10 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
       auto it = assigns.find(id->decl()->id());
       if (it != assigns.end()) {
         stack.emplace_back(gens.size(), coefs.size(), it->second);
+      } if (id->decl()->e()) {
+        stack.emplace_back(gens.size(), coefs.size(), id->decl()->e());
       } else {
-        // It is just an ID
+        // It is just a plain ID
         if (id->decl()->id()->type().isPar()) {
           coefs.push_back(id->str().c_str());
         } else {

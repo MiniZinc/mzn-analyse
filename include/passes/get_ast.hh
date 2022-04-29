@@ -15,9 +15,11 @@ class ExprPrinter {
 private:
   bool hide_locations;
   bool hide_annotations;
+  bool hide_types;
 
 public:
-  ExprPrinter(bool hide_locs = false, bool hide_anns = false);
+  // ExprPrinter(bool hide_locs = true, bool hide_anns = true);
+  ExprPrinter(bool hide_locs = true, bool hide_anns = true, bool hide_types = true);
 
   std::string to_string(const MiniZinc::Location &loc);
   std::string to_string(const MiniZinc::ASTString &as);

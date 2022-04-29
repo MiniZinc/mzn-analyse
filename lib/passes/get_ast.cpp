@@ -176,8 +176,8 @@ std::string bot_to_name(BinOpType bot) {
   }
 }
 
-ExprPrinter::ExprPrinter(bool hide_locs, bool hide_anns)
-    : hide_locations{hide_locs}, hide_annotations{hide_anns} {}
+ExprPrinter::ExprPrinter(bool hide_locs, bool hide_anns, bool hide_type)
+    : hide_locations{hide_locs}, hide_annotations{hide_anns}, hide_types{hide_type} {}
 
 std::string ExprPrinter::to_string(const Location &loc) {
   std::stringstream ss;
@@ -336,9 +336,11 @@ std::string ExprPrinter::to_string(const Expression *e) {
     records.push_back(ss_loc.str());
   }
 
-  std::stringstream ss_type;
-  ss_type << "\"type\": " << to_string(e->type());
-  records.push_back(ss_type.str());
+  if (!hide_types) {
+    std::stringstream ss_type;
+    ss_type << "\"type\": " << to_string(e->type());
+    records.push_back(ss_type.str());
+  }
 
   if (!hide_annotations) {
     std::stringstream ss_anns;
