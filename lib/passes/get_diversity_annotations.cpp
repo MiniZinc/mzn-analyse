@@ -25,21 +25,6 @@ using std::unordered_map;
 namespace MznTool {
 
 void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZinc::Model *m) {
-  // Collect assigns (just in case MiniZinc replaces si->e() with "_objective")
-  unordered_map<Id *, Expression *> assigns;
-  for (ConstraintI &ci : m->constraints()) {
-    if (BinOp *bo = ci.e()->dynamicCast<BinOp>()) {
-      if (bo->op() == BOT_EQ) {
-        if (Id *lhe = bo->lhs()->dynamicCast<Id>()) {
-          assigns[lhe->decl()->id()] = bo->rhs();
-        }
-        if (Id *rhe = bo->rhs()->dynamicCast<Id>()) {
-          assigns[rhe->decl()->id()] = bo->lhs();
-        }
-      }
-    }
-  }
-
   // Get SolveI si
   SolveI *si = m->solveItem();
   if(!si) return;
@@ -53,18 +38,15 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
     //   Construct temporary div_obj = si->e
     const string obj_name = "div_orig_objective";
 
+    TypeInst* ti = nullptr;
     Expression *e = si->e();
-    while (Id *id = e->dynamicCast<Id>()) {
-      e = id->decl()->e();
-      if (!e) {
-        auto it = assigns.find(id->decl()->id());
-        if (it != assigns.end()) {
-          e = it->second;
-        }
-      }
+    if(Id *id = e->dynamicCast<Id>()) {
+      VarDecl *typed = id->decl();
+      ti = typed->ti();
+    } else {
+      ti = new TypeInst(Location().introduce(), e->type());
     }
 
-    TypeInst *ti = new TypeInst(Location().introduce(), e->type());
     VarDecl *objVd = new VarDecl(Location().introduce(), ti, obj_name, e);
     m->addItem(VarDeclI::a(Location().introduce(), objVd));
 
