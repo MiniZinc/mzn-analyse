@@ -27,26 +27,26 @@ Let *wrap_with_let(Expression *e) {
   Call *call = nullptr;
 
   if (e->type().isint()) {
-    Call *lb = new Call(Location().introduce(), "lb", {e});
-    Call *ub = new Call(Location().introduce(), "ub", {e});
+    Call *lb = Call::a(Location().introduce(), "lb", {e});
+    Call *ub = Call::a(Location().introduce(), "ub", {e});
     BinOp *bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
     TypeInst *ti = new TypeInst(Location().introduce(), Type::varint(), bo);
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
-    call = new Call(Location().introduce(), "int_eq", {e, vd->id()});
+    call = Call::a(Location().introduce(), "int_eq", {e, vd->id()});
   } else if (e->type().isfloat()) {
-    Call *lb = new Call(Location().introduce(), "lb", {e});
-    Call *ub = new Call(Location().introduce(), "ub", {e});
+    Call *lb = Call::a(Location().introduce(), "lb", {e});
+    Call *ub = Call::a(Location().introduce(), "ub", {e});
     BinOp *bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
     TypeInst *ti = new TypeInst(Location().introduce(), Type::varfloat(), bo);
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
-    call = new Call(Location().introduce(), "float_eq", {e, vd->id()});
+    call = Call::a(Location().introduce(), "float_eq", {e, vd->id()});
   } else if (e->type().isbool()) {
     TypeInst *ti = new TypeInst(Location().introduce(), Type::varbool());
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
-    call = new Call(Location().introduce(), "bool_eq", {e, vd->id()});
+    call = Call::a(Location().introduce(), "bool_eq", {e, vd->id()});
   }
 
   vector<Expression *> context = {vd, call};

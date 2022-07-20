@@ -105,7 +105,7 @@ Expression *toStringLit(EnvI &envi, Expression *e) {
 }
 
 Expression *toShow(EnvI &envi, Expression *e) {
-  return new Call(Location().introduce(), "show", {without_anns(envi, e)});
+  return Call::a(Location().introduce(), "show", {without_anns(envi, e)});
 }
 
 Expression *data_ann(EnvI &envi, size_t depth, size_t index, string type,
@@ -116,7 +116,7 @@ Expression *data_ann(EnvI &envi, size_t depth, size_t index, string type,
   args.push_back(IntLit::a(index));
   args.push_back(new StringLit(Location().introduce(), type));
   args.insert(args.end(), exprs.begin(), exprs.end());
-  Call *ca = new Call(Location().introduce(), "data", args);
+  Call *ca = Call::a(Location().introduce(), "data", args);
   ca->type(Type::ann());
   return ca;
 }
@@ -168,7 +168,7 @@ Expression *data_if(EnvI &envi, size_t depth, size_t index, Expression *where) {
 //          "tmp" + comp->);
 //  }
 //
-//  Expression* in = new Call(Location().introduce(), "concat", string_exps);
+//  Expression* in = Call::a(Location().introduce(), "concat", string_exps);
 //  Let* let = new Let(envi, vars, in);
 //  std::cerr << "Exists let: " << *exists << "\n======\n" << *let << "\n";
 //
