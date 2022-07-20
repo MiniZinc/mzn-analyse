@@ -13,6 +13,8 @@
 #include "passes/get_exprs.hh"
 #include "passes/get_term_types.hh"
 
+#include "passes/get_diversity_annotations.hh"
+
 #include "passes/filter_items.hh"
 #include "passes/get_items.hh"
 
@@ -75,6 +77,8 @@ void print_usage() {
             << "   replace-with-newvar:location1,location2\n"
             << "     Replace expressions with 'let' expressions\n"
             << "\n"
+            << "   get-diversity-anns\n"
+            << "     Extract solution diversity parameters from model\n"
             << "   annotate-data-deps\n"
             << "     Annotate expressions with their data dependencies\n"
             << "   get-term-types:out.terms\n"
@@ -118,6 +122,8 @@ struct PassCmd {
       return new AnnotateDataDeps();
     } else if (cmd == "get-term-types") {
       return new GetTermTypes();
+    } else if (cmd == "get-diversity-anns") {
+      return new GetDiversityAnns();
     } else if (cmd == "get-data-deps") {
       return new GetDataDeps();
     } else if (cmd == "replace-with-newvar") {
