@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tool_pass.hh"
-
 #include <string>
+
+#include "tool_pass.hh"
 
 namespace MznTool {
 
@@ -13,8 +13,8 @@ private:
 public:
   GetTermTypes();
 
-  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
-  void write_json(std::ostream &os) override;
+  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  void write_json(std::ostream& os) override;
   std::string get_name() override;
 };
-}; // namespace MznTool
+};  // namespace MznTool

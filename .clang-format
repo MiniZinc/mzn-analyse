@@ -1,0 +1,8 @@
+---
+BasedOnStyle: Google
+
+ColumnLimit: 100
+DerivePointerAlignment: false
+AccessModifierOffset: -2
+
+IncludeBlocks: Regroup

@@ -10,6 +10,6 @@ private:
 public:
   InlineIncludes(bool lo = true);
 
-  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
+  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 };
-}; // namespace MznTool
+};  // namespace MznTool

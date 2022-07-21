@@ -1,10 +1,10 @@
 #pragma once
 
-#include "location_utils.hh"
-#include "tool_pass.hh"
-
 #include <string>
 #include <vector>
+
+#include "location_utils.hh"
+#include "tool_pass.hh"
 
 namespace MznTool {
 class LetSubstituter : public ToolPass {
@@ -13,10 +13,10 @@ private:
   std::string json_output;
 
 public:
-  LetSubstituter(const std::vector<std::string> &paths);
+  LetSubstituter(const std::vector<std::string>& paths);
 
-  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
+  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
   std::string get_name() override;
-  void write_json(std::ostream &os) override;
+  void write_json(std::ostream& os) override;
 };
-}; // namespace MznTool
+};  // namespace MznTool

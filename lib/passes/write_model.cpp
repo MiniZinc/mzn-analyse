@@ -1,20 +1,18 @@
 #include "passes/write_model.hh"
 
 #include <fstream>
-#include <string>
-
 #include <minizinc/prettyprinter.hh>
+#include <string>
 
 using namespace MiniZinc;
 using std::string;
 
 namespace MznTool {
 
-WriteModel::WriteModel(const string &op, bool fzn)
-    : out_path{op}, is_fzn{fzn} {}
+WriteModel::WriteModel(const string& op, bool fzn) : out_path{op}, is_fzn{fzn} {}
 
-Env *WriteModel::run(Env *e, std::ostream &log) {
-  Model *model = e->model();
+Env* WriteModel::run(Env* e, std::ostream& log) {
+  Model* model = e->model();
 
   if (out_path != "-") {
     std::cerr << "Writing output to: " << out_path << std::endl;
@@ -28,4 +26,4 @@ Env *WriteModel::run(Env *e, std::ostream &log) {
 
   return e;
 }
-}; // namespace MznTool
+};  // namespace MznTool

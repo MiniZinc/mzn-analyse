@@ -2,29 +2,22 @@
 #include <string>
 #include <vector>
 
-#include "passes/json_tool.hh"
-#include "passes/read_model.hh"
-#include "passes/write_model.hh"
-
 #include "passes/annotate_data_deps.hh"
-
+#include "passes/filter_items.hh"
 #include "passes/get_ast.hh"
 #include "passes/get_data_deps.hh"
-#include "passes/get_exprs.hh"
-#include "passes/get_term_types.hh"
-
 #include "passes/get_diversity_annotations.hh"
-
-#include "passes/filter_items.hh"
+#include "passes/get_exprs.hh"
 #include "passes/get_items.hh"
-
+#include "passes/get_term_types.hh"
 #include "passes/inline_includes.hh"
+#include "passes/json_tool.hh"
+#include "passes/let_substituter.hh"
 #include "passes/output_all.hh"
+#include "passes/read_model.hh"
 #include "passes/remove_annotations.hh"
 #include "passes/remove_includes.hh"
-
-#include "passes/let_substituter.hh"
-
+#include "passes/write_model.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
@@ -36,72 +29,71 @@ using std::unique_ptr;
 using std::vector;
 
 void print_usage() {
-  std::cout
-      << " usage:\n"
-      << "   mzn_tool in.mzn [passes...]\n"
-      << "\n"
-      << " passes:\n"
-      << "   in:in.mzn\n"
-      << "     Read input file (no support for stdout)\n"
-      << "   out:out.mzn\n"
-      << "     Write model to out.mzn (- for stdout)\n"
-      << "   out_fzn:out.fzn\n"
-      << "     Write model to out.fzn (- for stdout)\n"
-      << "   no_out\n"
-      << "     Disable automatic output insertion\n"
-      << "   json_out:out.json\n"
-      << "     Write collected json output to out.json (- for stdout)\n"
-      << "   json_clear\n"
-      << "     Clear collected json output\n"
-      << "   no_json\n"
-      << "     Disable automatic json output\n"
-      << "   inline-includes\n"
-      << "     Inline non-library includes\n"
-      << "   inline-all-includes\n"
-      << "     Inline all includes\n"
-      << "   remove-anns:name1,[name2,...]\n"
-      << "     Remove Id and Call annotations matching names\n"
-      << "   remove-includes:name1,[name2,...]\n"
-      << "     Remove includes matching names\n"
-      << "   output-all\n"
-      << "     Add 'add_to_output' annotation to all VarDecls\n"
-      << "   remove-stdlib\n"
-      << "     Remove stdlib includes\n"
-      << "   get-items:idx1,[idx2,...]\n"
-      << "     Narrow to items indexed by idx1,...\n"
-      << "   filter-items:iid1,[iid2,...]\n"
-      << "     Only keep items matching iids\n"
-      << "   remove-items:iid1,[iid2,...]\n"
-      << "     Remove items matching iids\n"
-      << "   filter-typeinst:{var|par}\n"
-      << "     Just show var/par parts of model\n"
-      << "   replace-with-newvar:location1,location2\n"
-      << "     Replace expressions with 'let' expressions\n"
-      << "\n"
-      << "   get-diversity-anns\n"
-      << "     Extract solution diversity parameters from model\n"
-      << "   annotate-data-deps\n"
-      << "     Annotate expressions with their data dependencies\n"
-      << "   get-term-types:out.terms\n"
-      << "     Write .terms file with types of objective terms\n"
-      << "   get-data-deps:out.cons (FlatZinc only)\n"
-      << "     Write .cons file with data dependenceis of\n"
-      << "     FlatZinc constraints\n"
-      << "   get-exprs:location1,location2\n"
-      << "     Extract list of expressions occurring inside location\n"
-      << "     location = path.mzn|sl|sc|el|ec\n"
-      << "   get-ast:location1,location2\n"
-      << "     Build JSON representation of AST for whole model or just for\n"
-      << "     expression matching location1 or location2, place in "
-         "json_store\n"
-      << "\n";
+  std::cout << " usage:\n"
+            << "   mzn_tool in.mzn [passes...]\n"
+            << "\n"
+            << " passes:\n"
+            << "   in:in.mzn\n"
+            << "     Read input file (no support for stdout)\n"
+            << "   out:out.mzn\n"
+            << "     Write model to out.mzn (- for stdout)\n"
+            << "   out_fzn:out.fzn\n"
+            << "     Write model to out.fzn (- for stdout)\n"
+            << "   no_out\n"
+            << "     Disable automatic output insertion\n"
+            << "   json_out:out.json\n"
+            << "     Write collected json output to out.json (- for stdout)\n"
+            << "   json_clear\n"
+            << "     Clear collected json output\n"
+            << "   no_json\n"
+            << "     Disable automatic json output\n"
+            << "   inline-includes\n"
+            << "     Inline non-library includes\n"
+            << "   inline-all-includes\n"
+            << "     Inline all includes\n"
+            << "   remove-anns:name1,[name2,...]\n"
+            << "     Remove Id and Call annotations matching names\n"
+            << "   remove-includes:name1,[name2,...]\n"
+            << "     Remove includes matching names\n"
+            << "   output-all\n"
+            << "     Add 'add_to_output' annotation to all VarDecls\n"
+            << "   remove-stdlib\n"
+            << "     Remove stdlib includes\n"
+            << "   get-items:idx1,[idx2,...]\n"
+            << "     Narrow to items indexed by idx1,...\n"
+            << "   filter-items:iid1,[iid2,...]\n"
+            << "     Only keep items matching iids\n"
+            << "   remove-items:iid1,[iid2,...]\n"
+            << "     Remove items matching iids\n"
+            << "   filter-typeinst:{var|par}\n"
+            << "     Just show var/par parts of model\n"
+            << "   replace-with-newvar:location1,location2\n"
+            << "     Replace expressions with 'let' expressions\n"
+            << "\n"
+            << "   get-diversity-anns\n"
+            << "     Extract solution diversity parameters from model\n"
+            << "   annotate-data-deps\n"
+            << "     Annotate expressions with their data dependencies\n"
+            << "   get-term-types:out.terms\n"
+            << "     Write .terms file with types of objective terms\n"
+            << "   get-data-deps:out.cons (FlatZinc only)\n"
+            << "     Write .cons file with data dependenceis of\n"
+            << "     FlatZinc constraints\n"
+            << "   get-exprs:location1,location2\n"
+            << "     Extract list of expressions occurring inside location\n"
+            << "     location = path.mzn|sl|sc|el|ec\n"
+            << "   get-ast:location1,location2\n"
+            << "     Build JSON representation of AST for whole model or just for\n"
+            << "     expression matching location1 or location2, place in "
+               "json_store\n"
+            << "\n";
 }
 
 struct PassCmd {
   string cmd;
   vector<string> args;
 
-  PassCmd(const string &cmd_str) {
+  PassCmd(const string& cmd_str) {
     size_t idx = cmd_str.find(':');
     if (idx == string::npos) {
       cmd = cmd_str;
@@ -111,11 +103,9 @@ struct PassCmd {
     }
   }
 
-  PassCmd(const string &c, const string &a_str) : cmd{c} {
-    args = utils::split(a_str, ',', false);
-  }
+  PassCmd(const string& c, const string& a_str) : cmd{c} { args = utils::split(a_str, ',', false); }
 
-  MiniZinc::Pass *getPass(std::vector<std::string> &json_store) {
+  MiniZinc::Pass* getPass(std::vector<std::string>& json_store) {
     if (cmd == "inline-includes") {
       return new InlineIncludes();
     } else if (cmd == "inline-all-includes") {
@@ -166,17 +156,16 @@ struct PassCmd {
       return new GetAST(args);
     } else if (cmd == "get-items") {
       vector<size_t> idxs;
-      for (const string &idx_str : args) {
+      for (const string& idx_str : args) {
         int idx = stoi(idx_str);
-        if (idx < 0)
-          return nullptr;
+        if (idx < 0) return nullptr;
         idxs.push_back(idx);
       }
       return new GetItems(idxs);
     } else if (cmd == "remove-items" || cmd == "filter-items") {
       vector<Item::ItemId> rm_args;
       Item::ItemId iid = Item::II_SOL;
-      for (string &item : args) {
+      for (string& item : args) {
         if (item == "include") {
           iid = Item::II_INC;
         } else if (item == "vardecl") {
@@ -203,8 +192,7 @@ struct PassCmd {
       }
     } else if (cmd == "filter-typeinst") {
       vector<Item::ItemId> keep_args = {Item::II_VD, Item::II_CON};
-      if (args.empty())
-        args.push_back("all");
+      if (args.empty()) args.push_back("all");
       if (args[0] == "all") {
         return new FilterItems(keep_args, false, FilterItems::ALL);
       } else if (args[0] == "var") {
@@ -219,13 +207,12 @@ struct PassCmd {
   }
 };
 
-std::ostream &operator<<(std::ostream &os, const PassCmd &pass) {
+std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
   os << pass.cmd << ":" << utils::join(pass.args, ",");
   return os;
 }
 
-int main(int argc, char **argv) {
-
+int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Incorrect number of arguments" << std::endl;
     print_usage();
@@ -247,9 +234,7 @@ int main(int argc, char **argv) {
   bool no_out = false;
   bool no_json = false;
 
-  string extension = in_path.size() > 4
-                         ? in_path.substr(in_path.size() - 4, string::npos)
-                         : ".mzn";
+  string extension = in_path.size() > 4 ? in_path.substr(in_path.size() - 4, string::npos) : ".mzn";
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 
@@ -289,8 +274,8 @@ int main(int argc, char **argv) {
   // Build actual passes pipeline
   std::vector<std::string> json_store;
   vector<unique_ptr<MiniZinc::Pass>> passes;
-  for (PassCmd &pass : pass_cmdline) {
-    MiniZinc::Pass *pass_ptr = pass.getPass(json_store);
+  for (PassCmd& pass : pass_cmdline) {
+    MiniZinc::Pass* pass_ptr = pass.getPass(json_store);
     if (pass_ptr == nullptr) {
       std::cerr << "Cannot process pass: " << pass << std::endl;
       return EXIT_FAILURE;

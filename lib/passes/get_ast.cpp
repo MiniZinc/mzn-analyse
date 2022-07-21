@@ -1,18 +1,18 @@
 #include "passes/get_ast.hh"
-#include "location_utils.hh"
-#include "passes/get_exprs.hh"
-#include "string_utils.hh"
 
 #include <algorithm>
 #include <iostream>
-#include <string>
-#include <vector>
-
 #include <minizinc/astiterator.hh>
 #include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
+#include <string>
+#include <vector>
+
+#include "location_utils.hh"
+#include "passes/get_exprs.hh"
+#include "string_utils.hh"
 
 using namespace MiniZinc;
 using std::ostream;
@@ -21,7 +21,7 @@ using std::vector;
 
 namespace MznTool {
 
-std::string json_escape(const std::string &orig) {
+std::string json_escape(const std::string& orig) {
   std::string repchars = "\\&\"\'<>\n";
   vector<std::string> repstrs = {"\\\\", "&", "\\\"", "'", "<", ">", "\\n"};
 
@@ -43,13 +43,12 @@ std::string json_escape(const std::string &orig) {
   return out.str();
 }
 
-void json_floatval(std::ostream &os, const FloatVal &fv) {
+void json_floatval(std::ostream& os, const FloatVal& fv) {
   std::ostringstream oss;
   if (fv.isFinite()) {
     oss << std::setprecision(std::numeric_limits<double>::digits10 + 1);
     oss << fv;
-    if (oss.str().find('e') == std::string::npos &&
-        oss.str().find('.') == std::string::npos) {
+    if (oss.str().find('e') == std::string::npos && oss.str().find('.') == std::string::npos) {
       oss << ".0";
     }
     os << oss.str();
@@ -63,7 +62,7 @@ void json_floatval(std::ostream &os, const FloatVal &fv) {
   }
 }
 
-void json_intval(std::ostream &os, const IntVal &iv) {
+void json_intval(std::ostream& os, const IntVal& iv) {
   std::ostringstream oss;
   if (iv.isFinite()) {
     os << iv;
@@ -78,109 +77,108 @@ void json_intval(std::ostream &os, const IntVal &iv) {
 
 std::string bt_to_name(Type::BaseType bt) {
   switch (bt) {
-  case Type::BT_BOOL:
-    return "BT_BOOL";
-  case Type::BT_INT:
-    return "BT_INT";
-  case Type::BT_FLOAT:
-    return "BT_FLOAT";
-  case Type::BT_STRING:
-    return "BT_STRING";
-  case Type::BT_ANN:
-    return "BT_ANN";
-  case Type::BT_TOP:
-    return "BT_TOP";
-  case Type::BT_BOT:
-    return "BT_BOT";
-  case Type::BT_UNKNOWN:
-    return "BT_UNKNOWN";
-  default:
-    assert(false);
-    return "null";
+    case Type::BT_BOOL:
+      return "BT_BOOL";
+    case Type::BT_INT:
+      return "BT_INT";
+    case Type::BT_FLOAT:
+      return "BT_FLOAT";
+    case Type::BT_STRING:
+      return "BT_STRING";
+    case Type::BT_ANN:
+      return "BT_ANN";
+    case Type::BT_TOP:
+      return "BT_TOP";
+    case Type::BT_BOT:
+      return "BT_BOT";
+    case Type::BT_UNKNOWN:
+      return "BT_UNKNOWN";
+    default:
+      assert(false);
+      return "null";
   };
 }
 
 std::string uot_to_name(UnOpType bot) {
   switch (bot) {
-  case UOT_NOT:
-    return "UOT_NOT";
-  case UOT_PLUS:
-    return "UOT_PLUS";
-  case UOT_MINUS:
-    return "UOT_MINUS";
-  default:
-    assert(false);
-    return "null";
+    case UOT_NOT:
+      return "UOT_NOT";
+    case UOT_PLUS:
+      return "UOT_PLUS";
+    case UOT_MINUS:
+      return "UOT_MINUS";
+    default:
+      assert(false);
+      return "null";
   }
 }
 
 std::string bot_to_name(BinOpType bot) {
   switch (bot) {
-  case BOT_PLUS:
-    return "BOT_PLUS";
-  case BOT_MINUS:
-    return "BOT_MINUS";
-  case BOT_MULT:
-    return "BOT_MULT";
-  case BOT_DIV:
-    return "BOT_DIV";
-  case BOT_IDIV:
-    return "BOT_IDIV";
-  case BOT_MOD:
-    return "BOT_MOD";
-  case BOT_LE:
-    return "BOT_LE";
-  case BOT_LQ:
-    return "BOT_LQ";
-  case BOT_GR:
-    return "BOT_GR";
-  case BOT_GQ:
-    return "BOT_GQ";
-  case BOT_EQ:
-    return "BOT_EQ";
-  case BOT_NQ:
-    return "BOT_NQ";
-  case BOT_IN:
-    return "BOT_IN";
-  case BOT_SUBSET:
-    return "BOT_SUBSET";
-  case BOT_SUPERSET:
-    return "BOT_SUPERSET";
-  case BOT_UNION:
-    return "BOT_UNION";
-  case BOT_DIFF:
-    return "BOT_DIFF";
-  case BOT_SYMDIFF:
-    return "BOT_SYMDIFF";
-  case BOT_INTERSECT:
-    return "BOT_INTERSECT";
-  case BOT_PLUSPLUS:
-    return "BOT_PLUSPLUS";
-  case BOT_DOTDOT:
-    return "BOT_DOTDOT";
-  case BOT_EQUIV:
-    return "BOT_EQUIV";
-  case BOT_IMPL:
-    return "BOT_IMPL";
-  case BOT_RIMPL:
-    return "BOT_RIMPL";
-  case BOT_OR:
-    return "BOT_OR";
-  case BOT_AND:
-    return "BOT_AND";
-  case BOT_XOR:
-    return "BOT_XOR";
-  default:
-    assert(false);
-    return "null";
+    case BOT_PLUS:
+      return "BOT_PLUS";
+    case BOT_MINUS:
+      return "BOT_MINUS";
+    case BOT_MULT:
+      return "BOT_MULT";
+    case BOT_DIV:
+      return "BOT_DIV";
+    case BOT_IDIV:
+      return "BOT_IDIV";
+    case BOT_MOD:
+      return "BOT_MOD";
+    case BOT_LE:
+      return "BOT_LE";
+    case BOT_LQ:
+      return "BOT_LQ";
+    case BOT_GR:
+      return "BOT_GR";
+    case BOT_GQ:
+      return "BOT_GQ";
+    case BOT_EQ:
+      return "BOT_EQ";
+    case BOT_NQ:
+      return "BOT_NQ";
+    case BOT_IN:
+      return "BOT_IN";
+    case BOT_SUBSET:
+      return "BOT_SUBSET";
+    case BOT_SUPERSET:
+      return "BOT_SUPERSET";
+    case BOT_UNION:
+      return "BOT_UNION";
+    case BOT_DIFF:
+      return "BOT_DIFF";
+    case BOT_SYMDIFF:
+      return "BOT_SYMDIFF";
+    case BOT_INTERSECT:
+      return "BOT_INTERSECT";
+    case BOT_PLUSPLUS:
+      return "BOT_PLUSPLUS";
+    case BOT_DOTDOT:
+      return "BOT_DOTDOT";
+    case BOT_EQUIV:
+      return "BOT_EQUIV";
+    case BOT_IMPL:
+      return "BOT_IMPL";
+    case BOT_RIMPL:
+      return "BOT_RIMPL";
+    case BOT_OR:
+      return "BOT_OR";
+    case BOT_AND:
+      return "BOT_AND";
+    case BOT_XOR:
+      return "BOT_XOR";
+    default:
+      assert(false);
+      return "null";
   }
 }
 
 ExprPrinter::ExprPrinter(bool hide_locs, bool hide_anns, bool hide_type)
-    : hide_locations{hide_locs}, hide_annotations{hide_anns}, hide_types{
-                                                                  hide_type} {}
+    : hide_locations{hide_locs}, hide_annotations{hide_anns}, hide_types{hide_type} {}
 
-std::string ExprPrinter::to_string(const Location &loc) {
+std::string ExprPrinter::to_string(const Location& loc) {
   std::stringstream ss;
 
   ss << "{ \"filename\": \"" << to_string(loc.filename()) << "\", "
@@ -192,13 +190,12 @@ std::string ExprPrinter::to_string(const Location &loc) {
   return ss.str();
 }
 
-std::string ExprPrinter::to_string(const ASTString &as) {
-  if (as.empty())
-    return "";
+std::string ExprPrinter::to_string(const ASTString& as) {
+  if (as.empty()) return "";
   return json_escape(std::string(as.c_str()));
 }
 
-std::string ExprPrinter::to_string(const Annotation &anns) {
+std::string ExprPrinter::to_string(const Annotation& anns) {
   std::vector<std::string> ann_strs;
   for (auto it = anns.begin(); it != anns.end(); ++it) {
     ann_strs.push_back(to_string(*it));
@@ -208,8 +205,7 @@ std::string ExprPrinter::to_string(const Annotation &anns) {
   return ss.str();
 }
 
-std::string ExprPrinter::to_string(const Type &type) {
-
+std::string ExprPrinter::to_string(const Type& type) {
   std::string ti = type.ti() == Type::TI_VAR ? "TI_VAR" : "TI_PAR";
   std::string st = type.st() == Type::ST_PLAIN ? "ST_PLAIN" : "ST_SET";
   std::string ot = type.ot() == Type::OT_PRESENT ? "OT_PRESENT" : "OT_OPTIONAL";
@@ -230,105 +226,104 @@ std::string ExprPrinter::to_string(const Type &type) {
   return ss_type.str();
 }
 
-std::string ExprPrinter::to_string(const Expression *e) {
-  if (!e)
-    return "null";
+std::string ExprPrinter::to_string(const Expression* e) {
+  if (!e) return "null";
   std::vector<std::string> records;
 
   std::stringstream r_type;
   r_type << "\"ExprType\": ";
 
   switch (e->eid()) {
-  case Expression::E_INTLIT:
-    r_type << "\"IntLit\"";
-    records.push_back(r_type.str());
-    vIntLit(e->template cast<IntLit>(), records);
-    break;
-  case Expression::E_FLOATLIT:
-    r_type << "\"FloatLit\"";
-    records.push_back(r_type.str());
-    vFloatLit(e->template cast<FloatLit>(), records);
-    break;
-  case Expression::E_SETLIT:
-    r_type << "\"SetLit\"";
-    records.push_back(r_type.str());
-    vSetLit(e->template cast<SetLit>(), records);
-    break;
-  case Expression::E_BOOLLIT:
-    r_type << "\"BoolLit\"";
-    records.push_back(r_type.str());
-    vBoolLit(e->template cast<BoolLit>(), records);
-    break;
-  case Expression::E_STRINGLIT:
-    r_type << "\"StringLit\"";
-    records.push_back(r_type.str());
-    vStringLit(e->template cast<StringLit>(), records);
-    break;
-  case Expression::E_ID:
-    r_type << "\"Id\"";
-    records.push_back(r_type.str());
-    vId(e->template cast<Id>(), records);
-    break;
-  case Expression::E_ANON:
-    r_type << "\"AnonVar\"";
-    records.push_back(r_type.str());
-    vAnonVar(e->template cast<AnonVar>(), records);
-    break;
-  case Expression::E_ARRAYLIT:
-    r_type << "\"ArrayLit\"";
-    records.push_back(r_type.str());
-    vArrayLit(e->template cast<ArrayLit>(), records);
-    break;
-  case Expression::E_ARRAYACCESS:
-    r_type << "\"ArrayAccess\"";
-    records.push_back(r_type.str());
-    vArrayAccess(e->template cast<ArrayAccess>(), records);
-    break;
-  case Expression::E_COMP:
-    r_type << "\"Comprehension\"";
-    records.push_back(r_type.str());
-    vComprehension(e->template cast<Comprehension>(), records);
-    break;
-  case Expression::E_ITE:
-    r_type << "\"ITE\"";
-    records.push_back(r_type.str());
-    vITE(e->template cast<ITE>(), records);
-    break;
-  case Expression::E_BINOP:
-    r_type << "\"BinOp\"";
-    records.push_back(r_type.str());
-    vBinOp(e->template cast<BinOp>(), records);
-    break;
-  case Expression::E_UNOP:
-    r_type << "\"UnOp\"";
-    records.push_back(r_type.str());
-    vUnOp(e->template cast<UnOp>(), records);
-    break;
-  case Expression::E_CALL:
-    r_type << "\"Call\"";
-    records.push_back(r_type.str());
-    vCall(e->template cast<Call>(), records);
-    break;
-  case Expression::E_VARDECL:
-    r_type << "\"VarDecl\"";
-    records.push_back(r_type.str());
-    vVarDecl(e->template cast<VarDecl>(), records);
-    break;
-  case Expression::E_LET:
-    r_type << "\"Let\"";
-    records.push_back(r_type.str());
-    vLet(e->template cast<Let>(), records);
-    break;
-  case Expression::E_TI:
-    r_type << "\"TypeInst\"";
-    records.push_back(r_type.str());
-    vTypeInst(e->template cast<TypeInst>(), records);
-    break;
-  case Expression::E_TIID:
-    r_type << "\"TypeInstId\"";
-    records.push_back(r_type.str());
-    vTIId(e->template cast<TIId>(), records);
-    break;
+    case Expression::E_INTLIT:
+      r_type << "\"IntLit\"";
+      records.push_back(r_type.str());
+      vIntLit(e->template cast<IntLit>(), records);
+      break;
+    case Expression::E_FLOATLIT:
+      r_type << "\"FloatLit\"";
+      records.push_back(r_type.str());
+      vFloatLit(e->template cast<FloatLit>(), records);
+      break;
+    case Expression::E_SETLIT:
+      r_type << "\"SetLit\"";
+      records.push_back(r_type.str());
+      vSetLit(e->template cast<SetLit>(), records);
+      break;
+    case Expression::E_BOOLLIT:
+      r_type << "\"BoolLit\"";
+      records.push_back(r_type.str());
+      vBoolLit(e->template cast<BoolLit>(), records);
+      break;
+    case Expression::E_STRINGLIT:
+      r_type << "\"StringLit\"";
+      records.push_back(r_type.str());
+      vStringLit(e->template cast<StringLit>(), records);
+      break;
+    case Expression::E_ID:
+      r_type << "\"Id\"";
+      records.push_back(r_type.str());
+      vId(e->template cast<Id>(), records);
+      break;
+    case Expression::E_ANON:
+      r_type << "\"AnonVar\"";
+      records.push_back(r_type.str());
+      vAnonVar(e->template cast<AnonVar>(), records);
+      break;
+    case Expression::E_ARRAYLIT:
+      r_type << "\"ArrayLit\"";
+      records.push_back(r_type.str());
+      vArrayLit(e->template cast<ArrayLit>(), records);
+      break;
+    case Expression::E_ARRAYACCESS:
+      r_type << "\"ArrayAccess\"";
+      records.push_back(r_type.str());
+      vArrayAccess(e->template cast<ArrayAccess>(), records);
+      break;
+    case Expression::E_COMP:
+      r_type << "\"Comprehension\"";
+      records.push_back(r_type.str());
+      vComprehension(e->template cast<Comprehension>(), records);
+      break;
+    case Expression::E_ITE:
+      r_type << "\"ITE\"";
+      records.push_back(r_type.str());
+      vITE(e->template cast<ITE>(), records);
+      break;
+    case Expression::E_BINOP:
+      r_type << "\"BinOp\"";
+      records.push_back(r_type.str());
+      vBinOp(e->template cast<BinOp>(), records);
+      break;
+    case Expression::E_UNOP:
+      r_type << "\"UnOp\"";
+      records.push_back(r_type.str());
+      vUnOp(e->template cast<UnOp>(), records);
+      break;
+    case Expression::E_CALL:
+      r_type << "\"Call\"";
+      records.push_back(r_type.str());
+      vCall(e->template cast<Call>(), records);
+      break;
+    case Expression::E_VARDECL:
+      r_type << "\"VarDecl\"";
+      records.push_back(r_type.str());
+      vVarDecl(e->template cast<VarDecl>(), records);
+      break;
+    case Expression::E_LET:
+      r_type << "\"Let\"";
+      records.push_back(r_type.str());
+      vLet(e->template cast<Let>(), records);
+      break;
+    case Expression::E_TI:
+      r_type << "\"TypeInst\"";
+      records.push_back(r_type.str());
+      vTypeInst(e->template cast<TypeInst>(), records);
+      break;
+    case Expression::E_TIID:
+      r_type << "\"TypeInstId\"";
+      records.push_back(r_type.str());
+      vTIId(e->template cast<TIId>(), records);
+      break;
   }
 
   if (!hide_locations) {
@@ -355,7 +350,7 @@ std::string ExprPrinter::to_string(const Expression *e) {
 }
 
 /// Visit integer literal
-void ExprPrinter::vIntLit(const IntLit *il, std::vector<std::string> &records) {
+void ExprPrinter::vIntLit(const IntLit* il, std::vector<std::string>& records) {
   std::stringstream ss;
 
   ss << "\"val\": ";
@@ -365,8 +360,7 @@ void ExprPrinter::vIntLit(const IntLit *il, std::vector<std::string> &records) {
 }
 
 /// Visit floating point literal
-void ExprPrinter::vFloatLit(const FloatLit *fl,
-                            std::vector<std::string> &records) {
+void ExprPrinter::vFloatLit(const FloatLit* fl, std::vector<std::string>& records) {
   std::stringstream ss;
 
   ss << "\"val\": ";
@@ -376,8 +370,7 @@ void ExprPrinter::vFloatLit(const FloatLit *fl,
 }
 
 /// Visit Boolean literal
-void ExprPrinter::vBoolLit(const BoolLit *bl,
-                           std::vector<std::string> &records) {
+void ExprPrinter::vBoolLit(const BoolLit* bl, std::vector<std::string>& records) {
   std::stringstream ss;
   Printer pp(ss, 0, true);
 
@@ -388,8 +381,7 @@ void ExprPrinter::vBoolLit(const BoolLit *bl,
 }
 
 /// Visit set literal
-void ExprPrinter::vSetLit(const SetLit *sl, std::vector<std::string> &records) {
-
+void ExprPrinter::vSetLit(const SetLit* sl, std::vector<std::string>& records) {
   std::vector<std::string> val_strs;
   auto vals = sl->v();
   for (size_t i = 0; i < vals.size(); i++) {
@@ -443,8 +435,7 @@ void ExprPrinter::vSetLit(const SetLit *sl, std::vector<std::string> &records) {
 }
 
 /// Visit string literal
-void ExprPrinter::vStringLit(const StringLit *sl,
-                             std::vector<std::string> &records) {
+void ExprPrinter::vStringLit(const StringLit* sl, std::vector<std::string>& records) {
   std::stringstream ss;
   ss << "\"val\": \"" << to_string(sl->v()) << "\"";
 
@@ -452,19 +443,17 @@ void ExprPrinter::vStringLit(const StringLit *sl,
 }
 
 /// Visit identifier
-void ExprPrinter::vId(const Id *ident, std::vector<std::string> &records) {
+void ExprPrinter::vId(const Id* ident, std::vector<std::string>& records) {
   std::stringstream ss;
   ss << "\"v\": \"" << *ident << "\"";
   records.push_back(ss.str());
 }
 
 /// Visit anonymous variable
-void ExprPrinter::vAnonVar(const AnonVar * /*x*/,
-                           std::vector<std::string> &records) {}
+void ExprPrinter::vAnonVar(const AnonVar* /*x*/, std::vector<std::string>& records) {}
 
 /// Visit array literal
-void ExprPrinter::vArrayLit(const ArrayLit *al,
-                            std::vector<std::string> &records) {
+void ExprPrinter::vArrayLit(const ArrayLit* al, std::vector<std::string>& records) {
   std::vector<std::string> dim_strs;
   for (size_t i = 0; i < al->dims(); i++) {
     std::stringstream ss_inner;
@@ -489,8 +478,7 @@ void ExprPrinter::vArrayLit(const ArrayLit *al,
 }
 
 /// Visit array access
-void ExprPrinter::vArrayAccess(const ArrayAccess *aa,
-                               std::vector<std::string> &records) {
+void ExprPrinter::vArrayAccess(const ArrayAccess* aa, std::vector<std::string>& records) {
   std::stringstream ss_v;
   ss_v << "\"v\": " << to_string(aa->v());
   records.push_back(ss_v.str());
@@ -509,9 +497,7 @@ void ExprPrinter::vArrayAccess(const ArrayAccess *aa,
 }
 
 /// Visit array comprehension
-void ExprPrinter::vComprehension(const Comprehension *comp,
-                                 std::vector<std::string> &records) {
-
+void ExprPrinter::vComprehension(const Comprehension* comp, std::vector<std::string>& records) {
   std::vector<std::string> gens;
   for (size_t i = 0; i < comp->numberOfGenerators(); i++) {
     std::vector<std::string> decls;
@@ -539,19 +525,17 @@ void ExprPrinter::vComprehension(const Comprehension *comp,
 }
 
 /// Visit array comprehension (only generator \a gen_i)
-void ExprPrinter::vComprehensionGenerator(const Comprehension * /*c*/,
-                                          int /*gen_i*/,
-                                          std::vector<std::string> &records) {
+void ExprPrinter::vComprehensionGenerator(const Comprehension* /*c*/, int /*gen_i*/,
+                                          std::vector<std::string>& records) {
   records.push_back("\"ERROR\": \"Not implemented\"");
 }
 
 /// Visit if-then-else
-void ExprPrinter::vITE(const ITE *ite, std::vector<std::string> &records) {
+void ExprPrinter::vITE(const ITE* ite, std::vector<std::string>& records) {
   std::vector<std::string> branches_strs;
   for (size_t i = 0; i < ite->size(); i++) {
     std::stringstream ss_branch;
-    ss_branch << "[" << to_string(ite->ifExpr(i)) << ", "
-              << to_string(ite->thenExpr(i)) << "]";
+    ss_branch << "[" << to_string(ite->ifExpr(i)) << ", " << to_string(ite->thenExpr(i)) << "]";
     branches_strs.push_back(ss_branch.str());
   }
 
@@ -565,7 +549,7 @@ void ExprPrinter::vITE(const ITE *ite, std::vector<std::string> &records) {
 }
 
 /// Visit binary operator
-void ExprPrinter::vBinOp(const BinOp *bo, std::vector<std::string> &records) {
+void ExprPrinter::vBinOp(const BinOp* bo, std::vector<std::string>& records) {
   std::stringstream ss_op;
   ss_op << "\"op\": \"" << bot_to_name(bo->op()) << "\"";
   records.push_back(ss_op.str());
@@ -580,7 +564,7 @@ void ExprPrinter::vBinOp(const BinOp *bo, std::vector<std::string> &records) {
 }
 
 /// Visit unary operator
-void ExprPrinter::vUnOp(const UnOp *uo, std::vector<std::string> &records) {
+void ExprPrinter::vUnOp(const UnOp* uo, std::vector<std::string>& records) {
   std::stringstream ss_op;
   ss_op << "\"op\": \"" << uot_to_name(uo->op()) << "\"";
   records.push_back(ss_op.str());
@@ -591,7 +575,7 @@ void ExprPrinter::vUnOp(const UnOp *uo, std::vector<std::string> &records) {
 }
 
 /// Visit call
-void ExprPrinter::vCall(const Call *ca, std::vector<std::string> &records) {
+void ExprPrinter::vCall(const Call* ca, std::vector<std::string>& records) {
   std::stringstream ss_id;
   ss_id << "\"id\": \"" << ca->id() << "\"";
   records.push_back(ss_id.str());
@@ -608,7 +592,7 @@ void ExprPrinter::vCall(const Call *ca, std::vector<std::string> &records) {
 }
 
 /// Visit let
-void ExprPrinter::vLet(const Let *let, std::vector<std::string> &records) {
+void ExprPrinter::vLet(const Let* let, std::vector<std::string>& records) {
   std::vector<std::string> decls_strs;
   auto decl_vec = let->let();
   for (size_t i = 0; i < decl_vec.size(); i++) {
@@ -627,8 +611,7 @@ void ExprPrinter::vLet(const Let *let, std::vector<std::string> &records) {
 }
 
 /// Visit variable declaration
-void ExprPrinter::vVarDecl(const VarDecl *vd,
-                           std::vector<std::string> &records) {
+void ExprPrinter::vVarDecl(const VarDecl* vd, std::vector<std::string>& records) {
   std::stringstream ss_id;
   ss_id << "\"id\": " << to_string(vd->id());
   records.push_back(ss_id.str());
@@ -643,8 +626,7 @@ void ExprPrinter::vVarDecl(const VarDecl *vd,
 }
 
 /// Visit type inst
-void ExprPrinter::vTypeInst(const TypeInst *ti,
-                            std::vector<std::string> &records) {
+void ExprPrinter::vTypeInst(const TypeInst* ti, std::vector<std::string>& records) {
   auto ti_ranges = ti->ranges();
   std::vector<std::string> ranges_strs;
   for (size_t i = 0; i < ti_ranges.size(); i++) {
@@ -661,28 +643,27 @@ void ExprPrinter::vTypeInst(const TypeInst *ti,
 }
 
 /// Visit TIId
-void ExprPrinter::vTIId(const TIId * /*tiid*/,
-                        std::vector<std::string> &records) {
+void ExprPrinter::vTIId(const TIId* /*tiid*/, std::vector<std::string>& records) {
   records.push_back("\"ERROR\": \"Not implemented\"");
 }
 
 /// Visitor for model items
 ASTCollector::ASTCollector() {}
 
-ASTCollector::ASTCollector(const std::vector<std::string> &paths) {
-  for (const string &path : paths) {
+ASTCollector::ASTCollector(const std::vector<std::string>& paths) {
+  for (const string& path : paths) {
     locs.emplace_back(path);
   }
 }
 
 /// Enter model
-bool ASTCollector::enterModel(Model * /*m*/) { return true; }
+bool ASTCollector::enterModel(Model* /*m*/) { return true; }
 
 /// Enter item
-bool ASTCollector::enter(Item * /*ii*/) { return true; }
+bool ASTCollector::enter(Item* /*ii*/) { return true; }
 
 /// Visit include item
-void ASTCollector::vIncludeI(IncludeI *ii) {
+void ASTCollector::vIncludeI(IncludeI* ii) {
   std::stringstream ss;
 
   ss << "{"
@@ -695,7 +676,7 @@ void ASTCollector::vIncludeI(IncludeI *ii) {
 }
 
 /// Visit variable declaration
-void ASTCollector::vVarDeclI(VarDeclI *vdi) {
+void ASTCollector::vVarDeclI(VarDeclI* vdi) {
   std::stringstream ss;
 
   ss << "{"
@@ -707,7 +688,7 @@ void ASTCollector::vVarDeclI(VarDeclI *vdi) {
 }
 
 /// Visit assign item
-void ASTCollector::vAssignI(AssignI *ai) {
+void ASTCollector::vAssignI(AssignI* ai) {
   std::stringstream ss;
 
   ss << "{"
@@ -721,7 +702,7 @@ void ASTCollector::vAssignI(AssignI *ai) {
 }
 
 /// Visit constraint item
-void ASTCollector::vConstraintI(ConstraintI *ci) {
+void ASTCollector::vConstraintI(ConstraintI* ci) {
   std::stringstream ss;
 
   ss << "{"
@@ -733,7 +714,7 @@ void ASTCollector::vConstraintI(ConstraintI *ci) {
 }
 
 /// Visit solve item
-void ASTCollector::vSolveI(SolveI *si) {
+void ASTCollector::vSolveI(SolveI* si) {
   std::stringstream ss;
 
   ss << "{"
@@ -757,7 +738,7 @@ void ASTCollector::vSolveI(SolveI *si) {
 }
 
 /// Visit output item
-void ASTCollector::vOutputI(OutputI *oi) {
+void ASTCollector::vOutputI(OutputI* oi) {
   std::stringstream ss;
 
   ss << "{"
@@ -770,7 +751,7 @@ void ASTCollector::vOutputI(OutputI *oi) {
 }
 
 /// Visit function item
-void ASTCollector::vFunctionI(FunctionI *fi) {
+void ASTCollector::vFunctionI(FunctionI* fi) {
   std::stringstream ss;
 
   std::vector<std::string> param_strs;
@@ -793,22 +774,21 @@ void ASTCollector::vFunctionI(FunctionI *fi) {
   items.push_back(ss.str());
 }
 
-void ASTCollector::write_json(ostream &os) {
+void ASTCollector::write_json(ostream& os) {
   os << "{";
   if (locs.empty()) {
     os << "\"items\": [" << utils::join(items, ",\n", false) << "]";
   } else {
     std::vector<std::string> entries;
 
-    for (auto &loc_ast : asts) {
+    for (auto& loc_ast : asts) {
       std::vector<std::string> unique_asts;
-      for (const auto &ast_str : loc_ast.second) {
+      for (const auto& ast_str : loc_ast.second) {
         unique_asts.push_back(ast_str);
       }
 
       std::stringstream entry_ss;
-      entry_ss << "\"" << loc_ast.first << "\": ["
-               << utils::join(unique_asts, ",") << "]";
+      entry_ss << "\"" << loc_ast.first << "\": [" << utils::join(unique_asts, ",") << "]";
       string s = entry_ss.str();
       entries.push_back(s);
     }
@@ -820,29 +800,27 @@ void ASTCollector::write_json(ostream &os) {
   os << "}";
 }
 
-void ASTCollector::add_ast(const ShortLoc &loc, std::string ast) {
+void ASTCollector::add_ast(const ShortLoc& loc, std::string ast) {
   std::string loc_key = loc.to_string();
   asts[loc_key].push_back(ast);
 }
 
-void ASTCollector::add_expr(const ShortLoc &loc, Expression *e) {
-  add_ast(loc, ep.to_string(e));
-}
+void ASTCollector::add_expr(const ShortLoc& loc, Expression* e) { add_ast(loc, ep.to_string(e)); }
 
 // GetAST
-GetAST::GetAST(const std::vector<std::string> &paths) : ic{paths} {}
+GetAST::GetAST(const std::vector<std::string>& paths) : ic{paths} {}
 
 std::string GetAST::get_name() { return "get-ast"; }
 
-MiniZinc::Env *GetAST::run(MiniZinc::Env *e, std::ostream &log) {
-  Model *m = e->model();
+MiniZinc::Env* GetAST::run(MiniZinc::Env* e, std::ostream& log) {
+  Model* m = e->model();
 
   if (ic.locs.empty()) {
     iter_items(ic, m);
   } else {
     LocExprMap expr_map = get_exprs(ic.locs, m, false, true);
-    for (auto &exprs : expr_map) {
-      for (Expression *e : exprs.second) {
+    for (auto& exprs : expr_map) {
+      for (Expression* e : exprs.second) {
         ic.add_expr(exprs.first, e);
       }
     }
@@ -851,6 +829,6 @@ MiniZinc::Env *GetAST::run(MiniZinc::Env *e, std::ostream &log) {
   return e;
 }
 
-void GetAST::write_json(ostream &os) { ic.write_json(os); }
+void GetAST::write_json(ostream& os) { ic.write_json(os); }
 
-} // namespace MznTool
+}  // namespace MznTool

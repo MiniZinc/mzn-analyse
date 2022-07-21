@@ -14,12 +14,12 @@ private:
   FilterTypeInst typeinst;
 
 public:
-  FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
-              bool omit = false, FilterTypeInst ti = ALL);
+  FilterItems(const std::vector<MiniZinc::Item::ItemId>& types, bool omit = false,
+              FilterTypeInst ti = ALL);
 
-  MiniZinc::Env *run(MiniZinc::Env *e, std::ostream &log) override;
+  MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 
-  bool should_remove(MiniZinc::Item *item);
+  bool should_remove(MiniZinc::Item* item);
 };
 
-}; // namespace MznTool
+};  // namespace MznTool

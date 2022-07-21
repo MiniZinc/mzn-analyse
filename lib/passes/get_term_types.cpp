@@ -1,19 +1,19 @@
 #include "passes/get_term_types.hh"
-#include "string_utils.hh"
 
 #include <fstream>
 #include <iostream>
-#include <sstream>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include <minizinc/astiterator.hh>
 #include <minizinc/copy.hh>
 #include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
+#include <sstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "string_utils.hh"
 
 using namespace MiniZinc;
 using std::string;
@@ -23,7 +23,7 @@ using std::vector;
 
 namespace MznTool {
 
-string escape(const string &orig, bool html) {
+string escape(const string& orig, bool html) {
   string repchars = "\\&\"\'<>";
   vector<string> repstrs;
   if (html)
@@ -49,8 +49,8 @@ string escape(const string &orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(vector<string> &gens, vector<string> &wheres,
-                         vector<string> &coefs, Expression *var) {
+string getTermTypeString(vector<string>& gens, vector<string>& wheres, vector<string>& coefs,
+                         Expression* var) {
   const string minor_sep = "|";
   Location loc = var->loc();
 
@@ -64,9 +64,9 @@ string getTermTypeString(vector<string> &gens, vector<string> &wheres,
   ss << "      \"coefficients\": [" << utils::join(coefs, ", ", true) << "],\n";
   ss << "      \"generators\": [" << utils::join(gens, ", ", true) << "],\n";
   ss << "      \"conditions\": [" << utils::join(wheres, ", ", true) << "],\n";
-  ss << "      \"location\": \"" << escape(loc.filename().c_str(), false)
-     << minor_sep << loc.firstLine() << minor_sep << loc.firstColumn()
-     << minor_sep << loc.lastLine() << minor_sep << loc.lastColumn() << "\"\n";
+  ss << "      \"location\": \"" << escape(loc.filename().c_str(), false) << minor_sep
+     << loc.firstLine() << minor_sep << loc.firstColumn() << minor_sep << loc.lastLine()
+     << minor_sep << loc.lastColumn() << "\"\n";
   ss << "    }";
 
   return ss.str();
@@ -75,14 +75,12 @@ string getTermTypeString(vector<string> &gens, vector<string> &wheres,
 struct StackFrame {
   size_t gen_idx;
   size_t coef_idx;
-  Expression *e;
+  Expression* e;
 
-  StackFrame(size_t g, size_t c, Expression *exp)
-      : gen_idx{g}, coef_idx{c}, e{exp} {}
+  StackFrame(size_t g, size_t c, Expression* exp) : gen_idx{g}, coef_idx{c}, e{exp} {}
 };
 
-string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
-                    Expression *root) {
+string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
   vector<string> term_strings;
 
   // For now just support:
@@ -104,21 +102,21 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
     }
     stack.pop_back();
 
-    if (Call *call = frame.e->dynamicCast<Call>()) {
+    if (Call* call = frame.e->dynamicCast<Call>()) {
       if (call->id() == "sum") {
-        Expression *body = nullptr;
+        Expression* body = nullptr;
         if (call->arg(0)->isa<Comprehension>()) {
-          Comprehension *co = call->arg(0)->cast<Comprehension>();
+          Comprehension* co = call->arg(0)->cast<Comprehension>();
           // collect generators
           for (size_t i = 0; i < co->numberOfGenerators(); i++) {
-            Expression *in = co->in(i);
+            Expression* in = co->in(i);
             for (size_t j = 0; j < co->numberOfDecls(i); j++) {
               stringstream ss;
-              VarDecl *idx = co->decl(i, j);
+              VarDecl* idx = co->decl(i, j);
               ss << *idx->id() << " in " << *in;
               gens.push_back(ss.str());
             }
-            Expression *where_e = co->where(i);
+            Expression* where_e = co->where(i);
             if (where_e) {
               stringstream where_ss;
               where_ss << *where_e;
@@ -131,23 +129,22 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
           //   arg0: X
           //   gen: i in index_set(X)
           //   body: X[i]
-          VarDecl *vd = new VarDecl(
-              Location().introduce(),
-              new TypeInst(Location().introduce(), Type::parint()), "i");
-          Expression *arg0 = call->arg(0);
+          VarDecl* vd = new VarDecl(Location().introduce(),
+                                    new TypeInst(Location().introduce(), Type::parint()), "i");
+          Expression* arg0 = call->arg(0);
 
           stringstream ss;
           ss << "i in index_set(" << *arg0 << ")";
           gens.push_back(ss.str());
 
-          ArrayAccess *aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
+          ArrayAccess* aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
           body = aa;
         }
         stack.emplace_back(gens.size(), coefs.size(), body);
       } else {
         term_strings.push_back(getTermTypeString(gens, wheres, coefs, call));
       }
-    } else if (BinOp *bo = frame.e->dynamicCast<BinOp>()) {
+    } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_MULT) {
         if (bo->lhs()->type().isPar()) {
           stringstream ss;
@@ -181,7 +178,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
       }
-    } else if (Id *id = frame.e->dynamicCast<Id>()) {
+    } else if (Id* id = frame.e->dynamicCast<Id>()) {
       auto it = assigns.find(id->decl()->id());
       if (it != assigns.end()) {
         stack.emplace_back(gens.size(), coefs.size(), it->second);
@@ -207,32 +204,29 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
   return ss.str();
 }
 
-string getObjectiveTermsJSON(SolveI *si,
-                             unordered_map<Id *, Expression *> &assigns) {
+string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*, Expression*>& assigns) {
   if (!si || si->st() == SolveI::ST_SAT) {
     return "";
   }
 
-  Expression *obj_e = si->e();
+  Expression* obj_e = si->e();
   if (!obj_e) {
     std::cerr << "No objective function" << std::endl;
     return "";
   }
 
-  Expression *e = obj_e;
-  while (Id *id = e->dynamicCast<Id>()) {
+  Expression* e = obj_e;
+  while (Id* id = e->dynamicCast<Id>()) {
     e = id->decl()->e();
     if (!e) {
       auto it = assigns.find(id->decl()->id());
       if (it != assigns.end()) {
         e = it->second;
       }
-      if (!e)
-        return "";
+      if (!e) return "";
     }
   }
-  if (!e)
-    return "";
+  if (!e) return "";
 
   return getTermsJSON(assigns, e);
 }
@@ -241,21 +235,21 @@ GetTermTypes::GetTermTypes() {}
 
 std::string GetTermTypes::get_name() { return "get-term-types"; }
 
-void GetTermTypes::write_json(std::ostream &os) { os << json_output; }
+void GetTermTypes::write_json(std::ostream& os) { os << json_output; }
 
-MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
+MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
   // Collect functional assignments for objective processing
-  Model *m = e->model();
-  unordered_map<Id *, Expression *> assigns;
+  Model* m = e->model();
+  unordered_map<Id*, Expression*> assigns;
 
   // Add data annotations
-  for (ConstraintI &ci : m->constraints()) {
-    if (BinOp *bo = ci.e()->dynamicCast<BinOp>()) {
+  for (ConstraintI& ci : m->constraints()) {
+    if (BinOp* bo = ci.e()->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_EQ) {
-        if (Id *lhe = bo->lhs()->dynamicCast<Id>()) {
+        if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
           assigns[lhe->decl()->id()] = bo->rhs();
         }
-        if (Id *rhe = bo->rhs()->dynamicCast<Id>()) {
+        if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
           assigns[rhe->decl()->id()] = bo->lhs();
         }
       }
@@ -268,4 +262,4 @@ MiniZinc::Env *GetTermTypes::run(MiniZinc::Env *e, std::ostream &log) {
   return e;
 }
 
-} // namespace MznTool
+}  // namespace MznTool

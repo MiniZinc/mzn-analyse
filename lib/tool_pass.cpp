@@ -12,13 +12,11 @@ using MiniZinc::Timer;
 
 namespace MznTool {
 
-Env *multiPassFlatten(
-    Env &e, const std::vector<std::unique_ptr<MiniZinc::Pass>> &passes,
-    std::vector<std::string> &json_store, std::ostream &_log) {
-  Env *pre_env = &e;
+Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<MiniZinc::Pass>>& passes,
+                      std::vector<std::string>& json_store, std::ostream& _log) {
+  Env* pre_env = &e;
   size_t npasses = passes.size();
-  pre_env->envi().multiPassInfo.finalPassNumber =
-      static_cast<unsigned int>(npasses);
+  pre_env->envi().multiPassInfo.finalPassNumber = static_cast<unsigned int>(npasses);
   Timer starttime;
   bool verbose = false;
   for (unsigned int i = 0; i < passes.size(); i++) {
@@ -27,13 +25,13 @@ Env *multiPassFlatten(
       _log << "Start pass " << i << ":\n";
     }
 
-    Env *out_env = passes[i]->run(pre_env, _log);
+    Env* out_env = passes[i]->run(pre_env, _log);
     if (out_env == nullptr) {
       return nullptr;
     }
 
     // Collect json output
-    if (ToolPass *tp = dynamic_cast<ToolPass *>(passes[i].get())) {
+    if (ToolPass* tp = dynamic_cast<ToolPass*>(passes[i].get())) {
       std::stringstream tool_out_stream;
       tp->write_json(tool_out_stream);
       std::string tool_output = tool_out_stream.str();
@@ -58,4 +56,4 @@ Env *multiPassFlatten(
   return pre_env;
 }
 
-}; // namespace MznTool
+};  // namespace MznTool

@@ -1,14 +1,14 @@
+#include "string_utils.hh"
+
 #include <iterator>
 #include <sstream>
-
-#include "string_utils.hh"
 
 namespace utils {
 using std::string;
 using std::stringstream;
 using std::vector;
 
-vector<string> split(const string &str, char delim, bool include_empty) {
+vector<string> split(const string& str, char delim, bool include_empty) {
   std::stringstream ss;
   ss.str(str);
   std::string item;
@@ -18,18 +18,16 @@ vector<string> split(const string &str, char delim, bool include_empty) {
   auto inserter = std::back_inserter(result);
 
   while (std::getline(ss, item, delim)) {
-    if (!item.empty() || include_empty)
-      *(inserter++) = item;
+    if (!item.empty() || include_empty) *(inserter++) = item;
   }
 
   return result;
 }
 
-string join(const vector<string> &strs, const string &sep, bool quote) {
+string join(const vector<string>& strs, const string& sep, bool quote) {
   std::stringstream ss;
   for (size_t i = 0; i < strs.size(); i++) {
-    if (i)
-      ss << sep;
+    if (i) ss << sep;
     if (quote) {
       ss << "\"" << strs[i] << "\"";
     } else {
@@ -39,7 +37,7 @@ string join(const vector<string> &strs, const string &sep, bool quote) {
   return ss.str();
 }
 
-string escape(const string &orig, bool html) {
+string escape(const string& orig, bool html) {
   string repchars = "\\&\"\'<>";
   vector<string> repstrs;
   if (html)
@@ -64,4 +62,4 @@ string escape(const string &orig, bool html) {
   out << orig.substr(last);
   return out.str();
 }
-} // namespace utils
+}  // namespace utils

@@ -11,14 +11,14 @@ namespace MznTool {
 
 OutputAll::OutputAll() {}
 
-MiniZinc::Env *OutputAll::run(MiniZinc::Env *e, std::ostream &log) {
-  Model *m = e->model();
+MiniZinc::Env* OutputAll::run(MiniZinc::Env* e, std::ostream& log) {
+  Model* m = e->model();
 
-  for (VarDeclI &vdi : m->vardecls()) {
-    VarDecl *vd = vdi.e();
+  for (VarDeclI& vdi : m->vardecls()) {
+    VarDecl* vd = vdi.e();
     vd->ann().add(MiniZinc::Constants::constants().ann.add_to_output);
   }
 
   return e;
 }
-}; // namespace MznTool
+};  // namespace MznTool

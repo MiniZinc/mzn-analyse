@@ -10,28 +10,27 @@ using std::string;
 
 namespace MznTool {
 
-FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId> &types,
-                         bool omit, FilterItems::FilterTypeInst ti)
+FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId>& types, bool omit,
+                         FilterItems::FilterTypeInst ti)
     : item_types{types}, exclude{omit}, typeinst{ti} {}
 
-bool FilterItems::should_remove(Item *item) {
+bool FilterItems::should_remove(Item* item) {
   MiniZinc::Type::Inst mti =
-      (typeinst == FilterItems::VAR ? MiniZinc::Type::TI_VAR
-                                    : MiniZinc::Type::TI_PAR);
+      (typeinst == FilterItems::VAR ? MiniZinc::Type::TI_VAR : MiniZinc::Type::TI_PAR);
   for (MiniZinc::Item::ItemId iid : item_types) {
     if (item->iid() == iid) {
       if (typeinst == FilterItems::ALL) {
         return exclude;
       }
-      if (VarDeclI *vdi = item->dynamicCast<VarDeclI>()) {
+      if (VarDeclI* vdi = item->dynamicCast<VarDeclI>()) {
         if (vdi->e()->type().ti() == mti) {
           return exclude;
         }
-      } else if (ConstraintI *ci = item->dynamicCast<ConstraintI>()) {
+      } else if (ConstraintI* ci = item->dynamicCast<ConstraintI>()) {
         if (ci->e()->type().ti() == mti) {
           return exclude;
         }
-      } else if (AssignI *ai = item->dynamicCast<AssignI>()) {
+      } else if (AssignI* ai = item->dynamicCast<AssignI>()) {
         if (ai->decl()->type().ti() == mti && ai->e()->type().ti() == mti) {
           return exclude;
         }
@@ -41,11 +40,11 @@ bool FilterItems::should_remove(Item *item) {
   return !exclude;
 }
 
-Env *FilterItems::run(Env *e, std::ostream &log) {
-  Model *model = e->model();
+Env* FilterItems::run(Env* e, std::ostream& log) {
+  Model* model = e->model();
 
   for (size_t i = 0; i < model->size(); i++) {
-    Item *item = model->operator[](i);
+    Item* item = model->operator[](i);
     if (should_remove(item)) {
       item->remove();
     }
@@ -53,4 +52,4 @@ Env *FilterItems::run(Env *e, std::ostream &log) {
   model->compact();
   return e;
 }
-}; // namespace MznTool
+};  // namespace MznTool
