@@ -15,6 +15,7 @@
 #include <minizinc/solver.hh>
 #include <minizinc/eval_par.hh>
 #include <minizinc/type.hh>
+#include <minizinc/flatten.hh>
 
 using namespace MiniZinc;
 using std::ostream;
@@ -83,17 +84,20 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
         VarInfo vi;
 
         std::stringstream varname_ss;
-        varname_ss << "div_var_" << div_opts.vars.size();
+        varname_ss << "div_curr_var_" << div_opts.vars.size();
         const string varname = varname_ss.str();
 
         TypeInst* ti;
         Expression *arg0 = ca->arg(0);
+        VarDecl* arg_vd = ca->decl()->param(0);
+
         if(Id *id = arg0->dynamicCast<Id>()) {
           VarDecl *typed = id->decl();
           ti = typed->ti();
         } else {
-          ti = new TypeInst(Location().introduce(), arg0->type());
+          ti = new TypeInst(Location().introduce(), arg_vd->type(), arg_vd->ti()->ranges(), arg_vd->ti()->domain());
         }
+
 
         VarDecl *newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
         m->addItem(VarDeclI::a(Location().introduce(), newVar));
@@ -102,6 +106,28 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
         std::stringstream type_ss;
         type_ss << *ti;
         vi.type = type_ss.str();
+
+        // Previous array
+
+        std::stringstream prevvarname_ss;
+        prevvarname_ss << "div_prev_var_" << div_opts.vars.size();
+        const string prevvarname = prevvarname_ss.str();
+
+        auto ranges = ti->ranges();
+        vector<TypeInst *> prev_ranges;
+        prev_ranges.push_back(new TypeInst(Location().introduce(), Type::parint()));
+        for(int i=0; i<ranges.size(); i++) {
+          prev_ranges.push_back(ranges[i]);
+        }
+
+        TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges, arg_vd->ti()->domain());
+        VarDecl *prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
+        m->addItem(VarDeclI::a(Location().introduce(), prevVar));
+        vi.prev_name = prevvarname;
+
+        std::stringstream prev_type_ss;
+        prev_type_ss << *prev_ti;
+        vi.prev_type = prev_type_ss.str();
 
         vi.distance_function = eval_string(env->envi(), ca->arg(1));
 
@@ -133,6 +159,8 @@ void GetDiversityAnns::write_json(ostream &os) {
     ss << "    {\n"
       << "      \"name\": \"" << vi.name << "\",\n"
       << "      \"type\": \"" << vi.type << "\",\n"
+      << "      \"prev_name\": \"" << vi.prev_name << "\",\n"
+      << "      \"prev_type\": \"" << vi.prev_type << "\",\n"
       << "      \"distance_function\": \"" << vi.distance_function << "\"\n"
       << "    }";
     var_specs.emplace_back(ss.str());

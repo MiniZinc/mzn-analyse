@@ -8,7 +8,9 @@ namespace MznTool {
 
 struct VarInfo {
   std::string name;
+  std::string prev_name;
   std::string type;
+  std::string prev_type;
   std::string distance_function;
 };
 
