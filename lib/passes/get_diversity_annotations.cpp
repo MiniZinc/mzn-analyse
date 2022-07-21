@@ -5,30 +5,32 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 #include <minizinc/astiterator.hh>
+#include <minizinc/eval_par.hh>
 #include <minizinc/file_utils.hh>
+#include <minizinc/flatten.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
-#include <minizinc/eval_par.hh>
 #include <minizinc/type.hh>
-#include <minizinc/flatten.hh>
 
 using namespace MiniZinc;
 using std::ostream;
 using std::string;
-using std::vector;
 using std::unordered_map;
+using std::vector;
 
 namespace MznTool {
 
-void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZinc::Model *m) {
+void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env,
+                                                     MiniZinc::Model *m) {
   // Get SolveI si
   SolveI *si = m->solveItem();
-  if(!si) return;
+  if (!si)
+    return;
 
   // Build div_opt.objective
   if (si->st() == SolveI::ST_SAT) {
@@ -39,9 +41,9 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
     //   Construct temporary div_obj = si->e
     const string obj_name = "div_orig_objective";
 
-    TypeInst* ti = nullptr;
+    TypeInst *ti = nullptr;
     Expression *e = si->e();
-    if(Id *id = e->dynamicCast<Id>()) {
+    if (Id *id = e->dynamicCast<Id>()) {
       VarDecl *typed = id->decl();
       ti = typed->ti();
     } else {
@@ -60,46 +62,56 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
 
   // Collect annotations
   Annotation &anns = si->ann();
-  for(Expression* e : anns) {
-    if(Call* ca = e->dynamicCast<Call>()) {
-      if(ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
-        div_opts.inter_diversity_constraint = eval_string(env->envi(), ca->arg(0));
-      } else if(ca->id() == string("diversity_intra_constraint") && ca->argCount() == 1) {
-        div_opts.intra_diversity_constraint = eval_string(env->envi(), ca->arg(0));
-      } else if(ca->id() == string("diversity_aggregator") && ca->argCount() == 1) {
+  for (Expression *e : anns) {
+    if (Call *ca = e->dynamicCast<Call>()) {
+      if (ca->id() == string("diversity_inter_constraint") &&
+          ca->argCount() == 1) {
+        div_opts.inter_diversity_constraint =
+            eval_string(env->envi(), ca->arg(0));
+      } else if (ca->id() == string("diversity_intra_constraint") &&
+                 ca->argCount() == 1) {
+        div_opts.intra_diversity_constraint =
+            eval_string(env->envi(), ca->arg(0));
+      } else if (ca->id() == string("diversity_aggregator") &&
+                 ca->argCount() == 1) {
         div_opts.aggregator = eval_string(env->envi(), ca->arg(0));
-      } else if(ca->id() == string("diversity_combinator") && ca->argCount() == 1) {
+      } else if (ca->id() == string("diversity_combinator") &&
+                 ca->argCount() == 1) {
         std::stringstream ss;
         ss << *ca->arg(0);
         div_opts.combinator = eval_string(env->envi(), ca->arg(0));
-      } else if(ca->id() == string("diversity_incremental") && ca->argCount() == 2) {
+      } else if (ca->id() == string("diversity_incremental") &&
+                 ca->argCount() == 2) {
         div_opts.type = "incremental";
         div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
         div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-      } else if(ca->id() == string("diversity_global") && ca->argCount() == 2) {
+      } else if (ca->id() == string("diversity_global") &&
+                 ca->argCount() == 2) {
         div_opts.type = "global";
         div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
         div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-      } else if(ca->id() == string("diversity_pairwise") && ca->argCount() == 2) {
+      } else if (ca->id() == string("diversity_pairwise") &&
+                 ca->argCount() == 2) {
         VarInfo vi;
 
         std::stringstream varname_ss;
         varname_ss << "div_curr_var_" << div_opts.vars.size();
         const string varname = varname_ss.str();
 
-        TypeInst* ti;
+        TypeInst *ti;
         Expression *arg0 = ca->arg(0);
-        VarDecl* arg_vd = ca->decl()->param(0);
+        VarDecl *arg_vd = ca->decl()->param(0);
 
-        if(Id *id = arg0->dynamicCast<Id>()) {
+        if (Id *id = arg0->dynamicCast<Id>()) {
           VarDecl *typed = id->decl();
           ti = typed->ti();
         } else {
-          ti = new TypeInst(Location().introduce(), arg_vd->type(), arg_vd->ti()->ranges(), arg_vd->ti()->domain());
+          ti = new TypeInst(Location().introduce(), arg_vd->type(),
+                            arg_vd->ti()->ranges(), arg_vd->ti()->domain());
         }
 
-
-        VarDecl *newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
+        VarDecl *newVar =
+            new VarDecl(Location().introduce(), ti, varname, arg0);
         m->addItem(VarDeclI::a(Location().introduce(), newVar));
         vi.name = varname;
 
@@ -115,13 +127,16 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
 
         auto ranges = ti->ranges();
         vector<TypeInst *> prev_ranges;
-        prev_ranges.push_back(new TypeInst(Location().introduce(), Type::parint()));
-        for(int i=0; i<ranges.size(); i++) {
+        prev_ranges.push_back(
+            new TypeInst(Location().introduce(), Type::parint()));
+        for (int i = 0; i < ranges.size(); i++) {
           prev_ranges.push_back(ranges[i]);
         }
 
-        TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges, arg_vd->ti()->domain());
-        VarDecl *prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
+        TypeInst *prev_ti = new TypeInst(Location().introduce(), arg_vd->type(),
+                                         prev_ranges, arg_vd->ti()->domain());
+        VarDecl *prevVar =
+            new VarDecl(Location().introduce(), prev_ti, prevvarname);
         m->addItem(VarDeclI::a(Location().introduce(), prevVar));
         vi.prev_name = prevvarname;
 
@@ -135,7 +150,6 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env *env, MiniZin
       }
     }
   }
-  
 }
 
 void GetDiversityAnns::write_json(ostream &os) {
@@ -143,8 +157,10 @@ void GetDiversityAnns::write_json(ostream &os) {
      << "  \"div_type\": \"" << div_opts.type << "\",\n"
      << "  \"k\": " << div_opts.k << ",\n"
      << "  \"gap\": " << div_opts.gap << ",\n"
-     << "  \"inter_diversity_constraint\": \"" << div_opts.inter_diversity_constraint << "\",\n"
-     << "  \"intra_diversity_constraint\": \"" << div_opts.intra_diversity_constraint << "\",\n"
+     << "  \"inter_diversity_constraint\": \""
+     << div_opts.inter_diversity_constraint << "\",\n"
+     << "  \"intra_diversity_constraint\": \""
+     << div_opts.intra_diversity_constraint << "\",\n"
      << "  \"aggregator\": \"" << div_opts.aggregator << "\",\n"
      << "  \"combinator\": \"" << div_opts.combinator << "\",\n"
      << "  \"objective\": {\n"
@@ -157,12 +173,12 @@ void GetDiversityAnns::write_json(ostream &os) {
   for (auto &vi : div_opts.vars) {
     std::stringstream ss;
     ss << "    {\n"
-      << "      \"name\": \"" << vi.name << "\",\n"
-      << "      \"type\": \"" << vi.type << "\",\n"
-      << "      \"prev_name\": \"" << vi.prev_name << "\",\n"
-      << "      \"prev_type\": \"" << vi.prev_type << "\",\n"
-      << "      \"distance_function\": \"" << vi.distance_function << "\"\n"
-      << "    }";
+       << "      \"name\": \"" << vi.name << "\",\n"
+       << "      \"type\": \"" << vi.type << "\",\n"
+       << "      \"prev_name\": \"" << vi.prev_name << "\",\n"
+       << "      \"prev_type\": \"" << vi.prev_type << "\",\n"
+       << "      \"distance_function\": \"" << vi.distance_function << "\"\n"
+       << "    }";
     var_specs.emplace_back(ss.str());
   }
   os << utils::join(var_specs, ",\n");
@@ -173,7 +189,6 @@ void GetDiversityAnns::write_json(ostream &os) {
 GetDiversityAnns::GetDiversityAnns() {}
 
 std::string GetDiversityAnns::get_name() { return "get-diversity-annotations"; }
-
 
 MiniZinc::Env *GetDiversityAnns::run(MiniZinc::Env *e, std::ostream &log) {
   Model *m = e->model();

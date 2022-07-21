@@ -49,7 +49,8 @@ string escape(const string &orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(vector<string> &gens, vector<string> &wheres, vector<string> &coefs, Expression *var) {
+string getTermTypeString(vector<string> &gens, vector<string> &wheres,
+                         vector<string> &coefs, Expression *var) {
   const string minor_sep = "|";
   Location loc = var->loc();
 
@@ -80,7 +81,8 @@ struct StackFrame {
       : gen_idx{g}, coef_idx{c}, e{exp} {}
 };
 
-string getTermsJSON(unordered_map<Id *, Expression *> &assigns, Expression *root) {
+string getTermsJSON(unordered_map<Id *, Expression *> &assigns,
+                    Expression *root) {
   vector<string> term_strings;
 
   // For now just support:
@@ -116,7 +118,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns, Expression *root
               ss << *idx->id() << " in " << *in;
               gens.push_back(ss.str());
             }
-            Expression* where_e = co->where(i);
+            Expression *where_e = co->where(i);
             if (where_e) {
               stringstream where_ss;
               where_ss << *where_e;
@@ -131,8 +133,7 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns, Expression *root
           //   body: X[i]
           VarDecl *vd = new VarDecl(
               Location().introduce(),
-              new TypeInst(Location().introduce(), Type::parint()),
-              "i");
+              new TypeInst(Location().introduce(), Type::parint()), "i");
           Expression *arg0 = call->arg(0);
 
           stringstream ss;
@@ -184,7 +185,8 @@ string getTermsJSON(unordered_map<Id *, Expression *> &assigns, Expression *root
       auto it = assigns.find(id->decl()->id());
       if (it != assigns.end()) {
         stack.emplace_back(gens.size(), coefs.size(), it->second);
-      } if (id->decl()->e()) {
+      }
+      if (id->decl()->e()) {
         stack.emplace_back(gens.size(), coefs.size(), id->decl()->e());
       } else {
         // It is just a plain ID

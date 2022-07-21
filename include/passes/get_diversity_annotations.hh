@@ -20,9 +20,9 @@ struct ObjInfo {
 };
 
 struct DiversityOptions {
-  int k; // Number of solutions to find
-  double gap; // Acceptable distance from optimal
-  std::string type; // iterative/global
+  int k;             // Number of solutions to find
+  double gap;        // Acceptable distance from optimal
+  std::string type;  // iterative/global
   ObjInfo objective; // single variable name
   std::vector<VarInfo> vars;
   std::string inter_diversity_constraint;

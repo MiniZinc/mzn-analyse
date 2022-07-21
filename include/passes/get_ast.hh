@@ -19,7 +19,8 @@ private:
 
 public:
   // ExprPrinter(bool hide_locs = true, bool hide_anns = true);
-  ExprPrinter(bool hide_locs = true, bool hide_anns = true, bool hide_types = true);
+  ExprPrinter(bool hide_locs = true, bool hide_anns = true,
+              bool hide_types = true);
 
   std::string to_string(const MiniZinc::Location &loc);
   std::string to_string(const MiniZinc::ASTString &as);
