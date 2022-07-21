@@ -60,7 +60,9 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
 
   // Collect annotations
   Annotation& anns = si->ann();
-  for (Expression* e : anns) {
+  for (Expression* ann_e : anns) {
+    Expression* e = eval_par(env->envi(), ann_e);
+
     if (Call* ca = e->dynamicCast<Call>()) {
       if (ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
         div_opts.inter_diversity_constraint = eval_string(env->envi(), ca->arg(0));
