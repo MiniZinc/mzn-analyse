@@ -9,10 +9,13 @@ namespace MznTool {
 
 class ReadModel : public ToolPass {
 private:
-  std::string in_path;
+  bool is_fzn;
+  std::vector<std::string> mzn_paths;
+  std::vector<std::string> dzn_paths;
 
 public:
   ReadModel(const std::string& ip);
+  ReadModel(const std::vector<std::string> &ips);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 };

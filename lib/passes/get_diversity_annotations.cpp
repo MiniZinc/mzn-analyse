@@ -61,81 +61,93 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
   // Collect annotations
   Annotation& anns = si->ann();
   for (Expression* ann_e : anns) {
-    Expression* e = eval_par(env->envi(), ann_e);
+    try {
+      Expression* e = eval_par(env->envi(), ann_e);
 
-    if (Call* ca = e->dynamicCast<Call>()) {
-      if (ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
-        div_opts.inter_diversity_constraint = eval_string(env->envi(), ca->arg(0));
-      } else if (ca->id() == string("diversity_intra_constraint") && ca->argCount() == 1) {
-        div_opts.intra_diversity_constraint = eval_string(env->envi(), ca->arg(0));
-      } else if (ca->id() == string("diversity_aggregator") && ca->argCount() == 1) {
-        div_opts.aggregator = eval_string(env->envi(), ca->arg(0));
-      } else if (ca->id() == string("diversity_combinator") && ca->argCount() == 1) {
-        std::stringstream ss;
-        ss << *ca->arg(0);
-        div_opts.combinator = eval_string(env->envi(), ca->arg(0));
-      } else if (ca->id() == string("diversity_incremental") && ca->argCount() == 2) {
-        div_opts.type = "incremental";
-        div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
-        div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-      } else if (ca->id() == string("diversity_global") && ca->argCount() == 2) {
-        div_opts.type = "global";
-        div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
-        div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-      } else if (ca->id() == string("diversity_pairwise") && ca->argCount() == 2) {
-        VarInfo vi;
+      if (Call* ca = e->dynamicCast<Call>()) {
+        if (ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
+          div_opts.inter_diversity_constraint = eval_string(env->envi(), ca->arg(0));
+        } else if (ca->id() == string("diversity_intra_constraint") && ca->argCount() == 1) {
+          div_opts.intra_diversity_constraint = eval_string(env->envi(), ca->arg(0));
+        } else if (ca->id() == string("diversity_aggregator") && ca->argCount() == 1) {
+          div_opts.aggregator = eval_string(env->envi(), ca->arg(0));
+        } else if (ca->id() == string("diversity_combinator") && ca->argCount() == 1) {
+          std::stringstream ss;
+          ss << *ca->arg(0);
+          div_opts.combinator = eval_string(env->envi(), ca->arg(0));
+        } else if (ca->id() == string("diversity_incremental") && ca->argCount() == 2) {
+          div_opts.type = "incremental";
+          div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
+          div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
+        } else if (ca->id() == string("diversity_global") && ca->argCount() == 2) {
+          div_opts.type = "global";
+          div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
+          div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
+        } else if (ca->id() == string("diversity_pairwise") && ca->argCount() == 2) {
+          VarInfo vi;
 
-        std::stringstream varname_ss;
-        varname_ss << "div_curr_var_" << div_opts.vars.size();
-        const string varname = varname_ss.str();
+          std::stringstream varname_ss;
+          varname_ss << "div_curr_var_" << div_opts.vars.size();
+          const string varname = varname_ss.str();
 
-        TypeInst* ti;
-        Expression* arg0 = ca->arg(0);
-        VarDecl* arg_vd = ca->decl()->param(0);
+          TypeInst* ti;
+          Expression* arg0 = ca->arg(0);
+          VarDecl* arg_vd = ca->decl()->param(0);
 
-        if (Id* id = arg0->dynamicCast<Id>()) {
-          VarDecl* typed = id->decl();
-          ti = typed->ti();
-        } else {
-          ti = new TypeInst(Location().introduce(), arg_vd->type(), arg_vd->ti()->ranges(),
-                            arg_vd->ti()->domain());
+          if (Id* id = arg0->dynamicCast<Id>()) {
+            VarDecl* typed = id->decl();
+            ti = typed->ti();
+          } else {
+            ti = new TypeInst(Location().introduce(), arg_vd->type(), arg_vd->ti()->ranges(),
+                              arg_vd->ti()->domain());
+          }
+
+          VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
+          m->addItem(VarDeclI::a(Location().introduce(), newVar));
+          vi.name = varname;
+
+          std::stringstream type_ss;
+          type_ss << *ti;
+          vi.type = type_ss.str();
+
+          // Previous array
+
+          std::stringstream prevvarname_ss;
+          prevvarname_ss << "div_prev_var_" << div_opts.vars.size();
+          const string prevvarname = prevvarname_ss.str();
+
+          auto ranges = ti->ranges();
+          vector<TypeInst*> prev_ranges;
+          prev_ranges.push_back(new TypeInst(Location().introduce(), Type::parint()));
+          for (int i = 0; i < ranges.size(); i++) {
+            prev_ranges.push_back(ranges[i]);
+          }
+
+          TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges,
+                                           arg_vd->ti()->domain());
+          VarDecl* prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
+          m->addItem(VarDeclI::a(Location().introduce(), prevVar));
+          vi.prev_name = prevvarname;
+
+          std::stringstream prev_type_ss;
+          prev_type_ss << *prev_ti;
+          vi.prev_type = prev_type_ss.str();
+
+          vi.distance_function = eval_string(env->envi(), ca->arg(1));
+
+          div_opts.vars.emplace_back(vi);
         }
-
-        VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
-        m->addItem(VarDeclI::a(Location().introduce(), newVar));
-        vi.name = varname;
-
-        std::stringstream type_ss;
-        type_ss << *ti;
-        vi.type = type_ss.str();
-
-        // Previous array
-
-        std::stringstream prevvarname_ss;
-        prevvarname_ss << "div_prev_var_" << div_opts.vars.size();
-        const string prevvarname = prevvarname_ss.str();
-
-        auto ranges = ti->ranges();
-        vector<TypeInst*> prev_ranges;
-        prev_ranges.push_back(new TypeInst(Location().introduce(), Type::parint()));
-        for (int i = 0; i < ranges.size(); i++) {
-          prev_ranges.push_back(ranges[i]);
-        }
-
-        TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges,
-                                         arg_vd->ti()->domain());
-        VarDecl* prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
-        m->addItem(VarDeclI::a(Location().introduce(), prevVar));
-        vi.prev_name = prevvarname;
-
-        std::stringstream prev_type_ss;
-        prev_type_ss << *prev_ti;
-        vi.prev_type = prev_type_ss.str();
-
-        vi.distance_function = eval_string(env->envi(), ca->arg(1));
-
-        div_opts.vars.emplace_back(vi);
       }
+    } catch (const LocationException& e) {
+      std::cerr << e.loc() << ":" << std::endl;
+      std::cerr << e.what() << ": " << e.msg() << std::endl;
+    } catch (const Exception& e) {
+      std::string what = e.what();
+      std::cerr << what << (what.empty() ? "" : ": ") << e.msg() << std::endl;
+    } catch (const std::exception& e) {
+      std::cerr << e.what() << std::endl;
+    } catch (...) {
+      std::cerr << "  UNKNOWN EXCEPTION." << std::endl;
     }
   }
 }

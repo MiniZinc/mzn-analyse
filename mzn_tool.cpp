@@ -134,7 +134,7 @@ struct PassCmd {
       if (args.empty()) {
         return nullptr;
       }
-      return new ReadModel(args[0]);
+      return new ReadModel(args);
     } else if (cmd == "out") {
       if (args.empty()) {
         args.push_back("-");
@@ -212,6 +212,14 @@ std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
   return os;
 }
 
+bool isModelPath(const string &arg) {
+  if (arg.size() > 3) {
+    string ext = arg.substr(arg.size() - 3, 3);
+    return ext == "mzn" || ext == "fzn" || ext == "dzn";
+  }
+  return false;
+}
+
 int main(int argc, char** argv) {
   if (argc < 2) {
     std::cerr << "Incorrect number of arguments" << std::endl;
@@ -234,34 +242,47 @@ int main(int argc, char** argv) {
   bool no_out = false;
   bool no_json = false;
 
+  bool finished_path_args = false;
+
   string extension = in_path.size() > 4 ? in_path.substr(in_path.size() - 4, string::npos) : ".mzn";
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 
+  vector<string> in_paths;
+  in_paths.push_back(in_path);
+
   vector<PassCmd> pass_cmdline;
-  pass_cmdline.emplace_back("in", in_path);
   for (size_t i = 2; i < argc; i++) {
-    PassCmd pass{string(argv[i])};
-    if (pass.cmd == "no_out") {
-      no_out = true;
-      continue;
+    if(finished_path_args || !isModelPath(string(argv[i]))) {
+      if(!finished_path_args) {
+        finished_path_args = true;
+        string paths = utils::join(in_paths, ",");
+        pass_cmdline.emplace_back("in", paths);
+      }
+      PassCmd pass{string(argv[i])};
+      if (pass.cmd == "no_out") {
+        no_out = true;
+        continue;
+      }
+      if (pass.cmd == "no_json") {
+        no_json = true;
+        continue;
+      }
+      if (pass.cmd == "out" || pass.cmd == "out_fzn") {
+        has_output = true;
+        pass_cmdline.emplace_back("remove-stdlibs");
+      }
+      if (pass.cmd == "json_out") {
+        has_json_output = true;
+      }
+      if (pass.cmd == "help" || pass.cmd == "--help" || pass.cmd == "-h") {
+        print_usage();
+        return EXIT_SUCCESS;
+      }
+      pass_cmdline.push_back(pass);
+    } else {
+      in_paths.push_back(string(argv[i]));
     }
-    if (pass.cmd == "no_json") {
-      no_json = true;
-      continue;
-    }
-    if (pass.cmd == "out" || pass.cmd == "out_fzn") {
-      has_output = true;
-      pass_cmdline.emplace_back("remove-stdlibs");
-    }
-    if (pass.cmd == "json_out") {
-      has_json_output = true;
-    }
-    if (pass.cmd == "help" || pass.cmd == "--help" || pass.cmd == "-h") {
-      print_usage();
-      return EXIT_SUCCESS;
-    }
-    pass_cmdline.push_back(pass);
   }
   if (!no_out && !has_output) {
     pass_cmdline.emplace_back("remove-stdlibs");
