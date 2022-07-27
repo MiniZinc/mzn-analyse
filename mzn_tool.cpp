@@ -284,6 +284,10 @@ int main(int argc, char** argv) {
       in_paths.push_back(string(argv[i]));
     }
   }
+  if(!finished_path_args) {
+    string paths = utils::join(in_paths, ",");
+    pass_cmdline.emplace_back("in", paths);
+  }
   if (!no_out && !has_output) {
     pass_cmdline.emplace_back("remove-stdlibs");
     pass_cmdline.emplace_back(is_fzn ? "out_fzn" : "out", "-");

@@ -7,6 +7,7 @@
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
 #include <string>
+#include "string_utils.hh"
 
 #include <exception>
 
@@ -58,24 +59,34 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
 
   Model* m = nullptr;
 
-  if (mzn_paths[0] == "-") {
-    std::vector<MiniZinc::SyntaxError> syntaxErrors;
-    std::string input =
-        std::string(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
-    m = parse_from_string(*nenv, input, "stdin.mzn", includes, is_fzn, false, false, false, std::cerr);
-    if (syntaxErrors.size() > 0) {
-      for (unsigned int i = 0; i < syntaxErrors.size(); i++) {
-        std::cerr << syntaxErrors[i].loc() << ":" << std::endl;
-        std::cerr << syntaxErrors[i].what() << ":" << syntaxErrors[i].msg() << std::endl;
+  try {
+    if (mzn_paths[0] == "-") {
+      std::vector<MiniZinc::SyntaxError> syntaxErrors;
+      std::string input =
+          std::string(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
+      m = parse_from_string(*nenv, input, "stdin.mzn", includes, is_fzn, false, false, false, std::cerr);
+      if (syntaxErrors.size() > 0) {
+        for (unsigned int i = 0; i < syntaxErrors.size(); i++) {
+          std::cerr << syntaxErrors[i].loc() << ":" << std::endl;
+          std::cerr << syntaxErrors[i].what() << ":" << syntaxErrors[i].msg() << std::endl;
+        }
+        exit(EXIT_FAILURE);
       }
-      exit(EXIT_FAILURE);
+    } else {
+      m = parse(*nenv, mzn_paths, dzn_paths, "", "", includes, {}, is_fzn, false, false, false, std::cerr);
     }
-  } else {
-    m = parse(*nenv, mzn_paths, dzn_paths, "", "", includes, {}, is_fzn, false, false, false, std::cerr);
+  } catch (const Exception& e) {
+    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
+    std::string what = e.what();
+    std::cerr << what << (what.empty() ? "" : ": ") << e.msg() << std::endl;
+    std::exit(EXIT_FAILURE);
+  } catch (...) {
+    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
+    std::exit(EXIT_FAILURE);
   }
 
   if (!m) {
-    std::cerr << "ReadModel: Failed to parse file: " << mzn_paths[0] << std::endl;
+    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
     std::exit(EXIT_FAILURE);
   }
   if (!is_fzn) {
