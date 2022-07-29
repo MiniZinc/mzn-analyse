@@ -26,7 +26,12 @@ void RepeatModel::write_json(ostream& os) {
   vector<string> entries;
   for(VdInfo& vdinfo : vds) {
     std::stringstream ss;
-    ss << "    \"" << vdinfo.name << "\": [" << utils::join(vdinfo.renames, ",") << "]";
+    if(!vdinfo.renames.empty()) {
+    ss << "    \"" << vdinfo.name << "\": [\"" << utils::join(vdinfo.renames, "\", \"") << "\"]";
+    } else {
+      // This shouldn't really be possible
+      ss << "    \"" << vdinfo.name << "\": []";
+    }
     entries.emplace_back(ss.str());
   }
 
