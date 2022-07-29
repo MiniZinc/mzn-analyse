@@ -48,8 +48,10 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
   Model* m = e->model();
   for (VarDeclI& vdi : m->vardecls()) {
     VarDecl* vd = vdi.e();
-    string name = vd->id()->str().c_str();
-    vds.emplace_back(name, vd->id());
+    if(vd->type().ti() == MiniZinc::Type::TI_VAR) {
+      string name = vd->id()->str().c_str();
+      vds.emplace_back(name, vd->id());
+    }
   }
 
   vector<Model*> models;
@@ -99,9 +101,12 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
       model_0->addItem(models[i]->outputItem());
     }
 
+    SolveI* si = models[i]->solveItem();
     if(!isSat) {
-      objs.push_back(models[i]->solveItem()->e());
+      objs.push_back(si->e());
     }
+
+    s0->ann().merge(si->ann());
   }
 
   if(!isSat) {
