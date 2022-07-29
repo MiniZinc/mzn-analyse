@@ -72,6 +72,8 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
 
   SolveI* s0 = model_0->solveItem();
   bool isSat = s0->st() == SolveI::ST_SAT;
+  bool hasOut = model_0->outputItem() != nullptr;
+
   if(!isSat) {
     objs.push_back(s0->e());
   }
@@ -93,7 +95,9 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
       model_0->addItem(&ci);
     }
 
-    model_0->addItem(models[i]->outputItem());
+    if(hasOut) {
+      model_0->addItem(models[i]->outputItem());
+    }
 
     if(!isSat) {
       objs.push_back(models[i]->solveItem()->e());
