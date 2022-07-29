@@ -44,7 +44,6 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
   for (VarDeclI& vdi : m->vardecls()) {
     VarDecl* vd = vdi.e();
     string name = vd->id()->str().c_str();
-
     vds.emplace_back(name, vd->id());
   }
 
@@ -63,18 +62,46 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
     models.push_back(m_copy);
   }
 
+  vector<Expression*> objs;
   Model* model_0 = models[0];
+
+  SolveI* s0 = model_0->solveItem();
+  bool isSat = s0->st() == SolveI::ST_SAT;
+  if(!isSat) {
+    objs.push_back(s0->e());
+  }
+
+  // Remove ann: output items;
+  // TODO: figure out what they are
+  for(VarDeclI& vdi : model_0->vardecls()) {
+    if(vdi.e()->id()->str() == "output")
+      vdi.remove();
+  }
+
   for(unsigned int i=1; i<k_models; i++) {
     for(VarDeclI& vdi : models[i]->vardecls()) {
       if(vdi.e()->id()->str() != "output")
         model_0->addItem(&vdi);
     }
+
     for(ConstraintI& ci : models[i]->constraints()) {
       model_0->addItem(&ci);
     }
+
+    model_0->addItem(models[i]->outputItem());
+
+    if(!isSat) {
+      objs.push_back(models[i]->solveItem()->e());
+    }
   }
 
-  e->model(models[0]);
+  if(!isSat) {
+    vector<Expression*> args;
+    args.push_back(new ArrayLit(Location().introduce(), objs));
+    s0->e(Call::a(Location().introduce(),  "sum", args));
+  }
+
+  e->model(model_0);
 
   return e;
 }
