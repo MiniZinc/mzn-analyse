@@ -26,6 +26,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/passes/get_data_deps.cpp
   lib/passes/get_diversity_annotations.cpp
   lib/passes/read_model.cpp
+  lib/passes/repeat_model.cpp
   lib/passes/write_model.cpp
   lib/passes/get_ast.cpp
   lib/passes/get_exprs.cpp
@@ -45,6 +46,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/passes/get_term_types.hh
   include/passes/get_diversity_annotations.hh
   include/passes/read_model.hh
+  include/passes/repeat_model.hh
   include/passes/get_ast.hh
   include/passes/get_exprs.hh
   include/passes/let_substituter.hh

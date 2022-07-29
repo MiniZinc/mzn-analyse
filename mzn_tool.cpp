@@ -17,6 +17,7 @@
 #include "passes/read_model.hh"
 #include "passes/remove_annotations.hh"
 #include "passes/remove_includes.hh"
+#include "passes/repeat_model.hh"
 #include "passes/write_model.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
@@ -69,6 +70,8 @@ void print_usage() {
             << "     Just show var/par parts of model\n"
             << "   replace-with-newvar:location1,location2\n"
             << "     Replace expressions with 'let' expressions\n"
+            << "   repeat-model:k\n"
+            << "     Make k copies of the model with unique ids (default: 2)\n"
             << "\n"
             << "   get-diversity-anns\n"
             << "     Extract solution diversity parameters from model\n"
@@ -145,6 +148,15 @@ struct PassCmd {
         args.push_back("-");
       }
       return new WriteModel(args[0], true);
+    } else if (cmd == "repeat-model") {
+      unsigned int k = 2;
+      if(!args.empty()) {
+        int sk = stoi(args[0]);
+        if(sk >= 0) {
+          k = sk;
+        }
+      }
+      return new RepeatModel(k);
     } else if (cmd == "json_out") {
       if (args.empty()) {
         args.push_back("-");
