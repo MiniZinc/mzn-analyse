@@ -11,12 +11,14 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace MiniZinc;
 using std::string;
 using std::stringstream;
 using std::unordered_map;
+using std::unordered_set;
 using std::vector;
 
 namespace MznTool {
@@ -27,11 +29,15 @@ Env* InlineIncludes::run(Env* e, std::ostream& log) {
   Model* model = e->model();
   string mzn_stdlib_dir = FileUtils::file_path(FileUtils::share_directory());
 
+  unordered_set<string> seen;
   // Add data annotations
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     if (IncludeI* ii = item->dynamicCast<IncludeI>()) {
       string filepath = ii->m()->filepath().c_str();
+      if(seen.find(filepath) != seen.end()) continue;
+      seen.insert(filepath);
+
       if (!local_only || filepath.rfind(mzn_stdlib_dir, 0) != 0) {
         ii->remove();
         Model* im = ii->m();
