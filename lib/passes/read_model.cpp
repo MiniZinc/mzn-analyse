@@ -75,13 +75,32 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
     } else {
       m = parse(*nenv, mzn_paths, dzn_paths, "", "", includes, {}, is_fzn, false, false, false, std::cerr);
     }
+  } catch (ResultUndefinedError& e) {
+    // Ensure warnings are printed, but remove warning corresponding to this error
+    std::cerr << "Failed to parse file\n";
+    if (nenv != nullptr) {
+      nenv->dumpWarnings(std::cerr, false, false, e.warningIdx());
+      nenv->clearWarnings();
+    }
+    std::exit(EXIT_FAILURE);
+  } catch (const InternalError& e) {
+    std::cerr << "MiniZinc has encountered an internal error. This is a bug." << std::endl;
+    std::cerr << "Please file a bug report using the MiniZinc bug tracker." << std::endl;
+    std::cerr << "The internal error message was: " << std::endl;
+    std::cerr << "\"" << e.msg() << "\"" << std::endl;
   } catch (const Exception& e) {
-    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
-    std::string what = e.what();
-    std::cerr << what << (what.empty() ? "" : ": ") << e.msg() << std::endl;
+    e.print(std::cerr);
+    std::exit(EXIT_FAILURE);
+  } catch (const std::exception& e) {
+    std::cerr << e.what() << std::endl;
     std::exit(EXIT_FAILURE);
   } catch (...) {
-    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
+    // Ensure warnings are printed
+    std::cerr << "Failed to parse file\n";
+    if (nenv != nullptr) {
+      nenv->dumpWarnings(std::cerr, false, false, false);
+      nenv->clearWarnings();
+    }
     std::exit(EXIT_FAILURE);
   }
 

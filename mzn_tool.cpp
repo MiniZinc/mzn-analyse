@@ -17,6 +17,7 @@
 #include "passes/read_model.hh"
 #include "passes/remove_annotations.hh"
 #include "passes/remove_includes.hh"
+#include "passes/remove_litter.hh"
 #include "passes/repeat_model.hh"
 #include "passes/write_model.hh"
 #include "string_utils.hh"
@@ -60,6 +61,8 @@ void print_usage() {
             << "     Add 'add_to_output' annotation to all VarDecls\n"
             << "   remove-stdlib\n"
             << "     Remove stdlib includes\n"
+            << "   remove-litter\n"
+            << "     Remove variables and functions that stdlib leaves in the root Model after typecheck\n"
             << "   get-items:idx1,[idx2,...]\n"
             << "     Narrow to items indexed by idx1,...\n"
             << "   filter-items:iid1,[iid2,...]\n"
@@ -133,6 +136,8 @@ struct PassCmd {
       return new OutputAll;
     } else if (cmd == "remove-stdlibs") {
       return new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"});
+    } else if (cmd == "remove-litter") {
+      return new RemoveLitter();
     } else if (cmd == "in") {
       if (args.empty()) {
         return nullptr;

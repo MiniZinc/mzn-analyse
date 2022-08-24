@@ -18,6 +18,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/passes/annotate_data_deps.cpp
   lib/passes/inline_includes.cpp
   lib/passes/remove_includes.cpp
+  lib/passes/remove_litter.cpp
   lib/passes/output_all.cpp
   lib/passes/filter_items.cpp
   lib/passes/get_items.cpp
@@ -39,6 +40,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/passes/annotate_data_deps.hh
   include/passes/inline_includes.hh
   include/passes/remove_includes.hh
+  include/passes/remove_litter.hh
   include/passes/output_all.hh
   include/passes/filter_items.hh
   include/passes/get_items.hh
