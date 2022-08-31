@@ -75,9 +75,10 @@ string getTermTypeString(vector<string>& gens, vector<string>& wheres, vector<st
 struct StackFrame {
   size_t gen_idx;
   size_t coef_idx;
+  size_t where_idx;
   Expression* e;
 
-  StackFrame(size_t g, size_t c, Expression* exp) : gen_idx{g}, coef_idx{c}, e{exp} {}
+  StackFrame(size_t g, size_t c, size_t w, Expression* exp) : gen_idx{g}, coef_idx{c}, where_idx{w}, e{exp} {}
 };
 
 string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
@@ -90,15 +91,21 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   vector<string> wheres;
 
   vector<StackFrame> stack;
-  stack.emplace_back(0, 0, root);
+  stack.emplace_back(0, 0, 0, root);
 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
+
+    // std::cerr << "Frame["<< stack.size() <<"]: " << frame.gen_idx << ", " << frame.coef_idx << " :: " << *frame.e << std::endl;
+
     while (gens.size() > frame.gen_idx) {
       gens.pop_back();
     }
     while (coefs.size() > frame.coef_idx) {
       coefs.pop_back();
+    }
+    while (wheres.size() > frame.where_idx) {
+      wheres.pop_back();
     }
     stack.pop_back();
 
@@ -140,7 +147,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           ArrayAccess* aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
           body = aa;
         }
-        stack.emplace_back(gens.size(), coefs.size(), body);
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), body);
       } else {
         term_strings.push_back(getTermTypeString(gens, wheres, coefs, call));
       }
@@ -150,50 +157,48 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           stringstream ss;
           ss << *bo->lhs();
           coefs.push_back(ss.str());
-          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
+          stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
         } else if (bo->rhs()->type().isPar()) {
           stringstream ss;
           ss << *bo->rhs();
           coefs.push_back(ss.str());
-          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
+          stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
         } else {
           term_strings.push_back(getTermTypeString(gens, wheres, coefs, bo));
         }
-      } else if (bo->op() == BOT_PLUS) {
-        if (bo->lhs()->type().isvar()) {
-          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
-        }
-        if (bo->rhs()->type().isvar()) {
-          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
-        }
+      } else if (bo->op() == BOT_PLUS && bo->lhs()->type().isvar()) {
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
       } else if (bo->op() == BOT_MINUS) {
-        if (bo->lhs()->type().isvar()) {
-          stack.emplace_back(gens.size(), coefs.size(), bo->lhs());
-        }
-        if (bo->rhs()->type().isvar()) {
-          coefs.push_back("-1");
-          stack.emplace_back(gens.size(), coefs.size(), bo->rhs());
-        }
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        coefs.push_back("-1");
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
       } else {
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
       }
     } else if (Id* id = frame.e->dynamicCast<Id>()) {
       auto it = assigns.find(id->decl()->id());
+      bool post = true;
       if (it != assigns.end()) {
-        stack.emplace_back(gens.size(), coefs.size(), it->second);
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), it->second);
+        post = false;
       }
       if (id->decl()->e()) {
-        stack.emplace_back(gens.size(), coefs.size(), id->decl()->e());
-      } else {
+        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), id->decl()->e());
+        post = false;
+      }
+      if (post) {
         // It is just a plain ID
         if (id->decl()->id()->type().isPar()) {
           coefs.push_back(id->str().c_str());
         } else {
+          // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
           term_strings.push_back(getTermTypeString(gens, wheres, coefs, id));
         }
       }
     } else {
+      // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
       term_strings.push_back(getTermTypeString(gens, wheres, coefs, frame.e));
     }
   }
@@ -237,23 +242,45 @@ std::string GetTermTypes::get_name() { return "get-term-types"; }
 
 void GetTermTypes::write_json(std::ostream& os) { os << json_output; }
 
+struct AssignCollector : public MiniZinc::EVisitor {
+  unordered_map<Id*, Expression*> &assigns;
+
+  AssignCollector(unordered_map<Id*, Expression*> &as);
+  bool enter(MiniZinc::Expression* e);
+};
+
+AssignCollector::AssignCollector(unordered_map<Id*, Expression*> &as) : assigns{as} {};
+
+bool AssignCollector::enter(MiniZinc::Expression* e) {
+  if (BinOp* bo = e->dynamicCast<BinOp>()) {
+    if (bo->op() == BOT_EQ) {
+      if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
+        assigns[lhe->decl()->id()] = bo->rhs();
+      }
+      if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
+        assigns[rhe->decl()->id()] = bo->lhs();
+      }
+      return false;
+    }
+    return bo->op() == BOT_AND;
+  }
+
+  if (Call *c = e->dynamicCast<Call>()) {
+    return string(c->id().c_str()) == "forall";
+  }
+
+  return true;
+}
+
 MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
   // Collect functional assignments for objective processing
   Model* m = e->model();
   unordered_map<Id*, Expression*> assigns;
+  AssignCollector ac {assigns};
 
-  // Add data annotations
+  // Collect top level assigns
   for (ConstraintI& ci : m->constraints()) {
-    if (BinOp* bo = ci.e()->dynamicCast<BinOp>()) {
-      if (bo->op() == BOT_EQ) {
-        if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
-          assigns[lhe->decl()->id()] = bo->rhs();
-        }
-        if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
-          assigns[rhe->decl()->id()] = bo->lhs();
-        }
-      }
-    }
+    top_down(ac, ci.e());
   }
 
   // Add coef annotations to objective terms
