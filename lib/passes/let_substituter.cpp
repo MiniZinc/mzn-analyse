@@ -277,8 +277,8 @@ struct ReplacedInfo {
 
     std::stringstream ss;
     ss << "\n    {\n"
-       << "      \"original\": \"" << utils::escape(orig_string) << "\",\n"
-       << "      \"replacement\": \"" << utils::escape(rep_string) << "\"\n"
+       << "      \"original\": \"" << utils::escape(orig_string, false) << "\",\n"
+       << "      \"replacement\": \"" << utils::escape(rep_string, false) << "\"\n"
        << "    }";
 
     return ss.str();

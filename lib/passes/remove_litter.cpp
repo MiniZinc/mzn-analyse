@@ -20,7 +20,7 @@ Env* RemoveLitter::run(Env* e, std::ostream& log) {
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     ASTString filepath = item->loc().filename();
-    if (filepath.empty() || string(filepath.c_str()).rfind(mzn_stdlib_dir, 0) == 0) {
+    if (filepath.empty() || string(filepath.c_str()).rfind(mzn_stdlib_dir, 0) != string::npos) {
       item->remove();
     }
   }
