@@ -265,64 +265,90 @@ int main(int argc, char** argv) {
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 
-  vector<string> in_paths;
-  in_paths.push_back(in_path);
 
-  vector<PassCmd> pass_cmdline;
-  for (size_t i = 2; i < argc; i++) {
-    if(finished_path_args || !isModelPath(string(argv[i]))) {
-      if(!finished_path_args) {
-        finished_path_args = true;
-        string paths = utils::join(in_paths, ",");
-        pass_cmdline.emplace_back("in", paths);
-      }
-      PassCmd pass{string(argv[i])};
-      if (pass.cmd == "no_out") {
-        no_out = true;
-        continue;
-      }
-      if (pass.cmd == "no_json") {
-        no_json = true;
-        continue;
-      }
-      if (pass.cmd == "out" || pass.cmd == "out_fzn") {
+
+  // Sub-sections in the pipeline
+  // First argument is an implicit "in:" command
+  // Collect all passes and non-passes in sub-sections until the next explicit "in:" command
+  // Once we encounter an explicit "in:" command, we add "in:" command for collected non-passes,
+  // then we add the passes, then we clear our sub-sections.
+
+  // Actual passes pipeline
+  vector<unique_ptr<MiniZinc::Pass>> passes;
+  // This json_store is used for all sub-sections
+  std::vector<std::string> json_store;
+
+  // sub-section pipelines
+  vector<string> section_in_paths;
+  vector<MiniZinc::Pass*> section_passes;
+
+  for (size_t i = 1; i < argc; i++) {
+    PassCmd pass_cmd{string(argv[i])};
+    MiniZinc::Pass* pass = pass_cmd.getPass(json_store);
+    if(pass) {
+      // pass
+      if(pass_cmd.cmd == "in") {
+        // finish section, start new section
+        string paths = utils::join(section_in_paths, ",");
+        passes.emplace_back(PassCmd("in", paths).getPass(json_store));
+        for(MiniZinc::Pass* p : section_passes) {
+          passes.emplace_back(p);
+        }
+        section_in_paths.clear();
+        section_passes.clear();
+
+        section_in_paths.insert(section_in_paths.end(), pass_cmd.args.begin(), pass_cmd.args.end());
+        delete pass;
+      } else if (pass_cmd.cmd == "out" || pass_cmd.cmd == "out_fzn") {
         has_output = true;
-        pass_cmdline.emplace_back("remove-stdlibs");
-      }
-      if (pass.cmd == "json_out") {
-        has_json_output = true;
-      }
-      if (pass.cmd == "help" || pass.cmd == "--help" || pass.cmd == "-h") {
+        section_passes.push_back(PassCmd("remove-stdlibs").getPass(json_store));
+        section_passes.emplace_back(pass);
+      } else if (pass_cmd.cmd == "help" || pass_cmd.cmd == "--help" || pass_cmd.cmd == "-h") {
+        delete pass;
         print_usage();
         return EXIT_SUCCESS;
+      } else {
+        section_passes.push_back(pass);
       }
-      pass_cmdline.push_back(pass);
     } else {
-      in_paths.push_back(string(argv[i]));
+      if (pass_cmd.cmd == "no_out") {
+        no_out = true;
+        continue;
+      } else if (pass_cmd.cmd == "no_json") {
+        no_json = true;
+        continue;
+      } else if (pass_cmd.cmd == "json_out") {
+        has_json_output = true;
+        continue;
+      } else {
+        // non-pass
+        string path {argv[i]};
+        if(!isModelPath(path)) {
+          std::cerr << "Unknown filetype: " << path << std::endl;
+          print_usage();
+          return EXIT_FAILURE;
+        }
+        section_in_paths.emplace_back(argv[i]);
+      }
     }
   }
-  if(!finished_path_args) {
-    string paths = utils::join(in_paths, ",");
-    pass_cmdline.emplace_back("in", paths);
-  }
-  if (!no_out && !has_output) {
-    pass_cmdline.emplace_back("remove-stdlibs");
-    pass_cmdline.emplace_back(is_fzn ? "out_fzn" : "out", "-");
-  }
-  if (!no_json && !has_json_output) {
-    pass_cmdline.emplace_back("json_out");
+  if(!(section_passes.empty() && section_in_paths.empty())) {
+    // finish section, start new section
+    string paths = utils::join(section_in_paths, ",");
+    passes.emplace_back(PassCmd("in", paths).getPass(json_store));
+    for(MiniZinc::Pass* p : section_passes) {
+      passes.emplace_back(p);
+    }
+    section_in_paths.clear();
+    section_passes.clear();
   }
 
-  // Build actual passes pipeline
-  std::vector<std::string> json_store;
-  vector<unique_ptr<MiniZinc::Pass>> passes;
-  for (PassCmd& pass : pass_cmdline) {
-    MiniZinc::Pass* pass_ptr = pass.getPass(json_store);
-    if (pass_ptr == nullptr) {
-      std::cerr << "Cannot process pass: " << pass << std::endl;
-      return EXIT_FAILURE;
-    }
-    passes.emplace_back(pass_ptr);
+  if (!no_out && !has_output) {
+    passes.emplace_back(PassCmd("remove-stdlibs").getPass(json_store));
+    passes.emplace_back(PassCmd(is_fzn ? "out_fzn" : "out", "-").getPass(json_store));
+  }
+  if (!no_json && !has_json_output) {
+    passes.emplace_back(PassCmd("json_out").getPass(json_store));
   }
 
   MiniZinc::GCLock lock;
