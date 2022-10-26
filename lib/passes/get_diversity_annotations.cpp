@@ -34,6 +34,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
   if (si->st() == SolveI::ST_SAT) {
     // No objective / SAT problem
     div_opts.objective.name = "";
+    div_opts.objective.type = "";
     div_opts.objective.sense = 0;
   } else {
     //   Construct temporary div_obj = si->e
@@ -52,6 +53,9 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
     m->addItem(VarDeclI::a(Location().introduce(), objVd));
 
     div_opts.objective.name = obj_name;
+    std::stringstream ss;
+    ss << *ti;
+    div_opts.objective.type = ss.str();
     div_opts.objective.sense = si->st() == SolveI::ST_MIN ? -1 : 1;
   }
 
@@ -163,6 +167,7 @@ void GetDiversityAnns::write_json(ostream& os) {
      << "  \"combinator\": \"" << div_opts.combinator << "\",\n"
      << "  \"objective\": {\n"
      << "    \"name\": \"" << div_opts.objective.name << "\",\n"
+     << "    \"type\": \"" << div_opts.objective.type << "\",\n"
      << "    \"sense\": \"" << div_opts.objective.sense << "\"\n"
      << "  },\n"
      << "  \"vars\": [\n";

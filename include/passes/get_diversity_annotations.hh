@@ -17,6 +17,7 @@ struct VarInfo {
 struct ObjInfo {
   std::string name;
   double sense;
+  std::string type;
 };
 
 struct DiversityOptions {
