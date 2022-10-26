@@ -234,7 +234,7 @@ bool isModelPath(const string &arg) {
     string ext = arg.substr(arg.size() - 4, 4);
     return ext == ".mzn" || ext == ".fzn" || ext == ".dzn";
   }
-  return false;
+  return arg == "-";
 }
 
 int main(int argc, char** argv) {
