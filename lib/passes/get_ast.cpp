@@ -220,7 +220,7 @@ std::string ExprPrinter::to_string(const Type& type) {
           << "\"st\": \"" << st << "\", "
           << "\"ot\": \"" << ot << "\", "
           << "\"cv\": \"" << cv << "\", "
-          << "\"enumId\": " << type.enumId() << ", "
+          << "\"typeId\": " << type.typeId() << ", "
           << "\"dim\": " << type.dim() << "}";
 
   return ss_type.str();
