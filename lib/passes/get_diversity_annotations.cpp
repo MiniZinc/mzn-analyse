@@ -50,6 +50,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
     }
 
     VarDecl* objVd = new VarDecl(Location().introduce(), ti, obj_name, e);
+    objVd->ann().add(MiniZinc::Constants::constants().ann.output);
     m->addItem(VarDeclI::a(Location().introduce(), objVd));
 
     div_opts.objective.name = obj_name;
@@ -107,6 +108,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           }
 
           VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
+          newVar->ann().add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), newVar));
           vi.name = varname;
 
@@ -130,6 +132,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges,
                                            arg_vd->ti()->domain());
           VarDecl* prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
+          prevVar->ann().add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), prevVar));
           vi.prev_name = prevvarname;
 
