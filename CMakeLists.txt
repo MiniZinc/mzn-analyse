@@ -24,6 +24,7 @@ add_executable(mzn_tool mzn_tool.cpp
   lib/passes/get_items.cpp
   lib/passes/remove_annotations.cpp
   lib/passes/get_term_types.cpp
+  lib/passes/get_solve_anns.cpp
   lib/passes/get_data_deps.cpp
   lib/passes/get_diversity_annotations.cpp
   lib/passes/read_model.cpp
@@ -46,6 +47,7 @@ add_executable(mzn_tool mzn_tool.cpp
   include/passes/get_items.hh
   include/passes/remove_annotations.hh
   include/passes/get_term_types.hh
+  include/passes/get_solve_anns.hh
   include/passes/get_diversity_annotations.hh
   include/passes/read_model.hh
   include/passes/repeat_model.hh
