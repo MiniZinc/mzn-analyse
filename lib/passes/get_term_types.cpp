@@ -49,7 +49,7 @@ string escape(const string& orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(vector<string>& gens, vector<string>& wheres, vector<string>& coefs,
+string getTermTypeString(string name, vector<string>& gens, vector<string>& wheres, vector<string>& coefs,
                          Expression* var) {
   const string minor_sep = "|";
   Location loc = var->loc();
@@ -63,6 +63,7 @@ string getTermTypeString(vector<string>& gens, vector<string>& wheres, vector<st
 
   stringstream ss;
   ss << "\n    {\n";
+  ss << "      \"name\": \"" << escape(name, false) << "\",\n";
   ss << "      \"variable\": \"" << escape(var_ss.str(), false) << "\",\n";
   ss << "      \"coefficients\": [" << utils::join(coefs, ", ", true) << "],\n";
   ss << "      \"generators\": [" << utils::join(gens, ", ", true) << "],\n";
@@ -76,12 +77,13 @@ string getTermTypeString(vector<string>& gens, vector<string>& wheres, vector<st
 }
 
 struct StackFrame {
+  string name;
   size_t gen_idx;
   size_t coef_idx;
   size_t where_idx;
   Expression* e;
 
-  StackFrame(size_t g, size_t c, size_t w, Expression* exp) : gen_idx{g}, coef_idx{c}, where_idx{w}, e{exp} {}
+  StackFrame(string pname, size_t g, size_t c, size_t w, Expression* exp) : name{pname}, gen_idx{g}, coef_idx{c}, where_idx{w}, e{exp} {}
 };
 
 struct EscapedStringStack {
@@ -109,7 +111,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   EscapedStringStack wheres;
 
   vector<StackFrame> stack;
-  stack.emplace_back(0, 0, 0, root);
+  stack.emplace_back("", 0, 0, 0, root);
 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
@@ -159,9 +161,9 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           ArrayAccess* aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
           body = aa;
         }
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), body);
+        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), body);
       } else {
-        term_strings.push_back(getTermTypeString(gens.entries, wheres.entries, coefs.entries, call));
+        term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, call));
       }
     } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
       if (bo->op() == BOT_MULT) {
@@ -169,22 +171,22 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           stringstream ss;
           ss << *bo->lhs();
           coefs.push(ss.str());
-          stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
         } else if (bo->rhs()->type().isPar()) {
           stringstream ss;
           ss << *bo->rhs();
           coefs.push(ss.str());
-          stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         } else {
-          term_strings.push_back(getTermTypeString(gens.entries, wheres.entries, coefs.entries, bo));
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo));
         }
       } else if (bo->op() == BOT_PLUS && bo->lhs()->type().isvar()) {
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
       } else if (bo->op() == BOT_MINUS) {
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         coefs.push("-1");
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
       } else {
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
@@ -193,11 +195,11 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
       auto it = assigns.find(id->decl()->id());
       bool post = true;
       if (it != assigns.end()) {
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), it->second);
+        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(), wheres.size(), it->second);
         post = false;
       }
       if (id->decl()->e()) {
-        stack.emplace_back(gens.size(), coefs.size(), wheres.size(), id->decl()->e());
+        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(), wheres.size(), id->decl()->e());
         post = false;
       }
       if (post) {
@@ -206,12 +208,12 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           coefs.push(id->str().c_str());
         } else {
           // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
-          term_strings.push_back(getTermTypeString(gens.entries, wheres.entries, coefs.entries, id));
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
         }
       }
     } else {
       // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
-      term_strings.push_back(getTermTypeString(gens.entries, wheres.entries, coefs.entries, frame.e));
+      term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, frame.e));
     }
   }
 
