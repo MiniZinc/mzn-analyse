@@ -68,9 +68,13 @@ string getTermTypeString(string name, vector<string>& gens, vector<string>& wher
   ss << "      \"coefficients\": [" << utils::join(coefs, ", ", true) << "],\n";
   ss << "      \"generators\": [" << utils::join(gens, ", ", true) << "],\n";
   ss << "      \"conditions\": [" << utils::join(wheres, ", ", true) << "],\n";
-  ss << "      \"location\": \"" << escape(loc.filename().c_str(), false) << minor_sep
-     << loc.firstLine() << minor_sep << loc.firstColumn() << minor_sep << loc.lastLine()
-     << minor_sep << loc.lastColumn() << "\"\n";
+  if (!loc.filename().empty()) {
+    ss << "      \"location\": \"" << escape(loc.filename().c_str(), false) << minor_sep
+       << loc.firstLine() << minor_sep << loc.firstColumn() << minor_sep << loc.lastLine()
+       << minor_sep << loc.lastColumn() << "\"\n";
+  } else {
+    ss << "      \"location\": \"\"\n";
+  }
   ss << "    }";
 
   return ss.str();
@@ -116,7 +120,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
 
-    // std::cerr << "Frame["<< stack.size() <<"]: " << frame.gen_idx << ", " << frame.coef_idx << " :: " << *frame.e << std::endl;
+    // std::cerr << "Frame["<< stack.size() <<"]: " << frame.gen_idx << ", " << frame.coef_idx << ", " << frame.where_idx << " :: " << *frame.e << std::endl;
 
     gens.popTo(frame.gen_idx);
     coefs.popTo(frame.coef_idx);
@@ -181,12 +185,28 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo));
         }
       } else if (bo->op() == BOT_PLUS && bo->lhs()->type().isvar()) {
-        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
-        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        if(bo->lhs()->type().isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
+        } else {
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        }
+        if(bo->rhs()->type().isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
+        } else {
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        }
       } else if (bo->op() == BOT_MINUS) {
-        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        if(bo->lhs()->type().isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
+        } else {
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
+        }
         coefs.push("-1");
-        stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        if(bo->rhs()->type().isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
+        } else {
+          stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
+        }
       } else {
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
@@ -203,16 +223,11 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
         post = false;
       }
       if (post) {
-        // It is just a plain ID
-        if (id->decl()->id()->type().isPar()) {
-          coefs.push(id->str().c_str());
-        } else {
-          // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
-        }
+        // It is just a plain ID. It doesn't matter if it is par or not
+        term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
       }
     } else {
-      // std::cerr << "getTermTypeString(..., " << *id << ")" << std::endl;
+      // std::cerr << "getTermTypeString(..., " << *frame.e << ")" << std::endl;
       term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, frame.e));
     }
   }
