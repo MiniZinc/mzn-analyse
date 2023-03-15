@@ -21,6 +21,7 @@
 #include "passes/remove_litter.hh"
 #include "passes/repeat_model.hh"
 #include "passes/write_model.hh"
+#include "passes/discretise.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
@@ -95,6 +96,8 @@ void print_usage() {
             << "     Build JSON representation of AST for whole model or just for\n"
             << "     expression matching location1 or location2, place in "
                "json_store\n"
+            << "   discretise:base_factor\n"
+            << "     Attempt to discretise a MIP flatzinc model\n"
             << "\n";
 }
 
@@ -167,6 +170,15 @@ struct PassCmd {
         }
       }
       return new RepeatModel(k);
+    } else if (cmd == "discretise") {
+      unsigned int k = 1;
+      if(!args.empty()) {
+        int sk = stoi(args[0]);
+        if(sk >= 0) {
+          k = sk;
+        }
+      }
+      return new Discretise(k);
     } else if (cmd == "json_out") {
       if (args.empty()) {
         args.push_back("-");
