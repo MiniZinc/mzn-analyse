@@ -40,7 +40,7 @@ Expression* scaleAndRound(unsigned int scale, Expression* e) {
   return Call::a(Location().introduce(), "round", {new BinOp(Location().introduce(), IntLit::a(scale), BOT_MULT, e)});
 }
 
-ArrayLit* varFloatArr2IntArr(unsigned int scale, ArrayLit* al) {
+ArrayLit* varFloatArr2varIntArr(unsigned int scale, ArrayLit* al) {
   vector<Expression*> new_arr;
   for (unsigned int i = 0; i<al->size(); i++) {
     Expression* e = (*al)[i];
@@ -118,6 +118,12 @@ Call* process_le(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& v
   return process_binop(base_scale_factor, varinfo, ca, "int_le");
 }
 
+Call* process_int2float(unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+  Expression* left = ca->arg(0);
+  Expression* right = ca->arg(1);
+  return Call::a(Location().introduce(), "int_eq", {left, right});
+}
+
 Call* process(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   if (ca->id() == Constants::constants().ids.float_.lin_eq) {
     return process_lin_eq(base_scale_factor, varinfo, ca);
@@ -127,6 +133,8 @@ Call* process(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& vari
     return process_eq(base_scale_factor, varinfo, ca);
   } else if (ca->id() == Constants::constants().ids.float_.le) {
     return process_le(base_scale_factor, varinfo, ca);
+  } else if (ca->id() == Constants::constants().ids.int2float) {
+    return process_int2float(varinfo, ca);
   } else {
     return ca;
   }
@@ -192,7 +200,7 @@ VarDecl* process(VarInfo* vinfo) {
     // scale any constants in the rhs (in flatzinc there should always be a rhs)
     if (vd->e()) {
       if (ArrayLit* al = vd->e()->dynamicCast<ArrayLit>()) {
-        vd->e(varFloatArr2IntArr(vinfo->s, al));
+        vd->e(varFloatArr2varIntArr(vinfo->s, al));
       }
     }
   } else {
