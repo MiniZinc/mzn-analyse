@@ -148,12 +148,12 @@ Call* process_lin_eq_defines(Env* e, unsigned int base_scale_factor, Call* ca, I
     Expression* v = (*vs)[i];
     Expression* c = (*cs)[i];
 
-    if (v->isa<Id>() && v->cast<Id>()->decl()->id() == defined_id) {
-      // No scaling
-      new_cs.push_back(scaleAndRound(e, 1, c));
-    } else {
+    // if (v->isa<Id>() && v->cast<Id>()->decl()->id() == defined_id) {
+    //   // No scaling
+    //   new_cs.push_back(scaleAndRound(e, 1, c));
+    // } else {
       new_cs.push_back(scaleAndRound(e, base_scale_factor, c));
-    }
+    //}
   }
 
   ArrayLit* new_cs_al = new ArrayLit(Location().introduce(), new_cs);
