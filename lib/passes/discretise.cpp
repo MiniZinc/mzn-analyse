@@ -330,6 +330,7 @@ MiniZinc::Env* Discretise::run(MiniZinc::Env* e, std::ostream& log) {
     if (vd->ann().containsCall(Constants::constants().ann.output_array.aststr()) ||
         vd->ann().contains(Constants::constants().ann.output_var)) {
       outputs.push_back(vdinfo);
+      vd->addAnnotation(Constants::constants().ann.add_to_output);
     }
   }
 
