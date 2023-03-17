@@ -17,10 +17,10 @@ Env* WriteModel::run(Env* e, std::ostream& log) {
   if (out_path != "-") {
     std::cerr << "Writing output to: " << out_path << std::endl;
     std::ofstream of(out_path);
-    Printer pp(of, is_fzn ? 0 : 80, is_fzn);
+    Printer pp(of, is_fzn ? 0 : 8000, is_fzn);
     pp.print(model);
   } else {
-    Printer pp(std::cout, is_fzn ? 0 : 80, is_fzn);
+    Printer pp(std::cout, is_fzn ? 0 : 80000, is_fzn);
     pp.print(model);
   }
 

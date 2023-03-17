@@ -36,8 +36,38 @@ struct VarInfo {
   VarInfo(VarDecl* vd_, unsigned int scale) : vd{vd_}, nvd{nullptr}, s{scale} {}
 };
 
+inline Expression* scaleDown(unsigned int scale, Expression* e) {
+  return new BinOp(Location().introduce(), e, BOT_IDIV, IntLit::a(scale));
+}
+inline Expression* scaleDownF(unsigned int scale, Expression* e) {
+  if (e->isa<Id>() && e->cast<Id>()->decl()->ti()->ranges().size() > 0) {
+    VarDecl* c = new VarDecl(Location().introduce(), new TypeInst(Location().introduce(), Type::parint()), "c");
+    Expression* scaling = scaleDownF(scale, c->id());
+    Generator gen {{c}, {e}, NULL};
+    Generators gens;
+    gens.g = {gen};
+    Comprehension* cs = new Comprehension(Location().introduce(), scaling, gens, false);
+    return cs;
+  }
+  return new BinOp(Location().introduce(), e, BOT_DIV, IntLit::a(scale));
+}
+
+inline Expression* scaleUp(unsigned int scale, Expression* e) {
+  return new BinOp(Location().introduce(), IntLit::a(scale), BOT_MULT, e);
+}
+
+inline Expression* roundE(Expression* e) {
+  return Call::a(Location().introduce(), "round", {e});
+}
+
 Expression* scaleAndRound(unsigned int scale, Expression* e) {
-  return Call::a(Location().introduce(), "round", {new BinOp(Location().introduce(), IntLit::a(scale), BOT_MULT, e)});
+  return roundE(scaleUp(scale, e));
+}
+
+void copyAnns(Annotation& aa, Annotation& ab) {
+  for (ExpressionSetIter it = aa.begin(); it != aa.end(); ++it) {
+    ab.add(*it);
+  }
 }
 
 ArrayLit* varFloatArr2varIntArr(unsigned int scale, ArrayLit* al) {
@@ -54,6 +84,7 @@ ArrayLit* varFloatArr2varIntArr(unsigned int scale, ArrayLit* al) {
 }
 
 Comprehension* floatArr2IntArr(unsigned int base_scale_factor, Expression* a) {
+  // Generator approach
   VarDecl* c = new VarDecl(Location().introduce(), new TypeInst(Location().introduce(), Type::parint()), "c");
   Expression* rounding = scaleAndRound(base_scale_factor, c->id());
   Generator gen {{c}, {a}, NULL};
@@ -63,25 +94,57 @@ Comprehension* floatArr2IntArr(unsigned int base_scale_factor, Expression* a) {
   return cs;
 }
 
-Call* process_lin(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca, std::string name) {
+Call* process_lin_eq_defines(Env* e, unsigned int base_scale_factor, Call* ca, Id* defined_id) {
+  ArrayLit* cs = eval_array_lit(e->envi(), ca->arg(0));
+  ArrayLit* vs = varFloatArr2varIntArr(base_scale_factor, eval_array_lit(e->envi(), ca->arg(1)));
+  Expression* b = scaleAndRound(base_scale_factor*base_scale_factor, ca->arg(2));
+
+  vector<Expression*> new_cs;
+  for(unsigned int i = 0; i < vs->size(); i++) {
+    Expression* v = (*vs)[i];
+    Expression* c = (*cs)[i];
+
+    if (v->isa<Id>() && v->cast<Id>()->decl()->id() == defined_id) {
+      // No scaling
+      new_cs.push_back(scaleAndRound(1, c));
+    } else {
+      new_cs.push_back(scaleAndRound(base_scale_factor, c));
+    }
+  }
+
+  ArrayLit* new_cs_al = new ArrayLit(Location().introduce(), new_cs);
+
+  Call* nc = Call::a(Location().introduce(), "int_lin_eq", {new_cs_al, vs, b});
+  copyAnns(ca->ann(), nc->ann());
+  return nc;
+}
+
+Call* process_lin(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca, std::string name) {
   // Coefficients
-  Expression* cs = floatArr2IntArr(base_scale_factor, ca->arg(0));
+  Expression* cs = ca->arg(0);
+
+  if (!cs->isa<Id>() ) {
+    cs = floatArr2IntArr(base_scale_factor, cs);
+  }
 
   // Variables
-  Expression* vs = ca->arg(1);
+  Expression* vs = varFloatArr2varIntArr(base_scale_factor, eval_array_lit(e->envi(), ca->arg(1)));
 
   // Bound
   Expression* b = scaleAndRound(base_scale_factor*base_scale_factor, ca->arg(2));
 
-  return Call::a(Location().introduce(), name, {cs, vs, b});
+  Call* nc = Call::a(Location().introduce(), name, {cs, vs, b});
+  copyAnns(ca->ann(), nc->ann());
+  return nc;
+
 }
 
-Call* process_lin_eq(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
-  return process_lin(base_scale_factor, varinfo, ca, "int_lin_eq");
+Call* process_lin_eq(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+  return process_lin(e, base_scale_factor, varinfo, ca, "int_lin_eq");
 }
 
-Call* process_lin_le(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
-  return process_lin(base_scale_factor, varinfo, ca, "int_lin_le");
+Call* process_lin_le(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+  return process_lin(e, base_scale_factor, varinfo, ca, "int_lin_le");
 }
 
 Call* process_binop(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca, std::string name) {
@@ -107,59 +170,53 @@ Call* process_binop(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>
   }
   Expression *rhs = scaleAndRound(rhs_scale, rhs_expr);
 
-  return Call::a(Location().introduce(), name, {lhs, rhs});
+  Call* nc = Call::a(Location().introduce(), name, {lhs, rhs});
+  copyAnns(ca->ann(), nc->ann());
+  return nc;
 }
 
-Call* process_eq(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+Call* process_eq(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   return process_binop(base_scale_factor, varinfo, ca, "int_eq");
 }
 
-Call* process_le(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+Call* process_le(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   return process_binop(base_scale_factor, varinfo, ca, "int_le");
 }
 
-Call* process_int2float(unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+Call* process_int2float(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   Expression* left = ca->arg(0);
   Expression* right = ca->arg(1);
-  return Call::a(Location().introduce(), "int_eq", {left, right});
+
+  Call* nc = Call::a(Location().introduce(), "int_eq", {left, roundE(scaleDown(base_scale_factor, right))});
+  copyAnns(ca->ann(), nc->ann());
+  return nc;
 }
 
-Call* process(unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
+Call* process(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   if (ca->id() == Constants::constants().ids.float_.lin_eq) {
-    return process_lin_eq(base_scale_factor, varinfo, ca);
+    return process_lin_eq(e, base_scale_factor, varinfo, ca);
   } else if (ca->id() == Constants::constants().ids.float_.lin_le) {
-    return process_lin_le(base_scale_factor, varinfo, ca);
+    return process_lin_le(e, base_scale_factor, varinfo, ca);
   } else if (ca->id() == Constants::constants().ids.float_.eq) {
-    return process_eq(base_scale_factor, varinfo, ca);
+    return process_eq(e, base_scale_factor, varinfo, ca);
   } else if (ca->id() == Constants::constants().ids.float_.le) {
-    return process_le(base_scale_factor, varinfo, ca);
+    return process_le(e, base_scale_factor, varinfo, ca);
   } else if (ca->id() == Constants::constants().ids.int2float) {
-    return process_int2float(varinfo, ca);
+    return process_int2float(base_scale_factor, varinfo, ca);
   } else {
     return ca;
   }
 }
 
-bool isVarFloat(VarDecl* vd) {
-  return vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() == 0;
-}
+inline bool isVarFloat(VarDecl* vd) { return vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() == 0; }
+inline bool isVarFloatArray(VarDecl* vd) { return vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() > 0; }
+inline bool isParFloat(VarDecl* vd) { return !vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() == 0; }
+inline bool isParFloatArray(VarDecl* vd) { return !vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() > 0; }
 
-bool isVarFloatArray(VarDecl* vd) {
-  return vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() > 0;
-}
-
-bool isParFloat(VarDecl* vd) {
-  return !vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() == 0;
-}
-
-bool isParFloatArray(VarDecl* vd) {
-  return !vd->type().isvar() && vd->type().bt() == Type::BT_FLOAT && vd->ti()->ranges().size() > 0;
-}
-
-VarDecl* process(VarInfo* vinfo) {
+VarDecl* process(Env* e, VarInfo* vinfo) {
   VarDecl* vd = vinfo->vd;
 
-//std::cout << "Original: " << *vd << "\n";
+  //std::cout << "Original: " << *vd << "\n";
 
   if (isParFloat(vd)) {
     // change float to int in type
@@ -235,20 +292,56 @@ MiniZinc::Env* Discretise::run(MiniZinc::Env* e, std::ostream& log) {
   // Create new variables
   for (auto vi : varinfo) {
     VarInfo* vinfo = vi.second;
-    vinfo->nvd = process(vinfo);
+    vinfo->nvd = process(e, vinfo);
   }
 
   // Sort constraints so constraints with ::defines_var() annotations
   //   are processed first, as these will probably change the scaling
   //   factor for the defined var.
-  vector<Call*> condef;
-  vector<Call*> conrest;
+  vector<ConstraintI*> condef;
+  vector<ConstraintI*> conrest;
   vector<Expression*> other;
   for (ConstraintI& ci : m->constraints()) {
     if (Call* ca = ci.e()->dynamicCast<Call>()) {
-      ci.e(process(base_scale_factor, varinfo, ca));
+      if (ca->id() == "float_lin_eq") {
+        if (Call* defines_var = ca->ann().getCall(Constants::constants().ann.defines_var)) {
+          condef.push_back(&ci);
+          continue;
+        }
+      }
     }
+
+    conrest.push_back(&ci);
   }
+
+  for (ConstraintI* ci : condef) {
+    Call* ca = ci->e()->dynamicCast<Call>();
+    Call* dv = ca->ann().getCall(Constants::constants().ann.defines_var);
+    Id* di = dv->arg(0)->cast<Id>();
+    ci->e(process_lin_eq_defines(e, base_scale_factor, ca, di->decl()->id()));
+  }
+
+  for (ConstraintI* ci : conrest) {
+    Call* ca = ci->e()->dynamicCast<Call>();
+    ci->e(process(e, base_scale_factor, varinfo, ca));
+  }
+
+  vector<Expression*> output_strings;
+  for (auto vi : outputs) {
+    stringstream ss;
+    ss << vi->vd->id()->str() << " = ";
+
+    vector<Expression*> args;
+    args.push_back(new StringLit(Location().introduce(), ss.str()));
+    args.push_back(Call::a(Location().introduce(), "format", { scaleDownF(base_scale_factor, vi->vd->id()) }));
+    args.push_back(new StringLit(Location().introduce(), ";\n"));
+    ArrayLit* al = new ArrayLit(Location().introduce(), args);
+    output_strings.push_back(Call::a(Location().introduce(), "concat", {al}));
+  }
+
+  OutputI* oi = new OutputI(Location().introduce(), new ArrayLit(Location().introduce(), output_strings));
+  m->addItem(oi);
+  m->setOutputItem(oi);
 
   // Cleanup
   for(auto id_vdi : varinfo) {
