@@ -37,9 +37,12 @@ struct VarInfo {
 };
 
 inline Expression* scaleDown(unsigned int scale, Expression* e) {
+  if (scale == 1) return e;
+
   return new BinOp(Location().introduce(), e, BOT_IDIV, IntLit::a(scale));
 }
 inline Expression* scaleDownF(unsigned int scale, Expression* e) {
+  if (scale == 1) return e;
   if (e->isa<Id>() && e->cast<Id>()->decl()->ti()->ranges().size() > 0) {
     VarDecl* c = new VarDecl(Location().introduce(), new TypeInst(Location().introduce(), Type::parint()), "c");
     Expression* scaling = scaleDownF(scale, c->id());
@@ -53,6 +56,7 @@ inline Expression* scaleDownF(unsigned int scale, Expression* e) {
 }
 
 inline Expression* scaleUp(unsigned int scale, Expression* e) {
+  if (scale == 1) return e;
   return new BinOp(Location().introduce(), IntLit::a(scale), BOT_MULT, e);
 }
 
