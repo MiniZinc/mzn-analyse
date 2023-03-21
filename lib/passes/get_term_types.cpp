@@ -105,17 +105,28 @@ struct EscapedStringStack {
   }
 };
 
-string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
-  vector<string> term_strings;
+Expression* negate(Expression* e) {
+  return new UnOp(Location().introduce(), UOT_NOT, e);
+}
 
-  // For now just support:
-  // sum(gens where clauses) (coef1 * var1 + coef2 * var2)
-  EscapedStringStack gens;
-  EscapedStringStack coefs;
-  EscapedStringStack wheres;
+Expression* conj(vector<Expression*> exprs) {
+  if (exprs.empty()) return nullptr;
+  if (exprs.size() == 1) {
+    return exprs[0];
+  }
+  BinOp* bo = new BinOp(Location().introduce(), exprs[0], BOT_AND, exprs[1]);
+  for(size_t i=2; i<exprs.size(); i++) {
+    bo = new BinOp(Location().introduce(), bo, BOT_AND, exprs[i]);
+  }
+  return bo;
+}
+
+void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>& term_strings,
+    string name,  EscapedStringStack& gens, EscapedStringStack& coefs, EscapedStringStack& wheres,
+    Expression* root) {
 
   vector<StackFrame> stack;
-  stack.emplace_back("", 0, 0, 0, root);
+  stack.emplace_back(name, gens.size(), coefs.size(), wheres.size(), root);
 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
@@ -213,6 +224,7 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
       }
     } else if (Id* id = frame.e->dynamicCast<Id>()) {
       auto it = assigns.find(id->decl()->id());
+
       bool post = true;
       if (it != assigns.end()) {
         stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(), wheres.size(), it->second);
@@ -226,17 +238,55 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
         // It is just a plain ID. It doesn't matter if it is par or not
         term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
       }
+    } else if (ITE* ite = frame.e->dynamicCast<ITE>()){
+      vector<Expression*> negs;
+      for(size_t i=0; i<ite->size(); i++) {
+        Expression* currentIf = ite->ifExpr(i);
+
+        vector<Expression*> negs_if(negs);
+        negs_if.push_back(currentIf);
+
+        stringstream where_ss;
+        where_ss << *conj(negs_if);
+        wheres.push(where_ss.str());
+
+        collectTermStrings(assigns, term_strings, frame.name, gens, coefs, wheres, ite->thenExpr(i));
+        wheres.popTo(frame.where_idx);
+
+        negs.push_back(negate(currentIf));
+      }
+
+      stringstream where_ss;
+      where_ss << *conj(negs);
+      wheres.push(where_ss.str());
+      collectTermStrings(assigns, term_strings, frame.name, gens, coefs, wheres, ite->elseExpr());
+      wheres.popTo(frame.where_idx);
+
     } else {
       // std::cerr << "getTermTypeString(..., " << *frame.e << ")" << std::endl;
       term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, frame.e));
     }
   }
 
+}
+
+string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
+  vector<string> term_strings;
+
+  // For now just support:
+  // sum(gens where clauses) (coef1 * var1 + coef2 * var2)
+  EscapedStringStack gens;
+  EscapedStringStack coefs;
+  EscapedStringStack wheres;
+
+  collectTermStrings(assigns, term_strings, "", gens, coefs, wheres, root);
+
   // The printing bit
   stringstream ss;
   ss << "[" << utils::join(term_strings, ", ") << "]";
   return ss.str();
 }
+
 
 string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*, Expression*>& assigns) {
   if (!si || si->st() == SolveI::ST_SAT) {
@@ -285,8 +335,7 @@ bool AssignCollector::enter(MiniZinc::Expression* e) {
     if (bo->op() == BOT_EQ) {
       if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
         assigns[lhe->decl()->id()] = bo->rhs();
-      }
-      if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
+      } else if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
         assigns[rhe->decl()->id()] = bo->lhs();
       }
       return false;
