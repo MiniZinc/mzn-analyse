@@ -74,7 +74,7 @@ bool isLit(Expression::ExpressionId eid) {
 }
 
 bool isAnn(Expression* e) {
-  if (Call* c = e->dynamicCast<Call>()) {
+  if (Call* c = Expression::dynamicCast<Call>(e)) {
     return c->id() == "mzn_constraint_name" || c->id() == "mzn_expression_name";
   }
   return false;
@@ -86,9 +86,9 @@ ExpressionExtractorEVisitor::ExpressionExtractorEVisitor(const std::vector<Short
     : locs{locations}, exprs{expr_store}, collect_par{only_par}, no_sub_exprs{only_top} {}
 
 bool ExpressionExtractorEVisitor::enter(Expression* e) {
-  if (e == nullptr || isLit(e->eid()) || isAnn(e)) return false;
+  if (e == nullptr || isLit(Expression::eid(e)) || isAnn(e)) return false;
 
-  ShortLoc this_loc{e->loc()};
+  ShortLoc this_loc{Expression::loc(e)};
   bool is_parent = locs.empty() && !no_sub_exprs;
   bool is_child = locs.empty() && !no_sub_exprs;
 
@@ -110,8 +110,8 @@ bool ExpressionExtractorEVisitor::enter(Expression* e) {
     }
   }
 
-  if (is_child && !(e->isa<VarDecl>() || e->isa<TypeInst>())) {
-    if (!collect_par || e->type().ti() == MiniZinc::Type::TI_PAR) {
+  if (is_child && !(Expression::isa<VarDecl>(e) || Expression::isa<TypeInst>(e))) {
+    if (!collect_par || Expression::type(e).ti() == MiniZinc::Type::TI_PAR) {
       if (parents.empty()) {
         exprs[this_loc.to_string()].push_back(e);
         if (no_sub_exprs && !locs.empty()) {
@@ -128,7 +128,7 @@ bool ExpressionExtractorEVisitor::enter(Expression* e) {
     }
   }
 
-  return (is_parent || is_child) && e->eid() != Expression::E_ARRAYACCESS;
+  return (is_parent || is_child) && Expression::eid(e) != Expression::E_ARRAYACCESS;
   ;
 }
 

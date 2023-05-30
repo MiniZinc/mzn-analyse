@@ -16,7 +16,7 @@ MiniZinc::Env* OutputAll::run(MiniZinc::Env* e, std::ostream& log) {
 
   for (VarDeclI& vdi : m->vardecls()) {
     VarDecl* vd = vdi.e();
-    vd->ann().add(MiniZinc::Constants::constants().ann.add_to_output);
+    Expression::ann(vd).add(MiniZinc::Constants::constants().ann.add_to_output);
   }
 
   return e;

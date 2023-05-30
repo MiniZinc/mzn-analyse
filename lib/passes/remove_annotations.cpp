@@ -31,8 +31,10 @@ MiniZinc::Env* RemoveAnnotations::run(MiniZinc::Env* e, std::ostream& log) {
           toRemove.push_back(ann_e);
         } else {
           for (string& name : ann_names) {
-            if ((ann_e->isa<Id>() && string(ann_e->cast<Id>()->str().c_str()) == name) ||
-                (ann_e->isa<Call>() && string(ann_e->cast<Call>()->id().c_str()) == name)) {
+            if ((Expression::isa<Id>(ann_e) &&
+                  string(Expression::cast<Id>(ann_e)->str().c_str()) == name) ||
+                (Expression::isa<Call>(ann_e) &&
+                 string(Expression::cast<Call>(ann_e)->id().c_str()) == name)) {
               toRemove.push_back(ann_e);
               break;
             }
@@ -46,7 +48,7 @@ MiniZinc::Env* RemoveAnnotations::run(MiniZinc::Env* e, std::ostream& log) {
 
     bool enter(Expression* e) {
       if (!e) return false;
-      removeAnnotations(e->ann());
+      removeAnnotations(Expression::ann(e));
       return true;
     }
   } remover(ann_names);

@@ -39,22 +39,22 @@ struct VarInfo {
 void toVar(Expression* e) {
   Type nt;
   nt.ti(Type::TI_VAR);
-  nt.tiExplicit(e->type().tiExplicit());
-  nt.bt(e->type().bt());
-  nt.st(e->type().st());
-  nt.ot(e->type().ot());
-  nt.otExplicit(e->type().otExplicit());
-  nt.cv(e->type().cv());
-  nt.any(e->type().any());
-  nt.typeId(e->type().typeId());
-  nt.dim(e->type().dim());
-  e->type(nt);
+  nt.tiExplicit(Expression::type(e).tiExplicit());
+  nt.bt(Expression::type(e).bt());
+  nt.st(Expression::type(e).st());
+  nt.ot(Expression::type(e).ot());
+  nt.otExplicit(Expression::type(e).otExplicit());
+  nt.cv(Expression::type(e).cv());
+  nt.any(Expression::type(e).any());
+  nt.typeId(Expression::type(e).typeId());
+  nt.dim(Expression::type(e).dim());
+  Expression::type(e, nt);
 }
 
 inline Expression* scaleDown(Env* env, unsigned int scale, Expression* e) {
   if (scale == 1) return e;
 
-  if(!e->isa<Id>() && e->type().ti() == Type::TI_PAR) {
+  if(!Expression::isa<Id>(e) && Expression::type(e).ti() == Type::TI_PAR) {
     IntVal iv = eval_int(env->envi(), e);
     return FloatLit::a(iv / scale);
   }
@@ -65,7 +65,7 @@ inline Expression* scaleDown(Env* env, unsigned int scale, Expression* e) {
 }
 inline Expression* scaleDownF(Env* env, unsigned int scale, Expression* e) {
   if (scale == 1) return e;
-  if (e->isa<Id>() && e->cast<Id>()->decl()->ti()->ranges().size() > 0) {
+  if (Expression::isa<Id>(e) && Expression::cast<Id>(e)->decl()->ti()->ranges().size() > 0) {
     VarDecl* c = new VarDecl(Location().introduce(), new TypeInst(Location().introduce(), Type::parint()), "c");
     Expression* scaling = scaleDownF(env, scale, c->id());
     Generator gen {{c}, {e}, NULL};
@@ -81,8 +81,8 @@ inline Expression* scaleDownF(Env* env, unsigned int scale, Expression* e) {
 inline Expression* scaleUp(Env* env, unsigned int scale, Expression* e) {
   if (scale == 1) return e;
 
-  if (!e->isa<Id>() && e->type().ti() == Type::TI_PAR) {
-    if(e->type().bt() == Type::BT_FLOAT) {
+  if (!Expression::isa<Id>(e) && Expression::type(e).ti() == Type::TI_PAR) {
+    if(Expression::type(e).bt() == Type::BT_FLOAT) {
       FloatVal fv = eval_float(env->envi(), e);
       return FloatLit::a(scale * fv);
     } else {
@@ -98,7 +98,7 @@ inline Expression* scaleUp(Env* env, unsigned int scale, Expression* e) {
 }
 
 inline Expression* roundE(Env* env, Expression* e) {
-  if(!e->isa<Id>() && e->type().ti() == Type::TI_PAR) {
+  if(!Expression::isa<Id>(e) && Expression::type(e).ti() == Type::TI_PAR) {
     FloatVal fv = eval_float(env->envi(), e);
     return IntLit::a(round(fv.toDouble()));
   }
@@ -121,10 +121,10 @@ ArrayLit* varFloatArr2varIntArr(Env* env, unsigned int scale, ArrayLit* al) {
   vector<Expression*> new_arr;
   for (unsigned int i = 0; i<al->size(); i++) {
     Expression* e = (*al)[i];
-    if (Id* id = e->dynamicCast<Id>()) {
+    if (Id* id = Expression::dynamicCast<Id>(e)) {
       new_arr.push_back(id);
     } else {
-      if (FloatLit* fl = e->dynamicCast<FloatLit>()) {
+      if (FloatLit* fl = Expression::dynamicCast<FloatLit>(e)) {
         new_arr.push_back(scaleAndRound(env, scale, fl));
       } else {
         new_arr.push_back(scaleUp(env, scale, e));
@@ -143,7 +143,7 @@ Expression* floatArr2IntArr(Env* env, unsigned int base_scale_factor, Expression
   for(unsigned int i=0; i<cs->size(); i++) {
     Expression* e = (*cs)[i];
 
-    if (FloatLit* fl = e->dynamicCast<FloatLit>()) {
+    if (FloatLit* fl = Expression::dynamicCast<FloatLit>(e)) {
       new_a.push_back(scaleAndRound(env, base_scale_factor, fl));
     } else {
       new_a.push_back(scaleUp(env, base_scale_factor, (*cs)[i]));
@@ -174,7 +174,7 @@ Call* process_lin_eq_defines(Env* e, unsigned int base_scale_factor, Call* ca, I
   ArrayLit* new_cs_al = new ArrayLit(Location().introduce(), new_cs);
 
   Call* nc = Call::a(Location().introduce(), "int_lin_eq", {new_cs_al, vs, b});
-  copyAnns(ca->ann(), nc->ann());
+  copyAnns(Expression::ann(ca), Expression::ann(nc));
   return nc;
 }
 
@@ -182,7 +182,7 @@ Call* process_lin(Env* e, unsigned int base_scale_factor, unordered_map<Id*, Var
   // Coefficients
   Expression* cs = ca->arg(0);
 
-  if (!cs->isa<Id>() ) {
+  if (!Expression::isa<Id>(cs) ) {
     cs = floatArr2IntArr(e, base_scale_factor, cs);
   }
 
@@ -193,7 +193,7 @@ Call* process_lin(Env* e, unsigned int base_scale_factor, unordered_map<Id*, Var
   Expression* b = scaleAndRound(e, base_scale_factor*base_scale_factor, ca->arg(2));
 
   Call* nc = Call::a(Location().introduce(), name, {cs, vs, b});
-  copyAnns(ca->ann(), nc->ann());
+  copyAnns(Expression::ann(ca), Expression::ann(nc));
   return nc;
 
 }
@@ -210,7 +210,7 @@ Call* process_binop(Env* e, unsigned int base_scale_factor, unordered_map<Id*, V
   Expression* lhs_expr = ca->arg(0);
   unsigned int lhs_scale = base_scale_factor;
 
-  if (Id* id = lhs_expr->dynamicCast<Id>()) {
+  if (Id* id = Expression::dynamicCast<Id>(lhs_expr)) {
     auto lhsvarinfo = varinfo.find(id);
     if (lhsvarinfo != varinfo.end()) {
       lhs_scale = lhsvarinfo->second->s;
@@ -221,7 +221,7 @@ Call* process_binop(Env* e, unsigned int base_scale_factor, unordered_map<Id*, V
   Expression* rhs_expr = ca->arg(1);
   unsigned int rhs_scale = base_scale_factor;
 
-  if (Id* id = rhs_expr->dynamicCast<Id>()) {
+  if (Id* id = Expression::dynamicCast<Id>(rhs_expr)) {
     auto rhsvarinfo = varinfo.find(id);
     if (rhsvarinfo != varinfo.end()) {
       rhs_scale = rhsvarinfo->second->s;
@@ -230,7 +230,7 @@ Call* process_binop(Env* e, unsigned int base_scale_factor, unordered_map<Id*, V
   Expression *rhs = scaleAndRound(e, rhs_scale, rhs_expr);
 
   Call* nc = Call::a(Location().introduce(), name, {lhs, rhs});
-  copyAnns(ca->ann(), nc->ann());
+  copyAnns(Expression::ann(ca), Expression::ann(nc));
   return nc;
 }
 
@@ -244,7 +244,7 @@ Call* process_le(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarI
 
 Expression* process_int2float(Env* e, unsigned int base_scale_factor, unordered_map<Id*, VarInfo*>& varinfo, Call* ca) {
   Call* eq = Call::a(Location().introduce(), "int_eq", {ca->arg(0), ca->arg(1)});
-  copyAnns(ca->ann(), eq->ann());
+  copyAnns(Expression::ann(ca), Expression::ann(eq));
   return eq;
 }
 
@@ -271,9 +271,9 @@ Expression* process(Env* e, unsigned int base_scale_factor, unordered_map<Id*, V
   }
 }
 
-inline bool isVar(Expression* vd) { return vd->type().isvar(); };
-inline bool isFloat(Expression* vd) { return vd->type().bt() == Type::BT_FLOAT; }
-inline bool isInt(Expression* vd) { return vd->type().bt() == Type::BT_INT; }
+inline bool isVar(Expression* vd) { return Expression::type(vd).isvar(); };
+inline bool isFloat(Expression* vd) { return Expression::type(vd).bt() == Type::BT_FLOAT; }
+inline bool isInt(Expression* vd) { return Expression::type(vd).bt() == Type::BT_INT; }
 inline bool isArray(VarDecl* vd) { return vd->ti()->ranges().size() > 0; }
 
 VarDecl* process(Env* e, VarInfo* vinfo) {
@@ -310,14 +310,14 @@ VarDecl* process(Env* e, VarInfo* vinfo) {
         Expression* new_domain = nullptr;
 
         if (domain) {
-          if (SetLit* sl = domain->dynamicCast<SetLit>()) {
+          if (SetLit* sl = Expression::dynamicCast<SetLit>(domain)) {
             FloatSetVal* fsv = sl->fsv();
             FloatVal lb = fsv->min();
             FloatVal ub = fsv->max();
             Expression* l = scaleAndRound(e, vinfo->s, FloatLit::a(lb));
             Expression* u = scaleAndRound(e, vinfo->s, FloatLit::a(ub));
             new_domain = new BinOp(Location().introduce(), l, BOT_DOTDOT, u);
-          } else if (BinOp* bo = domain->dynamicCast<BinOp>()) {
+          } else if (BinOp* bo = Expression::dynamicCast<BinOp>(domain)) {
             Expression* l = scaleAndRound(e, vinfo->s, bo->lhs());
             Expression* u = scaleAndRound(e, vinfo->s, bo->rhs());
             new_domain = new BinOp(Location().introduce(), l, BOT_DOTDOT, u);
@@ -333,14 +333,14 @@ VarDecl* process(Env* e, VarInfo* vinfo) {
         Expression* new_domain = nullptr;
 
         if (domain) {
-          if (SetLit* sl = domain->dynamicCast<SetLit>()) {
+          if (SetLit* sl = Expression::dynamicCast<SetLit>(domain)) {
             IntSetVal* isv = sl->isv();
             IntVal lb = isv->min();
             IntVal ub = isv->max();
             Expression* l = scaleUp(e, vinfo->s, IntLit::a(lb));
             Expression* u = scaleUp(e, vinfo->s, IntLit::a(ub));
             new_domain = new BinOp(Location().introduce(), l, BOT_DOTDOT, u);
-          } else if (BinOp* bo = domain->dynamicCast<BinOp>()) {
+          } else if (BinOp* bo = Expression::dynamicCast<BinOp>(domain)) {
             Expression* l = scaleUp(e, vinfo->s, bo->lhs());
             Expression* u = scaleUp(e, vinfo->s, bo->rhs());
             new_domain = new BinOp(Location().introduce(), l, BOT_DOTDOT, u);
@@ -354,7 +354,7 @@ VarDecl* process(Env* e, VarInfo* vinfo) {
       vd->ti(new TypeInst(Location().introduce(), Type::varint(), vd->ti()->ranges()));
       // scale any constants in the rhs (in flatzinc there should always be a rhs)
       if (vd->e()) {
-        if (ArrayLit* al = vd->e()->dynamicCast<ArrayLit>()) {
+        if (ArrayLit* al = Expression::dynamicCast<ArrayLit>(vd->e())) {
           vd->e(varFloatArr2varIntArr(e, vinfo->s, al));
         }
       }
@@ -382,10 +382,10 @@ MiniZinc::Env* Discretise::run(MiniZinc::Env* e, std::ostream& log) {
 
     // Collect which variables have an ouput annotation so we can build
     //   FlatZinc output model later
-    if (vd->ann().containsCall(Constants::constants().ann.output_array.aststr()) ||
-        vd->ann().contains(Constants::constants().ann.output_var)) {
+    if (Expression::ann(vd).containsCall(Constants::constants().ann.output_array.aststr()) ||
+        Expression::ann(vd).contains(Constants::constants().ann.output_var)) {
       outputs.push_back(vdinfo);
-      vd->addAnnotation(Constants::constants().ann.add_to_output);
+      Expression::addAnnotation(vd, Constants::constants().ann.add_to_output);
     }
   }
 
@@ -402,9 +402,9 @@ MiniZinc::Env* Discretise::run(MiniZinc::Env* e, std::ostream& log) {
   vector<ConstraintI*> conrest;
   vector<Expression*> other;
   for (ConstraintI& ci : m->constraints()) {
-    if (Call* ca = ci.e()->dynamicCast<Call>()) {
+    if (Call* ca = Expression::dynamicCast<Call>(ci.e())) {
       if (ca->id() == "float_lin_eq") {
-        if (Call* defines_var = ca->ann().getCall(Constants::constants().ann.defines_var)) {
+        if (Call* defines_var = Expression::ann(ca).getCall(Constants::constants().ann.defines_var)) {
           condef.push_back(&ci);
           continue;
         }
@@ -415,14 +415,14 @@ MiniZinc::Env* Discretise::run(MiniZinc::Env* e, std::ostream& log) {
   }
 
   for (ConstraintI* ci : condef) {
-    Call* ca = ci->e()->dynamicCast<Call>();
-    Call* dv = ca->ann().getCall(Constants::constants().ann.defines_var);
-    Id* di = dv->arg(0)->cast<Id>();
+    Call* ca = Expression::dynamicCast<Call>(ci->e());
+    Call* dv = Expression::ann(ca).getCall(Constants::constants().ann.defines_var);
+    Id* di = Expression::cast<Id>(dv->arg(0));
     ci->e(process_lin_eq_defines(e, base_scale_factor, ca, di->decl()->id()));
   }
 
   for (ConstraintI* ci : conrest) {
-    Call* ca = ci->e()->dynamicCast<Call>();
+    Call* ca = Expression::dynamicCast<Call>(ci->e());
     ci->e(process(e, base_scale_factor, varinfo, ca));
   }
 

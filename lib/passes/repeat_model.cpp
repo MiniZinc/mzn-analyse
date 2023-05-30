@@ -63,7 +63,7 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
       std::stringstream ss;
       ss << vdinfo.name << "_copy_" << i;
       string newname = ss.str();
-      vdinfo.id->v(newname);
+      vdinfo.id->v(ASTString(newname));
       vdinfo.renames.push_back(newname);
     }
 

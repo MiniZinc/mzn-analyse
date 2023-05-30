@@ -26,7 +26,7 @@ Let* wrap_with_let(Expression* e) {
   VarDecl* vd = nullptr;
   Call* call = nullptr;
 
-  if (e->type().isint()) {
+  if (Expression::type(e).isint()) {
     Call* lb = Call::a(Location().introduce(), "lb", {e});
     Call* ub = Call::a(Location().introduce(), "ub", {e});
     BinOp* bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
@@ -34,7 +34,7 @@ Let* wrap_with_let(Expression* e) {
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
     call = Call::a(Location().introduce(), "int_eq", {e, vd->id()});
-  } else if (e->type().isfloat()) {
+  } else if (Expression::type(e).isfloat()) {
     Call* lb = Call::a(Location().introduce(), "lb", {e});
     Call* ub = Call::a(Location().introduce(), "ub", {e});
     BinOp* bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
@@ -42,7 +42,7 @@ Let* wrap_with_let(Expression* e) {
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
     call = Call::a(Location().introduce(), "float_eq", {e, vd->id()});
-  } else if (e->type().isbool()) {
+  } else if (Expression::type(e).isbool()) {
     TypeInst* ti = new TypeInst(Location().introduce(), Type::varbool());
 
     vd = new VarDecl(Location().introduce(), ti, "x_i");
@@ -93,18 +93,18 @@ void TopDownReplacer<T>::run(Expression* root) {
     if (e == nullptr) {
       continue;
     }
-    for (ExpressionSetIter it = e->ann().begin(); it != e->ann().end(); ++it) {
+    for (ExpressionSetIter it = Expression::ann(e).begin(); it != Expression::ann(e).end(); ++it) {
       // TODO Replace annotations
       stack.push_back(*it);
     }
-    switch (e->eid()) {
+    switch (Expression::eid(e)) {
       case Expression::E_INTLIT:
         break;
       case Expression::E_FLOATLIT:
         break;
       case Expression::E_SETLIT:
         // TODO: Replace set elements
-        pushVec(stack, e->template cast<SetLit>()->v());
+        pushVec(stack, Expression::template cast<SetLit>(e)->v());
         break;
       case Expression::E_BOOLLIT:
         break;
@@ -115,7 +115,7 @@ void TopDownReplacer<T>::run(Expression* root) {
       case Expression::E_ANON:
         break;
       case Expression::E_ARRAYLIT: {
-        ArrayLit* al = e->template cast<ArrayLit>();
+        ArrayLit* al = Expression::template cast<ArrayLit>(e);
         for (unsigned int i = 0; i < al->size(); i++) {
           Expression* array_element = (*al)[i];
           if (_t.should_replace(array_element)) {
@@ -126,20 +126,20 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_ARRAYACCESS: {
-        ArrayAccess* aa = e->template cast<ArrayAccess>();
+        ArrayAccess* aa = Expression::template cast<ArrayAccess>(e);
         // TODO pushVec
         pushVec(stack, aa->idx());
 
         if (_t.should_replace(aa->v())) {
           aa->v(_t.get_replacement(aa->v()));
         } else {
-          stack.push_back(e->template cast<ArrayAccess>()->v());
+          stack.push_back(Expression::template cast<ArrayAccess>(e)->v());
         }
       } break;
       case Expression::E_COMP:
         // TODO: Figure out how to change parts of a comprehension
         {
-          auto* comp = e->template cast<Comprehension>();
+          auto* comp = Expression::template cast<Comprehension>(e);
           for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
             stack.push_back(comp->where(i));
             stack.push_back(comp->in(i));
@@ -156,7 +156,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
         break;
       case Expression::E_ITE: {
-        ITE* ite = e->template cast<ITE>();
+        ITE* ite = Expression::template cast<ITE>(e);
         if (_t.should_replace(ite->elseExpr())) {
           ite->elseExpr(_t.get_replacement(ite->elseExpr()));
         } else {
@@ -180,7 +180,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_BINOP: {
-        BinOp* bo = e->template cast<BinOp>();
+        BinOp* bo = Expression::template cast<BinOp>(e);
         if (_t.should_replace(bo->rhs())) {
           bo->rhs(_t.get_replacement(bo->rhs()));
         } else {
@@ -193,7 +193,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_UNOP: {
-        UnOp* uo = e->template cast<UnOp>();
+        UnOp* uo = Expression::template cast<UnOp>(e);
         if (_t.should_replace(uo->e())) {
           uo->e(_t.get_replacement(uo->e()));
         } else {
@@ -201,7 +201,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_CALL: {
-        Call* call = e->template cast<Call>();
+        Call* call = Expression::template cast<Call>(e);
         for (unsigned int i = 0; i < call->argCount(); i++) {
           if (_t.should_replace(call->arg(i))) {
             call->arg(i, _t.get_replacement(call->arg(i)));
@@ -211,7 +211,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_VARDECL: {
-        VarDecl* vd = e->template cast<VarDecl>();
+        VarDecl* vd = Expression::template cast<VarDecl>(e);
         if (_t.should_replace(vd->e())) {
           vd->e(_t.get_replacement(vd->e()));
         } else {
@@ -224,7 +224,7 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
       } break;
       case Expression::E_LET: {
-        Let* let = e->template cast<Let>();
+        Let* let = Expression::template cast<Let>(e);
         if (_t.should_replace(let->in())) {
           let->in(_t.get_replacement(let->in()));
         } else {
@@ -232,10 +232,10 @@ void TopDownReplacer<T>::run(Expression* root) {
         }
 
         // TODO: Deal with pushVec
-        pushVec(stack, e->template cast<Let>()->let());
+        pushVec(stack, Expression::template cast<Let>(e)->let());
       } break;
       case Expression::E_TI: {
-        TypeInst* ti = e->template cast<TypeInst>();
+        TypeInst* ti = Expression::template cast<TypeInst>(e);
         if (_t.should_replace(ti->domain())) {
           ti->domain(_t.get_replacement(ti->domain()));
         } else {
@@ -258,7 +258,7 @@ struct ReplacedInfo {
   ReplacedInfo(const Expression* expr, const Expression* rep)
       : expression{expr}, replacement{rep} {}
 
-  ShortLoc loc() const { return ShortLoc{expression->loc()}; }
+  ShortLoc loc() const { return ShortLoc{Expression::loc(expression)}; }
 
   std::string to_string() {
     std::string orig_string;
@@ -294,7 +294,7 @@ struct LetReplacerVisitor {
   bool should_replace(const Expression* e) const {
     bool found_match = false;
     if (e) {
-      Location this_loc = e->loc();
+      Location this_loc = Expression::loc(e);
 
       for (const ShortLoc& loc : locations) {
         if (loc == this_loc) {
@@ -307,7 +307,7 @@ struct LetReplacerVisitor {
   }
 
   Expression* get_replacement(Expression* e) {
-    ShortLoc loc{e->loc()};
+    ShortLoc loc{Expression::loc(e)};
     Expression* replacement = wrap_with_let(e);
     replacements.emplace_back(e, replacement);
     return replacement;

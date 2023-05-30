@@ -27,11 +27,11 @@ bool FilterItems::should_remove(Item* item) {
           return exclude;
         }
       } else if (ConstraintI* ci = item->dynamicCast<ConstraintI>()) {
-        if (ci->e()->type().ti() == mti) {
+        if (Expression::type(ci->e()).ti() == mti) {
           return exclude;
         }
       } else if (AssignI* ai = item->dynamicCast<AssignI>()) {
-        if (ai->decl()->type().ti() == mti && ai->e()->type().ti() == mti) {
+        if (Expression::type(ai->decl()).ti() == mti && Expression::type(ai->e()).ti() == mti) {
           return exclude;
         }
       }

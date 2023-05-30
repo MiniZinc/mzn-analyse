@@ -33,14 +33,14 @@ int prec(string s) {
 
 ostream& operator<<(ostream& os, vector<Call*>& calls) {
   std::sort(calls.begin(), calls.end(), [](const auto& lhs, const auto& rhs) {
-    int l_depth = lhs->arg(0)->template cast<IntLit>()->v().toInt();
-    int r_depth = rhs->arg(0)->template cast<IntLit>()->v().toInt();
+    int l_depth =     IntLit::v(Expression::template cast<IntLit>(lhs->arg(0))).toInt();
+    int r_depth =     IntLit::v(Expression::template cast<IntLit>(rhs->arg(0))).toInt();
 
-    int l_index = lhs->arg(1)->template cast<IntLit>()->v().toInt();
-    int r_index = rhs->arg(1)->template cast<IntLit>()->v().toInt();
+    int l_index =     IntLit::v(Expression::template cast<IntLit>(lhs->arg(1))).toInt();
+    int r_index =     IntLit::v(Expression::template cast<IntLit>(rhs->arg(1))).toInt();
 
-    int l_type = prec(lhs->arg(2)->template cast<StringLit>()->v().c_str());
-    int r_type = prec(rhs->arg(2)->template cast<StringLit>()->v().c_str());
+    int l_type = prec(Expression::template cast<StringLit>(lhs->arg(2))->v().c_str());
+    int r_type = prec(Expression::template cast<StringLit>(rhs->arg(2))->v().c_str());
 
     return l_depth < r_depth ||
            (l_depth == r_depth && (l_type < r_type || (l_type == r_type && l_index > r_index)));
@@ -52,7 +52,7 @@ ostream& operator<<(ostream& os, vector<Call*>& calls) {
     os << "[\n";
     for (int i = 0; i < calls.size(); i++) {
       Call* ca = calls[i];
-      string type = ca->arg(2)->cast<StringLit>()->v().c_str();
+      string type = Expression::cast<StringLit>(ca->arg(2))->v().c_str();
 
       os << "    ["
          << "\"" << type << "\", ";
@@ -104,8 +104,8 @@ void GetDataDeps::collect_data_deps(Model* m) {
   for (ConstraintI& ci : m->constraints()) {
     vector<Call*> entries;
 
-    for (Expression* ann_e : ci.e()->ann()) {
-      Call* ca = ann_e->dynamicCast<Call>();
+    for (Expression* ann_e : Expression::ann(ci.e())) {
+      Call* ca = Expression::dynamicCast<Call>(ann_e);
       if (ca && ca->id() == "data") {
         entries.push_back(ca);
       }

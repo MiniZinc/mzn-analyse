@@ -233,114 +233,114 @@ std::string ExprPrinter::to_string(const Expression* e) {
   std::stringstream r_type;
   r_type << "\"ExprType\": ";
 
-  switch (e->eid()) {
+  switch (Expression::eid(e)) {
     case Expression::E_INTLIT:
       r_type << "\"IntLit\"";
       records.push_back(r_type.str());
-      vIntLit(e->template cast<IntLit>(), records);
+      vIntLit(Expression::template cast<IntLit>(e), records);
       break;
     case Expression::E_FLOATLIT:
       r_type << "\"FloatLit\"";
       records.push_back(r_type.str());
-      vFloatLit(e->template cast<FloatLit>(), records);
+      vFloatLit(Expression::template cast<FloatLit>(e), records);
       break;
     case Expression::E_SETLIT:
       r_type << "\"SetLit\"";
       records.push_back(r_type.str());
-      vSetLit(e->template cast<SetLit>(), records);
+      vSetLit(Expression::template cast<SetLit>(e), records);
       break;
     case Expression::E_BOOLLIT:
       r_type << "\"BoolLit\"";
       records.push_back(r_type.str());
-      vBoolLit(e->template cast<BoolLit>(), records);
+      vBoolLit(Expression::template cast<BoolLit>(e), records);
       break;
     case Expression::E_STRINGLIT:
       r_type << "\"StringLit\"";
       records.push_back(r_type.str());
-      vStringLit(e->template cast<StringLit>(), records);
+      vStringLit(Expression::template cast<StringLit>(e), records);
       break;
     case Expression::E_ID:
       r_type << "\"Id\"";
       records.push_back(r_type.str());
-      vId(e->template cast<Id>(), records);
+      vId(Expression::template cast<Id>(e), records);
       break;
     case Expression::E_ANON:
       r_type << "\"AnonVar\"";
       records.push_back(r_type.str());
-      vAnonVar(e->template cast<AnonVar>(), records);
+      vAnonVar(Expression::template cast<AnonVar>(e), records);
       break;
     case Expression::E_ARRAYLIT:
       r_type << "\"ArrayLit\"";
       records.push_back(r_type.str());
-      vArrayLit(e->template cast<ArrayLit>(), records);
+      vArrayLit(Expression::template cast<ArrayLit>(e), records);
       break;
     case Expression::E_ARRAYACCESS:
       r_type << "\"ArrayAccess\"";
       records.push_back(r_type.str());
-      vArrayAccess(e->template cast<ArrayAccess>(), records);
+      vArrayAccess(Expression::template cast<ArrayAccess>(e), records);
       break;
     case Expression::E_COMP:
       r_type << "\"Comprehension\"";
       records.push_back(r_type.str());
-      vComprehension(e->template cast<Comprehension>(), records);
+      vComprehension(Expression::template cast<Comprehension>(e), records);
       break;
     case Expression::E_ITE:
       r_type << "\"ITE\"";
       records.push_back(r_type.str());
-      vITE(e->template cast<ITE>(), records);
+      vITE(Expression::template cast<ITE>(e), records);
       break;
     case Expression::E_BINOP:
       r_type << "\"BinOp\"";
       records.push_back(r_type.str());
-      vBinOp(e->template cast<BinOp>(), records);
+      vBinOp(Expression::template cast<BinOp>(e), records);
       break;
     case Expression::E_UNOP:
       r_type << "\"UnOp\"";
       records.push_back(r_type.str());
-      vUnOp(e->template cast<UnOp>(), records);
+      vUnOp(Expression::template cast<UnOp>(e), records);
       break;
     case Expression::E_CALL:
       r_type << "\"Call\"";
       records.push_back(r_type.str());
-      vCall(e->template cast<Call>(), records);
+      vCall(Expression::template cast<Call>(e), records);
       break;
     case Expression::E_VARDECL:
       r_type << "\"VarDecl\"";
       records.push_back(r_type.str());
-      vVarDecl(e->template cast<VarDecl>(), records);
+      vVarDecl(Expression::template cast<VarDecl>(e), records);
       break;
     case Expression::E_LET:
       r_type << "\"Let\"";
       records.push_back(r_type.str());
-      vLet(e->template cast<Let>(), records);
+      vLet(Expression::template cast<Let>(e), records);
       break;
     case Expression::E_TI:
       r_type << "\"TypeInst\"";
       records.push_back(r_type.str());
-      vTypeInst(e->template cast<TypeInst>(), records);
+      vTypeInst(Expression::template cast<TypeInst>(e), records);
       break;
     case Expression::E_TIID:
       r_type << "\"TypeInstId\"";
       records.push_back(r_type.str());
-      vTIId(e->template cast<TIId>(), records);
+      vTIId(Expression::template cast<TIId>(e), records);
       break;
   }
 
   if (!hide_locations) {
     std::stringstream ss_loc;
-    ss_loc << "\"location\": " << to_string(e->loc());
+    ss_loc << "\"location\": " << to_string(Expression::loc(e));
     records.push_back(ss_loc.str());
   }
 
   if (!hide_types) {
     std::stringstream ss_type;
-    ss_type << "\"type\": " << to_string(e->type());
+    ss_type << "\"type\": " << to_string(Expression::type(e));
     records.push_back(ss_type.str());
   }
 
   if (!hide_annotations) {
     std::stringstream ss_anns;
-    ss_anns << "\"annotations\": " << to_string(e->ann());
+    ss_anns << "\"annotations\": " << to_string(Expression::ann(e));
     records.push_back(ss_anns.str());
   }
 
@@ -354,7 +354,7 @@ void ExprPrinter::vIntLit(const IntLit* il, std::vector<std::string>& records) {
   std::stringstream ss;
 
   ss << "\"val\": ";
-  json_intval(ss, il->v());
+  json_intval(ss, IntLit::v(il));
 
   records.push_back(ss.str());
 }
@@ -364,7 +364,7 @@ void ExprPrinter::vFloatLit(const FloatLit* fl, std::vector<std::string>& record
   std::stringstream ss;
 
   ss << "\"val\": ";
-  json_floatval(ss, fl->v());
+  json_floatval(ss, FloatLit::v(fl));
 
   records.push_back(ss.str());
 }

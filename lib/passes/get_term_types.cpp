@@ -52,10 +52,10 @@ string escape(const string& orig, bool html) {
 string getTermTypeString(string name, vector<string>& gens, vector<string>& wheres, vector<string>& coefs,
                          Expression* var) {
   const string minor_sep = "|";
-  Location loc = var->loc();
+  Location loc = Expression::loc(var);
 
-  if (var->isa<Id>()) {
-    loc = var->dynamicCast<Id>()->decl()->loc();
+  if (Expression::isa<Id>(var)) {
+    loc = Expression::loc(Expression::dynamicCast<Id>(var)->decl());
   }
 
   stringstream var_ss;
@@ -138,11 +138,11 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
     wheres.popTo(frame.where_idx);
     stack.pop_back();
 
-    if (Call* call = frame.e->dynamicCast<Call>()) {
+    if (Call* call = Expression::dynamicCast<Call>(frame.e)) {
       if (call->id() == "sum") {
         Expression* body = nullptr;
-        if (call->arg(0)->isa<Comprehension>()) {
-          Comprehension* co = call->arg(0)->cast<Comprehension>();
+        if (Expression::isa<Comprehension>(call->arg(0))) {
+          Comprehension* co = Expression::cast<Comprehension>(call->arg(0));
           // collect generators
           for (size_t i = 0; i < co->numberOfGenerators(); i++) {
             Expression* in = co->in(i);
@@ -173,21 +173,21 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
           ss << "i in index_set(" << *arg0 << ")";
           gens.push(ss.str());
 
-          ArrayAccess* aa = new ArrayAccess(arg0->loc(), arg0, {vd->id()});
+          ArrayAccess* aa = new ArrayAccess(Expression::loc(arg0), arg0, {vd->id()});
           body = aa;
         }
         stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), body);
       } else {
         term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, call));
       }
-    } else if (BinOp* bo = frame.e->dynamicCast<BinOp>()) {
+    } else if (BinOp* bo = Expression::dynamicCast<BinOp>(frame.e)) {
       if (bo->op() == BOT_MULT) {
-        if (bo->lhs()->type().isPar()) {
+        if (Expression::type(bo->lhs()).isPar()) {
           stringstream ss;
           ss << *bo->lhs();
           coefs.push(ss.str());
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
-        } else if (bo->rhs()->type().isPar()) {
+        } else if (Expression::type(bo->rhs()).isPar()) {
           stringstream ss;
           ss << *bo->rhs();
           coefs.push(ss.str());
@@ -195,25 +195,25 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
         } else {
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo));
         }
-      } else if (bo->op() == BOT_PLUS && bo->lhs()->type().isvar()) {
-        if(bo->lhs()->type().isPar()) {
+      } else if (bo->op() == BOT_PLUS && Expression::type(bo->lhs()).isvar()) {
+        if(Expression::type(bo->lhs()).isPar()) {
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         }
-        if(bo->rhs()->type().isPar()) {
+        if(Expression::type(bo->rhs()).isPar()) {
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
         }
       } else if (bo->op() == BOT_MINUS) {
-        if(bo->lhs()->type().isPar()) {
+        if(Expression::type(bo->lhs()).isPar()) {
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         }
         coefs.push("-1");
-        if(bo->rhs()->type().isPar()) {
+        if(Expression::type(bo->rhs()).isPar()) {
           term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
@@ -222,7 +222,7 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
         std::cerr << "UNHANDLED BinOp type" << std::endl;
         exit(EXIT_FAILURE);
       }
-    } else if (Id* id = frame.e->dynamicCast<Id>()) {
+    } else if (Id* id = Expression::dynamicCast<Id>(frame.e)) {
       auto it = assigns.find(id->decl()->id());
 
       bool post = true;
@@ -238,7 +238,7 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
         // It is just a plain ID. It doesn't matter if it is par or not
         term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
       }
-    } else if (ITE* ite = frame.e->dynamicCast<ITE>()){
+    } else if (ITE* ite = Expression::dynamicCast<ITE>(frame.e)){
       vector<Expression*> negs;
       for(size_t i=0; i<ite->size(); i++) {
         Expression* currentIf = ite->ifExpr(i);
@@ -300,7 +300,7 @@ string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*, Expression*>& assign
   }
 
   Expression* e = obj_e;
-  while (Id* id = e->dynamicCast<Id>()) {
+  while (Id* id = Expression::dynamicCast<Id>(e)) {
     e = id->decl()->e();
     if (!e) {
       auto it = assigns.find(id->decl()->id());
@@ -331,11 +331,11 @@ struct AssignCollector : public MiniZinc::EVisitor {
 AssignCollector::AssignCollector(unordered_map<Id*, Expression*> &as) : assigns{as} {};
 
 bool AssignCollector::enter(MiniZinc::Expression* e) {
-  if (BinOp* bo = e->dynamicCast<BinOp>()) {
+  if (BinOp* bo = Expression::dynamicCast<BinOp>(e)) {
     if (bo->op() == BOT_EQ) {
-      if (Id* lhe = bo->lhs()->dynamicCast<Id>()) {
+      if (Id* lhe = Expression::dynamicCast<Id>(bo->lhs())) {
         assigns[lhe->decl()->id()] = bo->rhs();
-      } else if (Id* rhe = bo->rhs()->dynamicCast<Id>()) {
+      } else if (Id* rhe = Expression::dynamicCast<Id>(bo->rhs())) {
         assigns[rhe->decl()->id()] = bo->lhs();
       }
       return false;
@@ -343,7 +343,7 @@ bool AssignCollector::enter(MiniZinc::Expression* e) {
     return bo->op() == BOT_AND;
   }
 
-  if (Call *c = e->dynamicCast<Call>()) {
+  if (Call *c = Expression::dynamicCast<Call>(e)) {
     return string(c->id().c_str()) == "forall";
   }
 

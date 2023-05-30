@@ -42,15 +42,15 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
 
     TypeInst* ti = nullptr;
     Expression* e = si->e();
-    if (Id* id = e->dynamicCast<Id>()) {
+    if (Id* id = Expression::dynamicCast<Id>(e)) {
       VarDecl* typed = id->decl();
       ti = typed->ti();
     } else {
-      ti = new TypeInst(Location().introduce(), e->type());
+      ti = new TypeInst(Location().introduce(), Expression::type(e));
     }
 
     VarDecl* objVd = new VarDecl(Location().introduce(), ti, obj_name, e);
-    objVd->ann().add(MiniZinc::Constants::constants().ann.output);
+    Expression::ann(objVd).add(MiniZinc::Constants::constants().ann.output);
     m->addItem(VarDeclI::a(Location().introduce(), objVd));
 
     div_opts.objective.name = obj_name;
@@ -69,7 +69,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
     try {
       Expression* e = eval_par(env->envi(), ann_e);
 
-      if (Call* ca = e->dynamicCast<Call>()) {
+      if (Call* ca = Expression::dynamicCast<Call>(e)) {
         if (ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
           div_opts.inter_diversity_constraint = eval_string(env->envi(), ca->arg(0));
         } else if (ca->id() == string("diversity_intra_constraint") && ca->argCount() == 1) {
@@ -99,16 +99,16 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           Expression* arg0 = ca->arg(0);
           VarDecl* arg_vd = ca->decl()->param(0);
 
-          if (Id* id = arg0->dynamicCast<Id>()) {
+          if (Id* id = Expression::dynamicCast<Id>(arg0)) {
             VarDecl* typed = id->decl();
             ti = typed->ti();
           } else {
-            ti = new TypeInst(Location().introduce(), arg_vd->type(), arg_vd->ti()->ranges(),
+            ti = new TypeInst(Location().introduce(), Expression::type(arg_vd), arg_vd->ti()->ranges(),
                               arg_vd->ti()->domain());
           }
 
           VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
-          newVar->ann().add(MiniZinc::Constants::constants().ann.output);
+          Expression::ann(newVar).add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), newVar));
           vi.name = varname;
 
@@ -132,7 +132,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges,
                                            arg_vd->ti()->domain());
           VarDecl* prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
-          prevVar->ann().add(MiniZinc::Constants::constants().ann.output);
+          Expression::ann(prevVar).add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), prevVar));
           vi.prev_name = prevvarname;
 
