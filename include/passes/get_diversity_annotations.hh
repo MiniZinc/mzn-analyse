@@ -4,7 +4,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 struct VarInfo {
   std::string name;
@@ -47,4 +47,4 @@ public:
   std::string get_name() override;
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

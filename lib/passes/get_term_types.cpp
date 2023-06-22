@@ -21,7 +21,7 @@ using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 string escape(const string& orig, bool html) {
   string repchars = "\\&\"\'<>";
@@ -49,8 +49,8 @@ string escape(const string& orig, bool html) {
   return out.str();
 }
 
-string getTermTypeString(string name, vector<string>& gens, vector<string>& wheres, vector<string>& coefs,
-                         Expression* var) {
+string getTermTypeString(string name, vector<string>& gens, vector<string>& wheres,
+                         vector<string>& coefs, Expression* var) {
   const string minor_sep = "|";
   Location loc = Expression::loc(var);
 
@@ -87,27 +87,22 @@ struct StackFrame {
   size_t where_idx;
   Expression* e;
 
-  StackFrame(string pname, size_t g, size_t c, size_t w, Expression* exp) : name{pname}, gen_idx{g}, coef_idx{c}, where_idx{w}, e{exp} {}
+  StackFrame(string pname, size_t g, size_t c, size_t w, Expression* exp)
+      : name{pname}, gen_idx{g}, coef_idx{c}, where_idx{w}, e{exp} {}
 };
 
 struct EscapedStringStack {
   vector<string> entries;
-  void push(const string& s) {
-    entries.push_back(escape(s, false));
-  }
+  void push(const string& s) { entries.push_back(escape(s, false)); }
   void popTo(size_t idx) {
-    while(entries.size() > idx) {
+    while (entries.size() > idx) {
       entries.pop_back();
     }
   }
-  size_t size() {
-    return entries.size();
-  }
+  size_t size() { return entries.size(); }
 };
 
-Expression* negate(Expression* e) {
-  return new UnOp(Location().introduce(), UOT_NOT, e);
-}
+Expression* negate(Expression* e) { return new UnOp(Location().introduce(), UOT_NOT, e); }
 
 Expression* conj(vector<Expression*> exprs) {
   if (exprs.empty()) return nullptr;
@@ -115,23 +110,23 @@ Expression* conj(vector<Expression*> exprs) {
     return exprs[0];
   }
   BinOp* bo = new BinOp(Location().introduce(), exprs[0], BOT_AND, exprs[1]);
-  for(size_t i=2; i<exprs.size(); i++) {
+  for (size_t i = 2; i < exprs.size(); i++) {
     bo = new BinOp(Location().introduce(), bo, BOT_AND, exprs[i]);
   }
   return bo;
 }
 
 void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>& term_strings,
-    string name,  EscapedStringStack& gens, EscapedStringStack& coefs, EscapedStringStack& wheres,
-    Expression* root) {
-
+                        string name, EscapedStringStack& gens, EscapedStringStack& coefs,
+                        EscapedStringStack& wheres, Expression* root) {
   vector<StackFrame> stack;
   stack.emplace_back(name, gens.size(), coefs.size(), wheres.size(), root);
 
   while (!stack.empty()) {
     StackFrame frame = stack.back();
 
-    // std::cerr << "Frame["<< stack.size() <<"]: " << frame.gen_idx << ", " << frame.coef_idx << ", " << frame.where_idx << " :: " << *frame.e << std::endl;
+    // std::cerr << "Frame["<< stack.size() <<"]: " << frame.gen_idx << ", " << frame.coef_idx << ",
+    // " << frame.where_idx << " :: " << *frame.e << std::endl;
 
     gens.popTo(frame.gen_idx);
     coefs.popTo(frame.coef_idx);
@@ -178,7 +173,8 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
         }
         stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), body);
       } else {
-        term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, call));
+        term_strings.push_back(
+            getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, call));
       }
     } else if (BinOp* bo = Expression::dynamicCast<BinOp>(frame.e)) {
       if (bo->op() == BOT_MULT) {
@@ -193,28 +189,33 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
           coefs.push(ss.str());
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         } else {
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo));
+          term_strings.push_back(
+              getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo));
         }
       } else if (bo->op() == BOT_PLUS && Expression::type(bo->lhs()).isvar()) {
-        if(Expression::type(bo->lhs()).isPar()) {
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
+        if (Expression::type(bo->lhs()).isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries,
+                                                   coefs.entries, bo->lhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         }
-        if(Expression::type(bo->rhs()).isPar()) {
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
+        if (Expression::type(bo->rhs()).isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries,
+                                                   coefs.entries, bo->rhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
         }
       } else if (bo->op() == BOT_MINUS) {
-        if(Expression::type(bo->lhs()).isPar()) {
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->lhs()));
+        if (Expression::type(bo->lhs()).isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries,
+                                                   coefs.entries, bo->lhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->lhs());
         }
         coefs.push("-1");
-        if(Expression::type(bo->rhs()).isPar()) {
-          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, bo->rhs()));
+        if (Expression::type(bo->rhs()).isPar()) {
+          term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries,
+                                                   coefs.entries, bo->rhs()));
         } else {
           stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), bo->rhs());
         }
@@ -227,20 +228,23 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
 
       bool post = true;
       if (it != assigns.end()) {
-        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(), wheres.size(), it->second);
+        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(),
+                           wheres.size(), it->second);
         post = false;
       }
       if (id->decl()->e()) {
-        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(), wheres.size(), id->decl()->e());
+        stack.emplace_back(id->decl()->id()->str().c_str(), gens.size(), coefs.size(),
+                           wheres.size(), id->decl()->e());
         post = false;
       }
       if (post) {
         // It is just a plain ID. It doesn't matter if it is par or not
-        term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
+        term_strings.push_back(
+            getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
       }
-    } else if (ITE* ite = Expression::dynamicCast<ITE>(frame.e)){
+    } else if (ITE* ite = Expression::dynamicCast<ITE>(frame.e)) {
       vector<Expression*> negs;
-      for(size_t i=0; i<ite->size(); i++) {
+      for (size_t i = 0; i < ite->size(); i++) {
         Expression* currentIf = ite->ifExpr(i);
 
         vector<Expression*> negs_if(negs);
@@ -250,7 +254,8 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
         where_ss << *conj(negs_if);
         wheres.push(where_ss.str());
 
-        collectTermStrings(assigns, term_strings, frame.name, gens, coefs, wheres, ite->thenExpr(i));
+        collectTermStrings(assigns, term_strings, frame.name, gens, coefs, wheres,
+                           ite->thenExpr(i));
         wheres.popTo(frame.where_idx);
 
         negs.push_back(negate(currentIf));
@@ -264,10 +269,10 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
 
     } else {
       // std::cerr << "getTermTypeString(..., " << *frame.e << ")" << std::endl;
-      term_strings.push_back(getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, frame.e));
+      term_strings.push_back(
+          getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, frame.e));
     }
   }
-
 }
 
 string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) {
@@ -286,7 +291,6 @@ string getTermsJSON(unordered_map<Id*, Expression*>& assigns, Expression* root) 
   ss << "[" << utils::join(term_strings, ", ") << "]";
   return ss.str();
 }
-
 
 string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*, Expression*>& assigns) {
   if (!si || si->st() == SolveI::ST_SAT) {
@@ -322,13 +326,13 @@ std::string GetTermTypes::get_name() { return "get-term-types"; }
 void GetTermTypes::write_json(std::ostream& os) { os << json_output; }
 
 struct AssignCollector : public MiniZinc::EVisitor {
-  unordered_map<Id*, Expression*> &assigns;
+  unordered_map<Id*, Expression*>& assigns;
 
-  AssignCollector(unordered_map<Id*, Expression*> &as);
+  AssignCollector(unordered_map<Id*, Expression*>& as);
   bool enter(MiniZinc::Expression* e);
 };
 
-AssignCollector::AssignCollector(unordered_map<Id*, Expression*> &as) : assigns{as} {};
+AssignCollector::AssignCollector(unordered_map<Id*, Expression*>& as) : assigns{as} {};
 
 bool AssignCollector::enter(MiniZinc::Expression* e) {
   if (BinOp* bo = Expression::dynamicCast<BinOp>(e)) {
@@ -343,7 +347,7 @@ bool AssignCollector::enter(MiniZinc::Expression* e) {
     return bo->op() == BOT_AND;
   }
 
-  if (Call *c = Expression::dynamicCast<Call>(e)) {
+  if (Call* c = Expression::dynamicCast<Call>(e)) {
     return string(c->id().c_str()) == "forall";
   }
 
@@ -354,7 +358,7 @@ MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
   // Collect functional assignments for objective processing
   Model* m = e->model();
   unordered_map<Id*, Expression*> assigns;
-  AssignCollector ac {assigns};
+  AssignCollector ac{assigns};
 
   // Collect top level assigns
   for (ConstraintI& ci : m->constraints()) {
@@ -367,4 +371,4 @@ MiniZinc::Env* GetTermTypes::run(MiniZinc::Env* e, std::ostream& log) {
   return e;
 }
 
-}  // namespace MznTool
+}  // namespace MznAnalyse

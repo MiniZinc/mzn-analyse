@@ -17,7 +17,7 @@ using std::ostream;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 // Wrap arbitrary Expression* with let
 // e -> let {var lb(e)..ub(e): x_i;
@@ -390,4 +390,4 @@ MiniZinc::Env* LetSubstituter::run(MiniZinc::Env* e, std::ostream& log) {
 
   return e;
 }
-}  // namespace MznTool
+}  // namespace MznAnalyse

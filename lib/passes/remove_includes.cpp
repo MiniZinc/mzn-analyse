@@ -5,7 +5,7 @@
 using namespace MiniZinc;
 using std::string;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 RemoveIncludes::RemoveIncludes(const std::vector<string>& is) : includes{is} {}
 
@@ -30,4 +30,4 @@ Env* RemoveIncludes::run(Env* e, std::ostream& log) {
   model->compact();
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

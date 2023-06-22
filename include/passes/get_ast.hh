@@ -8,7 +8,7 @@
 #include "location_utils.hh"
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 class ExprPrinter {
 private:
@@ -91,4 +91,4 @@ public:
   void write_json(std::ostream& os) override;
   std::string get_name() override;
 };
-};  // namespace MznTool
+};  // namespace MznAnalyse

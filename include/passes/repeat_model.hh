@@ -6,7 +6,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 struct VdInfo {
   std::string name;
@@ -18,7 +18,7 @@ struct VdInfo {
 
 class RepeatModel : public ToolPass {
 private:
-  unsigned int k_models; 
+  unsigned int k_models;
   std::vector<VdInfo> vds;
 
 public:
@@ -29,4 +29,4 @@ public:
   std::string get_name() override;
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

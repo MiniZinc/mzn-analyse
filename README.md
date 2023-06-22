@@ -2,7 +2,7 @@
 
 ## Usage
 ```
-mzn_tool input.mzn [passes]
+mzn-analyse input.mzn [passes]
 ```
 
 where `[passes]` is the list of passes and arguments for those passes (`cmd:arg1,arg2,...` with no spaces unless quoted)
@@ -14,7 +14,7 @@ An explicit final `out` must be added to the end if you wish to output models th
 
 ```
  usage:
-   mzn_tool in.mzn [passes...]
+   mzn-analyse in.mzn [passes...]
 
  passes:
    in:in.mzn
@@ -74,20 +74,20 @@ An explicit final `out` must be added to the end if you wish to output models th
 
 1. Remove the solve and output items from the model and write the model to solveless.mzn. It then inlines the local includes and outputs to stdout as "FlatZinc" (no linebreaks while printing an item).
 ```
-mzn_tool in.mzn remove-items:solve,output out:solveless.mzn inline-includes out_fzn
+mzn-analyse in.mzn remove-items:solve,output out:solveless.mzn inline-includes out_fzn
 ```
 
 2. Remove all items except constraint items, picks out the 50th constraint, remove any annotations, then output to stdout.
 The implicit output will default to `out_fzn` since the input was fzn.
 ```
-mzn_tool in.fzn filter-items:constraint get-items:50 remove-anns
+mzn-analyse in.fzn filter-items:constraint get-items:50 remove-anns
 ```
 
 3. The following requests the data-deps information for constraints 60, 61, and 62 from a FlatZinc file.
 The `no_out` command disables the automatic insertion of `out_fzn`.
 
 ```
-$ ./mzn_tool.exe rcpsp-wet-r0.annotated.fzn filter-items:constraint get-items:60,61,62 get-data-deps no_out
+$ ./mzn-analyse.exe rcpsp-wet-r0.annotated.fzn filter-items:constraint get-items:60,61,62 get-data-deps no_out
 {"constraint_info": [
   [
     ["in", "i", "Tasks"],

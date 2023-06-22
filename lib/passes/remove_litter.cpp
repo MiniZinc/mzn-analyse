@@ -8,7 +8,7 @@
 using namespace MiniZinc;
 using std::string;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 RemoveLitter::RemoveLitter() {}
 
@@ -27,4 +27,4 @@ Env* RemoveLitter::run(Env* e, std::ostream& log) {
   model->compact();
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

@@ -8,7 +8,7 @@ using namespace MiniZinc;
 using MiniZinc::Type;
 using std::string;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 FilterItems::FilterItems(const std::vector<MiniZinc::Item::ItemId>& types, bool omit,
                          FilterItems::FilterTypeInst ti)
@@ -52,4 +52,4 @@ Env* FilterItems::run(Env* e, std::ostream& log) {
   model->compact();
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

@@ -10,7 +10,7 @@
 using MiniZinc::Env;
 using MiniZinc::Timer;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<MiniZinc::Pass>>& passes,
                       std::vector<std::string>& json_store, std::ostream& _log) {
@@ -56,4 +56,4 @@ Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<MiniZinc::Pass>>
   return pre_env;
 }
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

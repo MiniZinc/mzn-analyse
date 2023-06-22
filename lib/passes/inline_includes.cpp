@@ -21,7 +21,7 @@ using std::unordered_map;
 using std::unordered_set;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 InlineIncludes::InlineIncludes(bool lo) : local_only{lo} {}
 
@@ -35,7 +35,7 @@ Env* InlineIncludes::run(Env* e, std::ostream& log) {
     Item* item = model->operator[](i);
     if (IncludeI* ii = item->dynamicCast<IncludeI>()) {
       string filepath = ii->m()->filepath().c_str();
-      if(seen.find(filepath) != seen.end()) continue;
+      if (seen.find(filepath) != seen.end()) continue;
       seen.insert(filepath);
 
       if (!local_only || filepath.rfind(mzn_stdlib_dir, 0) != 0) {
@@ -50,4 +50,4 @@ Env* InlineIncludes::run(Env* e, std::ostream& log) {
   model->compact();
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

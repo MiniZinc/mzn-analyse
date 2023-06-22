@@ -7,7 +7,7 @@
 using namespace MiniZinc;
 using std::string;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 WriteModel::WriteModel(const string& op, bool fzn) : out_path{op}, is_fzn{fzn} {}
 
@@ -26,4 +26,4 @@ Env* WriteModel::run(Env* e, std::ostream& log) {
 
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

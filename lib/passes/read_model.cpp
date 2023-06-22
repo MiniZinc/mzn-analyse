@@ -1,5 +1,6 @@
 #include "passes/read_model.hh"
 
+#include <exception>
 #include <fstream>
 #include <iterator>
 #include <minizinc/file_utils.hh>
@@ -7,19 +8,19 @@
 #include <minizinc/prettyprinter.hh>
 #include <minizinc/solver.hh>
 #include <string>
-#include "string_utils.hh"
 
-#include <exception>
+#include "string_utils.hh"
 
 using namespace MiniZinc;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 struct LibNotFoundError : public std::exception {
-  const char *what() const throw () {
-    return "mzn_tool Cannot find minizinc StdLibDir; Try setting MZN_STDLIB_DIR environment variable.\n"
+  const char* what() const throw() {
+    return "mzn_tool Cannot find minizinc StdLibDir; Try setting MZN_STDLIB_DIR environment "
+           "variable.\n"
            "           The correct path might be found by calling minizinc --config-dirs \n";
   }
 };
@@ -32,8 +33,8 @@ ReadModel::ReadModel(const string& ip) : is_fzn{false} {
   mzn_paths.push_back(ip);
 }
 
-ReadModel::ReadModel(const vector<string> &ips) : is_fzn{false} {
-  for(const string &ip : ips) {
+ReadModel::ReadModel(const vector<string>& ips) : is_fzn{false} {
+  for (const string& ip : ips) {
     string extension = ip.size() > 4 ? ip.substr(ip.size() - 4, string::npos) : ".mzn";
     if (extension != ".dzn") {
       is_fzn = extension == ".fzn";
@@ -50,7 +51,7 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
   vector<string> includes;
 
   string share_dir = FileUtils::share_directory();
-  if(share_dir.empty()) {
+  if (share_dir.empty()) {
     throw LibNotFoundError();
   }
 
@@ -64,7 +65,8 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
       std::vector<MiniZinc::SyntaxError> syntaxErrors;
       std::string input =
           std::string(std::istreambuf_iterator<char>(std::cin), std::istreambuf_iterator<char>());
-      m = parse_from_string(*nenv, input, "stdin.mzn", includes, is_fzn, false, false, false, std::cerr);
+      m = parse_from_string(*nenv, input, "stdin.mzn", includes, is_fzn, false, false, false,
+                            std::cerr);
       if (syntaxErrors.size() > 0) {
         for (unsigned int i = 0; i < syntaxErrors.size(); i++) {
           std::cerr << syntaxErrors[i].loc() << ":" << std::endl;
@@ -73,7 +75,8 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
         exit(EXIT_FAILURE);
       }
     } else {
-      m = parse(*nenv, mzn_paths, dzn_paths, "", "", includes, {}, is_fzn, false, false, false, std::cerr);
+      m = parse(*nenv, mzn_paths, dzn_paths, "", "", includes, {}, is_fzn, false, false, false,
+                std::cerr);
     }
   } catch (ResultUndefinedError& e) {
     // Ensure warnings are printed, but remove warning corresponding to this error
@@ -105,7 +108,8 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
   }
 
   if (!m) {
-    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << "," << utils::join(dzn_paths, ",") << std::endl;
+    std::cerr << "ReadModel: Failed to parse files: " << utils::join(mzn_paths, ",") << ","
+              << utils::join(dzn_paths, ",") << std::endl;
     std::exit(EXIT_FAILURE);
   }
   if (!is_fzn) {
@@ -127,4 +131,4 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
   nenv->model(m);
   return nenv;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

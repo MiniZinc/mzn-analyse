@@ -4,7 +4,7 @@
 
 #include "string_utils.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 JSONTool::JSONTool(std::vector<std::string>& store, JSONCommand cmd, const std::string& out)
     : json_store{store}, command{cmd}, out_path{out} {}
@@ -33,4 +33,4 @@ MiniZinc::Env* JSONTool::run(MiniZinc::Env* e, std::ostream& log) {
   return e;
 }
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

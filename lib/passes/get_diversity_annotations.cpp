@@ -23,7 +23,7 @@ using std::string;
 using std::unordered_map;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZinc::Model* m) {
   // Get SolveI si
@@ -103,8 +103,8 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
             VarDecl* typed = id->decl();
             ti = typed->ti();
           } else {
-            ti = new TypeInst(Location().introduce(), Expression::type(arg_vd), arg_vd->ti()->ranges(),
-                              arg_vd->ti()->domain());
+            ti = new TypeInst(Location().introduce(), Expression::type(arg_vd),
+                              arg_vd->ti()->ranges(), arg_vd->ti()->domain());
           }
 
           VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
@@ -214,4 +214,4 @@ MiniZinc::Env* GetDiversityAnns::run(MiniZinc::Env* e, std::ostream& log) {
   return e;
 }
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

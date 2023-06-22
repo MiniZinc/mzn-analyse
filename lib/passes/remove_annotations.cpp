@@ -10,7 +10,7 @@ using namespace MiniZinc;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 RemoveAnnotations::RemoveAnnotations(const std::vector<string>& as) : ann_names{as} {}
 
@@ -32,7 +32,7 @@ MiniZinc::Env* RemoveAnnotations::run(MiniZinc::Env* e, std::ostream& log) {
         } else {
           for (string& name : ann_names) {
             if ((Expression::isa<Id>(ann_e) &&
-                  string(Expression::cast<Id>(ann_e)->str().c_str()) == name) ||
+                 string(Expression::cast<Id>(ann_e)->str().c_str()) == name) ||
                 (Expression::isa<Call>(ann_e) &&
                  string(Expression::cast<Call>(ann_e)->id().c_str()) == name)) {
               toRemove.push_back(ann_e);
@@ -65,4 +65,4 @@ MiniZinc::Env* RemoveAnnotations::run(MiniZinc::Env* e, std::ostream& log) {
 
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

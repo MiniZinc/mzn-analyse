@@ -2,7 +2,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 class FilterItems : public ToolPass {
 public:
@@ -22,4 +22,4 @@ public:
   bool should_remove(MiniZinc::Item* item);
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

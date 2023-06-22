@@ -4,7 +4,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 class GetDataDeps : public ToolPass {
 private:
@@ -20,4 +20,4 @@ public:
   std::string get_name() override;
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

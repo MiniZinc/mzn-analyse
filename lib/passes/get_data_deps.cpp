@@ -18,7 +18,7 @@ using std::ostream;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 int prec(string s) {
   if (s == "in") return 0;
@@ -33,11 +33,11 @@ int prec(string s) {
 
 ostream& operator<<(ostream& os, vector<Call*>& calls) {
   std::sort(calls.begin(), calls.end(), [](const auto& lhs, const auto& rhs) {
-    int l_depth =     IntLit::v(Expression::template cast<IntLit>(lhs->arg(0))).toInt();
-    int r_depth =     IntLit::v(Expression::template cast<IntLit>(rhs->arg(0))).toInt();
+    int l_depth = IntLit::v(Expression::template cast<IntLit>(lhs->arg(0))).toInt();
+    int r_depth = IntLit::v(Expression::template cast<IntLit>(rhs->arg(0))).toInt();
 
-    int l_index =     IntLit::v(Expression::template cast<IntLit>(lhs->arg(1))).toInt();
-    int r_index =     IntLit::v(Expression::template cast<IntLit>(rhs->arg(1))).toInt();
+    int l_index = IntLit::v(Expression::template cast<IntLit>(lhs->arg(1))).toInt();
+    int r_index = IntLit::v(Expression::template cast<IntLit>(rhs->arg(1))).toInt();
 
     int l_type = prec(Expression::template cast<StringLit>(lhs->arg(2))->v().c_str());
     int r_type = prec(Expression::template cast<StringLit>(rhs->arg(2))->v().c_str());
@@ -117,4 +117,4 @@ void GetDataDeps::collect_data_deps(Model* m) {
     c_id++;
   }
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

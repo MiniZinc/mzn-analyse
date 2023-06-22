@@ -18,7 +18,7 @@ using std::ostream;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations) : locs{locations} {}
 
@@ -184,4 +184,4 @@ MiniZinc::Env* GetExprs::run(MiniZinc::Env* e, std::ostream& log) {
 
   return e;
 }
-}  // namespace MznTool
+}  // namespace MznAnalyse

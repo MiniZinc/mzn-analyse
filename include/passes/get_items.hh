@@ -4,7 +4,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 class GetItems : public ToolPass {
 private:
@@ -16,4 +16,4 @@ public:
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

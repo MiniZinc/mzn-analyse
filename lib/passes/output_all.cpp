@@ -7,7 +7,7 @@ using namespace MiniZinc;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 OutputAll::OutputAll() {}
 
@@ -21,4 +21,4 @@ MiniZinc::Env* OutputAll::run(MiniZinc::Env* e, std::ostream& log) {
 
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

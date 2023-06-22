@@ -19,7 +19,7 @@ using std::ostream;
 using std::string;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 std::string json_escape(const std::string& orig) {
   std::string repchars = "\\&\"\'<>\n";
@@ -831,4 +831,4 @@ MiniZinc::Env* GetAST::run(MiniZinc::Env* e, std::ostream& log) {
 
 void GetAST::write_json(ostream& os) { ic.write_json(os); }
 
-}  // namespace MznTool
+}  // namespace MznAnalyse

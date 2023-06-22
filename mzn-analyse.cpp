@@ -3,14 +3,15 @@
 #include <vector>
 
 #include "passes/annotate_data_deps.hh"
+#include "passes/discretise.hh"
 #include "passes/filter_items.hh"
 #include "passes/get_ast.hh"
 #include "passes/get_data_deps.hh"
 #include "passes/get_diversity_annotations.hh"
 #include "passes/get_exprs.hh"
 #include "passes/get_items.hh"
-#include "passes/get_term_types.hh"
 #include "passes/get_solve_anns.hh"
+#include "passes/get_term_types.hh"
 #include "passes/inline_includes.hh"
 #include "passes/json_tool.hh"
 #include "passes/let_substituter.hh"
@@ -21,12 +22,11 @@
 #include "passes/remove_litter.hh"
 #include "passes/repeat_model.hh"
 #include "passes/write_model.hh"
-#include "passes/discretise.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
 using namespace MiniZinc;
-using namespace MznTool;
+using namespace MznAnalyse;
 
 using std::string;
 using std::unique_ptr;
@@ -34,7 +34,7 @@ using std::vector;
 
 void print_usage() {
   std::cout << " usage:\n"
-            << "   mzn_tool in.mzn [passes...]\n"
+            << "   mzn-analyse in.mzn [passes...]\n"
             << "\n"
             << " passes:\n"
             << "   in:in.mzn\n"
@@ -64,7 +64,8 @@ void print_usage() {
             << "   remove-stdlib\n"
             << "     Remove stdlib includes\n"
             << "   remove-litter\n"
-            << "     Remove variables and functions that stdlib leaves in the root Model after typecheck\n"
+            << "     Remove variables and functions that stdlib leaves in the root Model after "
+               "typecheck\n"
             << "   get-items:idx1,[idx2,...]\n"
             << "     Narrow to items indexed by idx1,...\n"
             << "   filter-items:iid1,[iid2,...]\n"
@@ -163,18 +164,18 @@ struct PassCmd {
       return new WriteModel(args[0], true);
     } else if (cmd == "repeat-model") {
       unsigned int k = 2;
-      if(!args.empty()) {
+      if (!args.empty()) {
         int sk = stoi(args[0]);
-        if(sk >= 0) {
+        if (sk >= 0) {
           k = sk;
         }
       }
       return new RepeatModel(k);
     } else if (cmd == "discretise") {
       unsigned int k = 1;
-      if(!args.empty()) {
+      if (!args.empty()) {
         int sk = stoi(args[0]);
-        if(sk >= 0) {
+        if (sk >= 0) {
           k = sk;
         }
       }
@@ -246,7 +247,7 @@ std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
   return os;
 }
 
-bool isModelPath(const string &arg) {
+bool isModelPath(const string& arg) {
   if (arg.size() >= 4) {
     string ext = arg.substr(arg.size() - 4, 4);
     return ext == ".mzn" || ext == ".fzn" || ext == ".dzn";
@@ -282,8 +283,6 @@ int main(int argc, char** argv) {
   bool is_fzn = extension == ".fzn";
   string output_base = in_path.substr(0, in_path.size() - 4);
 
-
-
   // Sub-sections in the pipeline
   // First argument is an implicit "in:" command
   // Collect all passes and non-passes in sub-sections until the next explicit "in:" command
@@ -302,13 +301,13 @@ int main(int argc, char** argv) {
   for (size_t i = 1; i < argc; i++) {
     PassCmd pass_cmd{string(argv[i])};
     MiniZinc::Pass* pass = pass_cmd.getPass(json_store);
-    if(pass) {
+    if (pass) {
       // pass
-      if(pass_cmd.cmd == "in") {
+      if (pass_cmd.cmd == "in") {
         // finish section, start new section
         string paths = utils::join(section_in_paths, ",");
         passes.emplace_back(PassCmd("in", paths).getPass(json_store));
-        for(MiniZinc::Pass* p : section_passes) {
+        for (MiniZinc::Pass* p : section_passes) {
           passes.emplace_back(p);
         }
         section_in_paths.clear();
@@ -339,8 +338,8 @@ int main(int argc, char** argv) {
         continue;
       } else {
         // non-pass
-        string path {argv[i]};
-        if(!isModelPath(path)) {
+        string path{argv[i]};
+        if (!isModelPath(path)) {
           std::cerr << "Unknown filetype: " << path << std::endl;
           print_usage();
           return EXIT_FAILURE;
@@ -349,11 +348,11 @@ int main(int argc, char** argv) {
       }
     }
   }
-  if(!(section_passes.empty() && section_in_paths.empty())) {
+  if (!(section_passes.empty() && section_in_paths.empty())) {
     // finish section, start new section
     string paths = utils::join(section_in_paths, ",");
     passes.emplace_back(PassCmd("in", paths).getPass(json_store));
-    for(MiniZinc::Pass* p : section_passes) {
+    for (MiniZinc::Pass* p : section_passes) {
       passes.emplace_back(p);
     }
     section_in_paths.clear();

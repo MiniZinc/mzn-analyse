@@ -7,7 +7,7 @@
 using namespace MiniZinc;
 using std::string;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 GetItems::GetItems(const std::vector<size_t>& idxs) { indexes.insert(idxs.begin(), idxs.end()); }
 
@@ -23,4 +23,4 @@ Env* GetItems::run(Env* e, std::ostream& log) {
   model->compact();
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

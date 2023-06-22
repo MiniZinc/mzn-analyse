@@ -6,7 +6,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 class JSONTool : public ToolPass {
 public:
   enum JSONCommand { J_Output, J_Clear };
@@ -21,4 +21,4 @@ public:
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 };
-};  // namespace MznTool
+};  // namespace MznAnalyse

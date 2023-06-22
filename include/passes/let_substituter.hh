@@ -6,7 +6,7 @@
 #include "location_utils.hh"
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 class LetSubstituter : public ToolPass {
 private:
   std::vector<ShortLoc> locs;
@@ -19,4 +19,4 @@ public:
   std::string get_name() override;
   void write_json(std::ostream& os) override;
 };
-};  // namespace MznTool
+};  // namespace MznAnalyse

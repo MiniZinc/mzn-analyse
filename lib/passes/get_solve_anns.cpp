@@ -1,4 +1,3 @@
-#include "passes/get_term_types.hh"
 #include "passes/get_solve_anns.hh"
 
 #include <fstream>
@@ -14,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "passes/get_term_types.hh"
 #include "string_utils.hh"
 
 using namespace MiniZinc;
@@ -22,7 +22,7 @@ using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 GetSolveAnns::GetSolveAnns() {}
 
@@ -33,7 +33,7 @@ void GetSolveAnns::write_json(std::ostream& os) { os << json_output; }
 std::string getSolveAnns(const SolveI* si) {
   vector<string> anns;
 
-  for(auto& ann : si->ann()) {
+  for (auto& ann : si->ann()) {
     std::stringstream ss;
     ss << *ann;
     anns.push_back("\"" + utils::escape(ss.str(), false) + "\"");
@@ -57,4 +57,4 @@ MiniZinc::Env* GetSolveAnns::run(MiniZinc::Env* e, std::ostream& log) {
   return e;
 }
 
-}  // namespace MznTool
+}  // namespace MznAnalyse

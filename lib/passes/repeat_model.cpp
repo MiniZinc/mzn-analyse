@@ -2,34 +2,34 @@
 
 #include <fstream>
 #include <iterator>
+#include <minizinc/copy.hh>
 #include <minizinc/model.hh>
 #include <minizinc/prettyprinter.hh>
-#include <minizinc/copy.hh>
-#include <string>
-#include "string_utils.hh"
 #include <sstream>
+#include <string>
+
+#include "string_utils.hh"
 
 using namespace MiniZinc;
+using std::ostream;
 using std::string;
 using std::vector;
-using std::ostream;
 
-namespace MznTool {
-
+namespace MznAnalyse {
 
 std::string RepeatModel::get_name() { return "repeat-model"; }
 
-RepeatModel::RepeatModel(unsigned int k) : k_models{k} { }
+RepeatModel::RepeatModel(unsigned int k) : k_models{k} {}
 
 void RepeatModel::write_json(ostream& os) {
   os << "{\n"
      << "  \"variables\": {\n";
 
   vector<string> entries;
-  for(VdInfo& vdinfo : vds) {
+  for (VdInfo& vdinfo : vds) {
     std::stringstream ss;
-    if(!vdinfo.renames.empty()) {
-    ss << "    \"" << vdinfo.name << "\": [\"" << utils::join(vdinfo.renames, "\", \"") << "\"]";
+    if (!vdinfo.renames.empty()) {
+      ss << "    \"" << vdinfo.name << "\": [\"" << utils::join(vdinfo.renames, "\", \"") << "\"]";
     } else {
       // This shouldn't really be possible
       ss << "    \"" << vdinfo.name << "\": []";
@@ -43,14 +43,14 @@ void RepeatModel::write_json(ostream& os) {
 }
 
 Env* RepeatModel::run(Env* e, std::ostream& log) {
-  if(k_models == 0) {
+  if (k_models == 0) {
     return e;
   }
 
   Model* m = e->model();
   for (VarDeclI& vdi : m->vardecls()) {
     VarDecl* vd = vdi.e();
-    if(vd->type().ti() == MiniZinc::Type::TI_VAR) {
+    if (vd->type().ti() == MiniZinc::Type::TI_VAR) {
       string name = vd->id()->str().c_str();
       vds.emplace_back(name, vd->id());
     }
@@ -58,8 +58,8 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
 
   vector<Model*> models;
 
-  for(unsigned int i=0; i<k_models; i++) {
-    for(VdInfo& vdinfo : vds) {
+  for (unsigned int i = 0; i < k_models; i++) {
+    for (VdInfo& vdinfo : vds) {
       std::stringstream ss;
       ss << vdinfo.name << "_copy_" << i;
       string newname = ss.str();
@@ -78,43 +78,41 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
   bool isSat = s0->st() == SolveI::ST_SAT;
   bool hasOut = model_0->outputItem() != nullptr;
 
-  if(!isSat) {
+  if (!isSat) {
     objs.push_back(s0->e());
   }
 
   // Remove ann: output items;
   // TODO: figure out what they are
-  for(VarDeclI& vdi : model_0->vardecls()) {
-    if(vdi.e()->id()->str() == "output")
-      vdi.remove();
+  for (VarDeclI& vdi : model_0->vardecls()) {
+    if (vdi.e()->id()->str() == "output") vdi.remove();
   }
 
-  for(unsigned int i=1; i<k_models; i++) {
-    for(VarDeclI& vdi : models[i]->vardecls()) {
-      if(vdi.e()->id()->str() != "output")
-        model_0->addItem(&vdi);
+  for (unsigned int i = 1; i < k_models; i++) {
+    for (VarDeclI& vdi : models[i]->vardecls()) {
+      if (vdi.e()->id()->str() != "output") model_0->addItem(&vdi);
     }
 
-    for(ConstraintI& ci : models[i]->constraints()) {
+    for (ConstraintI& ci : models[i]->constraints()) {
       model_0->addItem(&ci);
     }
 
-    if(hasOut) {
+    if (hasOut) {
       model_0->addItem(models[i]->outputItem());
     }
 
     SolveI* si = models[i]->solveItem();
-    if(!isSat) {
+    if (!isSat) {
       objs.push_back(si->e());
     }
 
     s0->ann().merge(si->ann());
   }
 
-  if(!isSat) {
+  if (!isSat) {
     vector<Expression*> args;
     args.push_back(new ArrayLit(Location().introduce(), objs));
-    s0->e(Call::a(Location().introduce(),  "sum", args));
+    s0->e(Call::a(Location().introduce(), "sum", args));
   }
 
   e->model(model_0);
@@ -122,4 +120,4 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
   return e;
 }
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

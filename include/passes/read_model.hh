@@ -5,7 +5,7 @@
 
 #include "tool_pass.hh"
 
-namespace MznTool {
+namespace MznAnalyse {
 
 class ReadModel : public ToolPass {
 private:
@@ -15,9 +15,9 @@ private:
 
 public:
   ReadModel(const std::string& ip);
-  ReadModel(const std::vector<std::string> &ips);
+  ReadModel(const std::vector<std::string>& ips);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 };
 
-};  // namespace MznTool
+};  // namespace MznAnalyse

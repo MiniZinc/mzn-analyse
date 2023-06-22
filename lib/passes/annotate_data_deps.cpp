@@ -15,7 +15,7 @@ using std::stringstream;
 using std::unordered_map;
 using std::vector;
 
-namespace MznTool {
+namespace MznAnalyse {
 
 FunctionI* construct_data_ann(int nargs) {
   vector<VarDecl*> params;
@@ -222,8 +222,7 @@ void annotateWithData(EnvI& envi, Expression* root) {
         stack.emplace_back(depth + 1, comp->e());
 
         for (unsigned int i = comp->numberOfGenerators(); (i--) != 0U;) {
-          if (Expression::type(comp->e()).isvarbool() &&
-              comp->where(i) &&
+          if (Expression::type(comp->e()).isvarbool() && comp->where(i) &&
               Expression::type(comp->where(i)).isPar()) {
             Expression::addAnnotation(comp->e(), data_if(envi, depth, index, comp->where(i)));
             index++;
@@ -237,11 +236,12 @@ void annotateWithData(EnvI& envi, Expression* root) {
           for (unsigned int j = comp->numberOfDecls(i); (j--) != 0U;) {
             if (Expression::type(comp->e()).isvarbool()) {
               if (Expression::type(comp->decl(i, j)).isPar()) {
-                Expression::addAnnotation(comp->e(), data_assign(envi, depth, index, comp->decl(i, j)->id()));
+                Expression::addAnnotation(comp->e(),
+                                          data_assign(envi, depth, index, comp->decl(i, j)->id()));
                 index++;
                 if (Expression::type(comp->in(i)).isPar()) {
-                  Expression::addAnnotation(comp->e(),
-                      data_in(envi, depth, index, comp->decl(i, j)->id(), comp->in(i)));
+                  Expression::addAnnotation(
+                      comp->e(), data_in(envi, depth, index, comp->decl(i, j)->id(), comp->in(i)));
                   index++;
                 }
               }
@@ -254,10 +254,11 @@ void annotateWithData(EnvI& envi, Expression* root) {
         ITE* ite = Expression::template cast<ITE>(e);
         stack.emplace_back(depth + 1, ite->elseExpr());
         for (size_t j = 0; j < ite->size(); j++) {
-          if (Expression::type(ite->elseExpr()).isvarbool() && 
+          if (Expression::type(ite->elseExpr()).isvarbool() &&
               Expression::type(ite->ifExpr(j)).isPar()) {
-            Expression::addAnnotation(ite->elseExpr(), data_if(
-                envi, depth, index, new UnOp(Location().introduce(), UOT_NOT, ite->ifExpr(j))));
+            Expression::addAnnotation(ite->elseExpr(), data_if(envi, depth, index,
+                                                               new UnOp(Location().introduce(),
+                                                                        UOT_NOT, ite->ifExpr(j))));
             index++;
           }
         }
@@ -268,8 +269,10 @@ void annotateWithData(EnvI& envi, Expression* root) {
           for (size_t j = 0; j < i; j++) {
             if (Expression::type(ite->thenExpr(i)).isvarbool() &&
                 Expression::type(ite->ifExpr(j)).isPar()) {
-              Expression::addAnnotation(ite->thenExpr(i), data_if(
-                  envi, depth, index, new UnOp(Location().introduce(), UOT_NOT, ite->ifExpr(j))));
+              Expression::addAnnotation(
+                  ite->thenExpr(i),
+                  data_if(envi, depth, index,
+                          new UnOp(Location().introduce(), UOT_NOT, ite->ifExpr(j))));
               index++;
             }
           }
@@ -335,4 +338,4 @@ MiniZinc::Env* AnnotateDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
 
   return e;
 }
-};  // namespace MznTool
+};  // namespace MznAnalyse

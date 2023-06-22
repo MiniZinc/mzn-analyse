@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.0.0)
-project (mzn_tool CXX C)
+project (mzn-analyse CXX C)
 
 if(POLICY CMP0074)
   cmake_policy(SET CMP0074 NEW)
@@ -11,7 +11,7 @@ include(cmake-helpers/configure_cpp_14.cmake)
 message("-- Configuring: libminzinc")
 include(cmake-helpers/configure_libminizinc.cmake)
 
-add_executable(mzn_tool mzn_tool.cpp
+add_executable(mzn-analyse mzn-analyse.cpp
   lib/string_utils.cpp
   lib/location_utils.cpp
   lib/tool_pass.cpp
@@ -59,12 +59,12 @@ add_executable(mzn_tool mzn_tool.cpp
   include/passes/discretise.hh
   )
 
-target_include_directories(mzn_tool PRIVATE include)
-target_link_libraries(mzn_tool mzn ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(mzn-analyse PRIVATE include)
+target_link_libraries(mzn-analyse mzn ${CMAKE_THREAD_LIBS_INIT})
 
 include(cmake-helpers/format.cmake)
 
-install(TARGETS mzn_tool
+install(TARGETS mzn-analyse
   RUNTIME DESTINATION bin
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
