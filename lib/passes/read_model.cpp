@@ -19,7 +19,7 @@ namespace MznAnalyse {
 
 struct LibNotFoundError : public std::exception {
   const char* what() const throw() {
-    return "mzn_tool Cannot find minizinc StdLibDir; Try setting MZN_STDLIB_DIR environment "
+    return "mzn-analyse: Cannot find minizinc StdLibDir; Try setting MZN_STDLIB_DIR environment "
            "variable.\n"
            "           The correct path might be found by calling minizinc --config-dirs \n";
   }
