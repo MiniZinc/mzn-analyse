@@ -112,6 +112,9 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
               << utils::join(dzn_paths, ",") << std::endl;
     std::exit(EXIT_FAILURE);
   }
+
+  nenv->model(m);
+
   if (!is_fzn) {
     vector<TypeError> typeErrors;
     try {
@@ -128,7 +131,6 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
     }
   }
 
-  nenv->model(m);
   return nenv;
 }
 };  // namespace MznAnalyse
