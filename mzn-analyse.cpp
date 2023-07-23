@@ -93,6 +93,9 @@ void print_usage() {
             << "   get-exprs:location1,location2\n"
             << "     Extract list of expressions occurring inside location\n"
             << "     location = path.mzn|sl|sc|el|ec\n"
+            << "   get-exprs-types:location1,location2\n"
+            << "     Extract list of expressions with their types occurring inside location\n"
+            << "     location = path.mzn|sl|sc|el|ec\n"
             << "   get-ast:location1,location2\n"
             << "     Build JSON representation of AST for whole model or just for\n"
             << "     expression matching location1 or location2, place in "
@@ -136,7 +139,9 @@ struct PassCmd {
     } else if (cmd == "replace-with-newvar") {
       return new LetSubstituter(args);
     } else if (cmd == "get-exprs") {
-      return new GetExprs(args);
+      return new GetExprs(args, true);
+    } else if (cmd == "get-exprs-types") {
+      return new GetExprs(args, true, true);
     } else if (cmd == "remove-anns") {
       return new RemoveAnnotations(args);
     } else if (cmd == "remove-includes") {

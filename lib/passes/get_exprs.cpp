@@ -20,30 +20,40 @@ using std::vector;
 
 namespace MznAnalyse {
 
-UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations) : locs{locations} {}
+UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations, bool typed) : locs{locations}, include_types {typed} {}
 
-UniqueCollector::UniqueCollector(const std::vector<std::string>& paths) {
+UniqueCollector::UniqueCollector(const std::vector<std::string>& paths, bool typed) : include_types {typed} {
   for (const string& path : paths) {
     locs.emplace_back(path);
   }
 }
 
-void UniqueCollector::add_expr(const ShortLoc& loc, std::string s) {
-  if (s.empty()) return;
-  if (s[0] == '"') return;
+void UniqueCollector::add_expr(const ShortLoc& loc, Expression* e) {
+  std::stringstream ss_repr;
+  MiniZinc::Printer p(ss_repr, 0, true);
+  p.print(e);
+
+  std::string repr = ss_repr.str();
+  if (repr.empty()) return;
+  if (repr[0] == '"') return;
+
+  std::stringstream ss_type;
+  TypeInst* ti = nullptr;
+  if (Id* id = Expression::dynamicCast<Id>(e)) {
+    VarDecl* typed = id->decl();
+    ti = typed->ti();
+  } else {
+    ti = new TypeInst(Location().introduce(), Expression::type(e));
+  }
+
+  ss_type << *ti;
+  std::string type = ss_type.str();
 
   std::string loc_key = loc.to_string();
-  std::unordered_set<std::string>& seen = exprs[loc_key];
-  if (seen.find(s) == seen.end()) {
-    seen.insert(s);
+  std::unordered_map<std::string, ExprInfo>& seen = exprs[loc_key];
+  if (seen.find(repr) == seen.end()) {
+    seen.insert(std::make_pair(repr, ExprInfo(repr, type)));
   }
-}
-
-void UniqueCollector::add_expr(const ShortLoc& loc, Expression* e) {
-  std::stringstream ss;
-  MiniZinc::Printer p(ss, 0, true);
-  p.print(e);
-  add_expr(loc, ss.str());
 }
 
 void UniqueCollector::write_json(ostream& os) {
@@ -51,13 +61,20 @@ void UniqueCollector::write_json(ostream& os) {
 
   for (auto& loc_exprs : exprs) {
     std::vector<std::string> unique_exprs;
-    for (const auto& expr_str : loc_exprs.second) {
-      unique_exprs.push_back(utils::escape(expr_str, false));
+    for (const auto& expr_info : loc_exprs.second) {
+      if(include_types) {
+        std::stringstream ss;
+        ss << "{ \"expression\": \"" << utils::escape(expr_info.second.repr, false) << "\", ";
+        ss << " \"type\": \"" << utils::escape(expr_info.second.type, false) << "\" }";
+        unique_exprs.push_back(ss.str());
+      } else {
+        unique_exprs.push_back(utils::escape(expr_info.second.repr, false));
+      }
     }
 
     std::stringstream entry_ss;
     entry_ss << "    \"" << loc_exprs.first << "\": [";
-    entry_ss << utils::join(unique_exprs, ",", true);
+    entry_ss << utils::join(unique_exprs, ",", !include_types);
     entry_ss << "]";
     entries.push_back(entry_ss.str());
   }
@@ -128,8 +145,7 @@ bool ExpressionExtractorEVisitor::enter(Expression* e) {
     }
   }
 
-  return (is_parent || is_child) && Expression::eid(e) != Expression::E_ARRAYACCESS;
-  ;
+  return (is_parent || is_child); // && Expression::eid(e) != Expression::E_ARRAYACCESS;
 }
 
 ExpressionExtractor::ExpressionExtractor(const std::vector<ShortLoc>& locations,
@@ -167,8 +183,8 @@ LocExprMap get_exprs(const std::vector<ShortLoc>& locs, Model* m, bool only_par,
   return exprs;
 }
 
-GetExprs::GetExprs(const std::vector<std::string>& paths, bool only_par)
-    : uc{paths}, collect_par{only_par} {}
+GetExprs::GetExprs(const std::vector<std::string>& paths, bool only_par, bool typed)
+    : uc{paths, typed}, collect_par{only_par}, include_types{typed} {}
 
 void GetExprs::write_json(ostream& os) { uc.write_json(os); }
 

@@ -12,14 +12,20 @@ namespace MznAnalyse {
 
 typedef std::unordered_map<std::string, std::vector<MiniZinc::Expression*>> LocExprMap;
 
+struct ExprInfo {
+  std::string repr;
+  std::string type;
+  ExprInfo(std::string r, std::string t): repr{r}, type{t} {}
+};
+
 struct UniqueCollector {
   std::vector<ShortLoc> locs;
-  std::unordered_map<std::string, std::unordered_set<std::string>> exprs;
+  std::unordered_map<std::string, std::unordered_map<std::string, ExprInfo>> exprs;
+  bool include_types;
 
-  UniqueCollector(const std::vector<ShortLoc>& locations);
-  UniqueCollector(const std::vector<std::string>& paths);
+  UniqueCollector(const std::vector<ShortLoc>& locations, bool typed);
+  UniqueCollector(const std::vector<std::string>& paths, bool typed);
 
-  void add_expr(const ShortLoc& loc, std::string s);
   void add_expr(const ShortLoc& loc, MiniZinc::Expression* e);
 
   void write_json(std::ostream& os);
@@ -57,9 +63,10 @@ class GetExprs : public ToolPass {
 private:
   UniqueCollector uc;
   bool collect_par;
+  bool include_types;
 
 public:
-  GetExprs(const std::vector<std::string>& paths, bool only_par = true);
+  GetExprs(const std::vector<std::string>& paths, bool only_par = true, bool typed = false);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 
