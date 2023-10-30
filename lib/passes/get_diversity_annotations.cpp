@@ -88,7 +88,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           div_opts.type = "global";
           div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
           div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-        } else if (ca->id() == string("diversity_pairwise") && ca->argCount() == 2) {
+        } else if (ca->id() == string("diverse_pairwise") && ca->argCount() == 2) {
           VarInfo vi;
 
           std::stringstream varname_ss;
