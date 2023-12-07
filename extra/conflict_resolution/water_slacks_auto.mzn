@@ -1,0 +1,15 @@
+include "slacks.mzn";
+set of int: Res;
+array [Res] of int: min_level;
+array [Res] of var 0..100: max_level_slack = slack_link(max_level, max_level_slack_up, max_level_slack_down, 0..100);
+var int: total_water_slack = slack_link(total_water, total_water_slack_up, total_water_slack_down, 0..100);
+array [Res] of var 0..infinity: water_level;
+constraint (sum(water_level)==total_water_slack) :: mzn_constraint_name("All water must be in a reservoir");
+constraint forall ( r in Res ) ( (min_level[r]<=water_level[r]) :: mzn_expression_name("Lower "++format(r)++"") /\ (water_level[r]<=max_level_slack[r]) :: mzn_expression_name("Upper "++format(r)++"") ) :: mzn_constraint_name("Reservoirs have capacities and min-levels");
+solve minimize slack_opt_mode(max_level_slack_up++max_level_slack_down++[total_water_slack_up]++[total_water_slack_down]);
+array [Res] of 0..100: max_level;
+array [Res] of var 0..100: max_level_slack_up;
+array [Res] of var 0..100: max_level_slack_down;
+int: total_water;
+var 0..100: total_water_slack_up;
+var 0..100: total_water_slack_down;

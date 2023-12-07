@@ -3,6 +3,7 @@
 #include <iostream>
 #include <minizinc/file_utils.hh>
 #include <minizinc/model.hh>
+#include <minizinc/prettyprinter.hh>
 #include <string>
 
 using namespace MiniZinc;
@@ -10,7 +11,8 @@ using std::string;
 
 namespace MznAnalyse {
 
-RemoveLitter::RemoveLitter() {}
+RemoveLitter::RemoveLitter(bool agg) : aggressive{agg} {}
+
 
 Env* RemoveLitter::run(Env* e, std::ostream& log) {
   Model* model = e->model();
@@ -20,8 +22,15 @@ Env* RemoveLitter::run(Env* e, std::ostream& log) {
   for (size_t i = 0; i < model->size(); i++) {
     Item* item = model->operator[](i);
     ASTString filepath = item->loc().filename();
-    if (filepath.empty() || string(filepath.c_str()).rfind(mzn_stdlib_dir, 0) != string::npos) {
-      item->remove();
+
+    if (aggressive) {
+      if (filepath != model->filepath()) {
+        item->remove();
+      }
+    } else {
+      if (filepath.empty() || string(filepath.c_str()).rfind(mzn_stdlib_dir, 0) != string::npos) {
+        item->remove();
+      }
     }
   }
   model->compact();

@@ -1,13 +1,18 @@
 #pragma once
 
+#include <string>
+
 #include "tool_pass.hh"
 
 namespace MznAnalyse {
-class RemoveLitter : public ToolPass {
+
+class Slackify : public ToolPass {
 public:
-  bool aggressive;
-  RemoveLitter(bool agg);
+  Slackify();
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+
+  std::string get_name() override;
 };
+
 };  // namespace MznAnalyse

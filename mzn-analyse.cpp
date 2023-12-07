@@ -8,6 +8,7 @@
 #include "passes/get_ast.hh"
 #include "passes/get_data_deps.hh"
 #include "passes/get_diversity_annotations.hh"
+#include "passes/slackify.hh"
 #include "passes/get_exprs.hh"
 #include "passes/get_items.hh"
 #include "passes/get_solve_anns.hh"
@@ -81,6 +82,8 @@ void print_usage() {
             << "   get-solve-anns\n"
             << "     Get solve annotations\n"
             << "\n"
+            << "   slackify\n"
+            << "     Use in conjunction with slack.mzn annotations to build relaxed model\n"
             << "   get-diversity-anns\n"
             << "     Extract solution diversity parameters from model\n"
             << "   annotate-data-deps\n"
@@ -132,6 +135,8 @@ struct PassCmd {
       return new GetTermTypes();
     } else if (cmd == "get-solve-anns") {
       return new GetSolveAnns();
+    } else if (cmd == "slackify") {
+      return new Slackify();
     } else if (cmd == "get-diversity-anns") {
       return new GetDiversityAnns();
     } else if (cmd == "get-data-deps") {
@@ -151,7 +156,9 @@ struct PassCmd {
     } else if (cmd == "remove-stdlibs") {
       return new RemoveIncludes({"solver_redefinitions.mzn", "stdlib.mzn"});
     } else if (cmd == "remove-litter") {
-      return new RemoveLitter();
+      return new RemoveLitter(false);
+    } else if (cmd == "remove-litter-aggressive") {
+        return new RemoveLitter(true);
     } else if (cmd == "in") {
       if (args.empty()) {
         return nullptr;

@@ -35,6 +35,7 @@ add_executable(mzn-analyse mzn-analyse.cpp
   lib/passes/let_substituter.cpp
   lib/passes/json_tool.cpp
   lib/passes/discretise.cpp
+  lib/passes/slackify.cpp
 
   include/string_utils.hh
   include/location_utils.hh
@@ -57,6 +58,7 @@ add_executable(mzn-analyse mzn-analyse.cpp
   include/passes/let_substituter.hh
   include/passes/json_tool.hh
   include/passes/discretise.hh
+  include/passes/slackify.hh
   )
 
 target_include_directories(mzn-analyse PRIVATE include)
