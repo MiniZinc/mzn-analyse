@@ -33,7 +33,7 @@ constraint forall ( i in 1..m ) ( cumulative(start, duration, [ c[k, i] | k in 1
 constraint forall ( i in 1..p ) ( if typ[i]==1 then followed[i] -> end[k1_slack[i]]+d_slack[i]<=start[k2_slack[i]] else if typ[i]==2 then followed[i] -> end[k1_slack[i]]+d_slack[i]>=start[k2_slack[i]] else if typ[i]==3 then followed[i] -> start[k1_slack[i]]<=start[k2_slack[i]]+d_slack[i] else if typ[i]==4 then followed[i] -> end[k1_slack[i]]<=end[k2_slack[i]]+d_slack[i] else true endif endif endif endif );
 constraint forall ( i in 1..r ) ( makespan>=end[i] );
 solve :: seq_search([int_search(start, smallest, indomain_min, complete), int_search(line, input_order, indomain_min, complete), bool_search(followed, input_order, indomain_min, complete), int_search([makespan], input_order, indomain_min, complete)]) minimize slack_objective;
-include "slacks_objective.mzn";
+include "slacks_internal.mzn";
 array [1..n] of 1..r: t;
 array [1..n] of var 0..10: t_slack_up;
 array [1..n] of var 0..0: t_slack_down;

@@ -106,7 +106,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     return e;
   }
 
-  m->addItem(new IncludeI(Location().introduce(), ASTString("slacks_objective.mzn")));
+  m->addItem(new IncludeI(Location().introduce(), ASTString("slacks_internal.mzn")));
 
   for (const SlackParInfo& spi : slack_pars) {
     std::stringstream ss;

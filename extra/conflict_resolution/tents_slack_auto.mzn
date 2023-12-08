@@ -16,7 +16,7 @@ constraint forall ( c in col ) ( sum ( r in row ) ( t[r, c] )==col_sums_slack[c]
 constraint forall ( r in row, c in col where a[r, c]==1 ) ( t[r-1, c]+t[r+1, c]+t[r, c-1]+t[r, c+1]>=1 );
 constraint forall ( r in row where r < n, c in col where c < n ) ( t[r, c]+t[r+1, c]+t[r, c+1]+t[r+1, c+1]<=1 );
 solve :: int_search([ t[r, c] | r in row, c in col ], input_order, indomain_max, complete) minimize slack_objective;
-include "slacks_objective.mzn";
+include "slacks_internal.mzn";
 array [row] of int: row_sums;
 array [row] of var 0..10: row_sums_slack_up;
 array [row] of var 0..0: row_sums_slack_down;

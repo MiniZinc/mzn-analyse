@@ -7,7 +7,7 @@ array [Res] of var 0..infinity: water_level;
 constraint (sum(water_level)==total_water_slack) :: mzn_constraint_name("All water must be in a reservoir");
 constraint forall ( r in Res ) ( (min_level[r]<=water_level[r]) :: mzn_expression_name("Lower "++format(r)++"") /\ (water_level[r]<=max_level_slack[r]) :: mzn_expression_name("Upper "++format(r)++"") ) :: mzn_constraint_name("Reservoirs have capacities and min-levels");
 solve minimize slack_objective;
-include "slacks_objective.mzn";
+include "slacks_internal.mzn";
 array [Res] of 0..100: max_level;
 array [Res] of var 0..10: max_level_slack_up;
 array [Res] of var 0..10: max_level_slack_down;

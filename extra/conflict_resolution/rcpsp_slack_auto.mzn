@@ -21,7 +21,7 @@ constraint forall ( r in Res ) (
     } in (if RTasks!={} /\ sum_rr > rc_slack[r] then cumulative([ s[i] | i in RTasks ], [ d[i] | i in RTasks ], [ rr[r, i] | i in RTasks ], rc_slack[r]) else true endif) );
 constraint forall ( i in Tasks where suc[i]=={} ) ( s[i]+d[i]<=objective );
 solve :: int_search(s++[objective], smallest, indomain_min, complete) minimize slack_objective;
-include "slacks_objective.mzn";
+include "slacks_internal.mzn";
 array [Res] of int: rc;
 array [Res] of var 0..100: rc_slack_up;
 array [Res] of var 0..0: rc_slack_down;
