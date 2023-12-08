@@ -1,0 +1,17 @@
+include "slacks.mzn";
+int: n = 5;
+int: v = 4;
+array [1..n] of var 1..v: x;
+array [1..n, 1..v] of var 0..1: x_b;
+array [1..v] of var int: constraint_violation_slack = slack_link(constraint_violation, constraint_violation_slack_down, constraint_violation_slack_up, 0, 10);
+constraint forall ( i in 1..n ) ( sum ( j in 1..v ) ( x_b[i, j] )==1 );
+constraint forall ( i in 1..n ) ( sum ( j in 1..v ) ( j*x_b[i, j] )==x[i] );
+constraint forall ( j in 1..v ) ( sum ( i in 1..n ) ( x_b[i, j] )-constraint_violation_slack[j]==1 );
+include "slacks_internal.mzn";
+array [1..v] of int: constraint_violation = [ 0 | i in 1..v ];
+array [1..v] of var 0..10: constraint_violation_slack_up;
+array [1..v] of var 0..0: constraint_violation_slack_down;
+all_slacks = constraint_violation_slack_up++constraint_violation_slack_down;
+constraint slack_configure_objective();
+solve minimize slack_objective;
+constraint old_objective==0;

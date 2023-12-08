@@ -28,11 +28,12 @@ namespace MznAnalyse {
 struct SlackParInfo {
   ASTString basename;
   Id* id;
+  Expression* e;
   Expression* down;
   Expression* up;
 
-  SlackParInfo(ASTString bname, Id* orig_id, Expression* d, Expression* u)
-      : basename{bname}, id{orig_id}, down{d}, up{u} {}
+  SlackParInfo(ASTString bname, Id* orig_id, Expression* rhs, Expression* d, Expression* u)
+      : basename{bname}, id{orig_id}, e{rhs}, down{d}, up{u} {}
 };
 
 Slackify::Slackify() {}
@@ -41,7 +42,11 @@ std::string Slackify::get_name() { return "slackify"; }
 
 struct IdReplacer : public MiniZinc::EVisitor {
   bool enter(MiniZinc::Expression* e) { return e; };
-  void vId(Id* id) { id->v(id->decl()->id()->v()); }
+  void vId(Id* id) { 
+    if(VarDecl* vd = id->decl()) {
+      id->v(vd->id()->v());
+    }
+  }
 };
 
 struct IdFinder : public MiniZinc::EVisitor {
@@ -97,7 +102,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     VarDecl* vd = vdi.e();
     Annotation& ann = Expression::ann(vd);
     if (Call* ca = ann.getCall(slack_par)) {
-      slack_pars.emplace_back(vd->id()->str(), vd->id(), ca->arg(0), ca->arg(1));
+      slack_pars.emplace_back(vd->id()->str(), vd->id(), vd->e(), ca->arg(0), ca->arg(1));
       ann.removeCall(slack_par);
     }
   }
@@ -114,8 +119,14 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     std::string name = ss.str();
 
     spi.id->v(ASTString(name));
-    spi.id->decl()->id()->v(ASTString(name));
-    spi.id->decl()->ti()->mkVar(e->envi());
+
+    VarDecl* psvd = spi.id->decl();
+
+    psvd->id()->v(ASTString(name));
+    psvd->ti()->mkVar(e->envi());
+    psvd->e(nullptr);
+
+    Expression::addAnnotation(psvd, MiniZinc::Constants().ann.output);
   }
 
   // Move variable domains out
@@ -138,9 +149,17 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     m->addItem(ii);
   }
 
-  IdReplacer t;
-  for (const ConstraintI& ci : m->constraints()) {
-    top_down(t, ci.e());
+  IdReplacer id_replacer;
+  for (VarDeclI& vdi : m->vardecls()) {
+    top_down(id_replacer, vdi.e());
+  }
+  for (ConstraintI& ci : m->constraints()) {
+    top_down(id_replacer, ci.e());
+  }
+  if(SolveI* si = m->solveItem()) {
+    if(Expression* obj = si->e()) {
+      top_down(id_replacer, obj);
+    }
   }
 
   vector<Expression*> all_slacks;
@@ -154,6 +173,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     newTi->mkPar(e->envi());
 
     VarDecl* newBasePar = new VarDecl(Expression::loc(spi.id), newTi, newbaseid, nullptr);
+    newBasePar->e(spi.e);
 
     VarDeclI* basevdi = VarDeclI::a(Expression::loc(spi.id), newBasePar);
     m->addItem(basevdi);
@@ -210,6 +230,11 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
   m->addItem(sco_ci);
 
   SolveI* si = m->solveItem();
+
+  if (!si) {
+    si = SolveI::min(Location().introduce(), nullptr);
+    m->addItem(si);
+  }
 
   Expression* obj_expr = si->e();
   if (!obj_expr) {
