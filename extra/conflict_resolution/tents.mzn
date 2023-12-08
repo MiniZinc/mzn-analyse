@@ -46,8 +46,8 @@ set of int: col = 1..n;
 array [row, col] of 0..1: a;            % The problem: 1 - tree, 0 - unknown.
 
 include "slacks.mzn";
-array [row] of int: row_sums :: slack_par(0..10);           % The number of tents in each row.
-array [col] of int: col_sums :: slack_par(0..10);           % The number of tents in each column.
+array [row] of int: row_sums :: slack_par(0,10);           % The number of tents in each row.
+array [col] of int: col_sums :: slack_par(0,10);           % The number of tents in each column.
 
 % Model.
 

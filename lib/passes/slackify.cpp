@@ -28,10 +28,11 @@ namespace MznAnalyse {
 struct SlackParInfo {
   ASTString basename;
   Id* id;
-  Expression* range;
+  Expression* down;
+  Expression* up;
 
-  SlackParInfo(ASTString bname, Id* orig_id, Expression* r)
-      : basename{bname}, id{orig_id}, range{r} {}
+  SlackParInfo(ASTString bname, Id* orig_id, Expression* d, Expression* u)
+      : basename{bname}, id{orig_id}, down{d}, up{u} {}
 };
 
 Slackify::Slackify() {}
@@ -40,9 +41,34 @@ std::string Slackify::get_name() { return "slackify"; }
 
 struct IdReplacer : public MiniZinc::EVisitor {
   bool enter(MiniZinc::Expression* e) { return e; };
-
   void vId(Id* id) { id->v(id->decl()->id()->v()); }
 };
+
+struct IdFinder : public MiniZinc::EVisitor {
+  bool found = false;
+  const vector<SlackParInfo>& slack_pars;
+  const VarDecl* ignore_decl;
+
+  IdFinder(const vector<SlackParInfo>& sps, const VarDecl* idecl)
+      : slack_pars{sps}, ignore_decl{idecl} {}
+
+  bool enter(MiniZinc::Expression* e) { return !found && e != nullptr; };
+  void vId(Id* id) {
+    for (const SlackParInfo& spi : slack_pars) {
+      if (spi.id->decl() != ignore_decl && id->decl() == spi.id->decl()) {
+        found = true;
+        return;
+      }
+    }
+  }
+};
+
+bool hasSlackVarDomain(const vector<SlackParInfo>& slack_pars, VarDeclI& vdi) {
+  VarDecl* vd = vdi.e();
+  IdFinder idf(slack_pars, vd);
+  top_down(idf, vd->ti()->domain());
+  return idf.found;
+}
 
 Expression* array_concat(const vector<Expression*>& arrays, int i = 0) {
   if (i >= arrays.size()) return nullptr;
@@ -71,10 +97,16 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     VarDecl* vd = vdi.e();
     Annotation& ann = Expression::ann(vd);
     if (Call* ca = ann.getCall(slack_par)) {
-      slack_pars.emplace_back(vd->id()->str(), vd->id(), ca->arg(0));
+      slack_pars.emplace_back(vd->id()->str(), vd->id(), ca->arg(0), ca->arg(1));
       ann.removeCall(slack_par);
     }
   }
+
+  if (slack_pars.empty()) {
+    return e;
+  }
+
+  m->addItem(new IncludeI(Location().introduce(), ASTString("slacks_objective.mzn")));
 
   for (const SlackParInfo& spi : slack_pars) {
     std::stringstream ss;
@@ -86,8 +118,28 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     spi.id->decl()->ti()->mkVar(e->envi());
   }
 
+  // Move variable domains out
+  vector<Item*> items_to_add;
+  for (VarDeclI& vdi : m->vardecls()) {
+    if (hasSlackVarDomain(slack_pars, vdi)) {
+      VarDecl* vd = vdi.e();
+
+      if (Expression* domain = vd->ti()->domain()) {
+        vector<Expression*> args;
+        args.push_back(vd->id()), args.push_back(domain);
+        Expression* x_in_dom = Call::a(Expression::loc(domain), "slack_domain", args);
+        ConstraintI* ci = new ConstraintI(Expression::loc(domain), x_in_dom);
+        items_to_add.push_back(ci);
+        vd->ti()->domain(nullptr);
+      }
+    }
+  }
+  for (Item* ii : items_to_add) {
+    m->addItem(ii);
+  }
+
+  IdReplacer t;
   for (const ConstraintI& ci : m->constraints()) {
-    IdReplacer t;
     top_down(t, ci.e());
   }
 
@@ -96,6 +148,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
   for (const SlackParInfo& spi : slack_pars) {
     // Add new vars
     VarDecl* vd = Expression::dynamicCast<VarDecl>(spi.id->decl());
+
     Id* newbaseid = new Id(Expression::loc(spi.id), spi.basename, nullptr);
     TypeInst* newTi = Expression::dynamicCast<TypeInst>(copy(e->envi(), vd->ti()));
     newTi->mkPar(e->envi());
@@ -111,7 +164,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     Id* newupid = new Id(Expression::loc(spi.id), upname, nullptr);
 
     TypeInst* upti = Expression::dynamicCast<TypeInst>(copy(e->envi(), vd->ti()));
-    upti->domain(spi.range);
+    upti->domain(new BinOp(Location().introduce(), IntLit::a(0), BOT_DOTDOT, spi.up));
 
     VarDecl* newSlackUp = new VarDecl(Expression::loc(spi.id), upti, newupid, nullptr);
 
@@ -126,7 +179,7 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
     Id* newdownid = new Id(Expression::loc(spi.id), downname, nullptr);
 
     TypeInst* downti = Expression::dynamicCast<TypeInst>(copy(e->envi(), vd->ti()));
-    downti->domain(spi.range);
+    downti->domain(new BinOp(Location().introduce(), IntLit::a(0), BOT_DOTDOT, spi.down));
 
     VarDecl* newSlackDown = new VarDecl(Expression::loc(spi.id), downti, newdownid, nullptr);
 
@@ -136,19 +189,40 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
 
     vector<Expression*> args;
     args.push_back(newbaseid);
-    args.push_back(newupid);
     args.push_back(newdownid);
-    args.push_back(spi.range);
+    args.push_back(newupid);
+    args.push_back(spi.down);
+    args.push_back(spi.up);
     Call* ca = Call::a(Expression::loc(spi.id), ASTString("slack_link"), args);
     spi.id->decl()->e(ca);
   }
 
-  vector<Expression*> args;
-  args.push_back(array_concat(all_slacks));
-  Call* obj_call = Call::a(Location().introduce(), ASTString("slack_opt_mode"), args);
+  Expression* all_slacks_array = array_concat(all_slacks);
+  AssignI* all_slacks_assign = new AssignI(
+    Location().introduce(),
+    ASTString("all_slacks"),
+    all_slacks_array
+  );
+  m->addItem(all_slacks_assign);
+
+  Call* obj_call = Call::a(Location().introduce(), ASTString("slack_configure_objective"), {});
+  ConstraintI* sco_ci = new ConstraintI(Location().introduce(), obj_call);
+  m->addItem(sco_ci);
+
   SolveI* si = m->solveItem();
+
+  Expression* obj_expr = si->e();
+  if (!obj_expr) {
+    obj_expr = IntLit::a(0);
+  }
+
+  Id* so_id = new Id(Location().introduce(), ASTString("old_objective"), nullptr);
+  BinOp* bo = new BinOp(Location().introduce(), so_id, BOT_EQ, obj_expr);
+  ConstraintI* ci = new ConstraintI(Location().introduce(), bo);
+  m->addItem(ci);
+
   si->st(SolveI::SolveType::ST_MIN);
-  si->e(obj_call);
+  si->e(new Id(Location().introduce(), ASTString("slack_objective"), nullptr));
 
   if (OutputI* oi = m->outputItem()) {
     oi->remove();

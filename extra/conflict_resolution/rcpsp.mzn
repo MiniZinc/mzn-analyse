@@ -29,7 +29,7 @@ int: n_res;                     % The number of resources
 set of int: Res = 1..n_res;     % The set of all resources
 
 include "slacks.mzn";
-array [Res] of int: rc :: slack_par(0..100);         % The resource capabilities
+array [Res] of int: rc :: slack_par(0, 100);         % The resource capabilities
 
     % Tasks
     %
