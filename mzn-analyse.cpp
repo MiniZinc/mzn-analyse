@@ -67,6 +67,9 @@ void print_usage() {
             << "   remove-litter\n"
             << "     Remove variables and functions that stdlib leaves in the root Model after "
                "typecheck\n"
+            << "   remove-litter-aggressive\n"
+            << "     Remove variables and functions that stdlib leaves in the root Model after "
+               "typecheck\n"
             << "   get-items:idx1,[idx2,...]\n"
             << "     Narrow to items indexed by idx1,...\n"
             << "   filter-items:iid1,[iid2,...]\n"
@@ -106,6 +109,12 @@ void print_usage() {
             << "   discretise:base_factor\n"
             << "     Attempt to discretise a MIP flatzinc model\n"
             << "\n";
+}
+
+string trimLeadingDash(string arg) {
+  int idx = 0;
+  while(idx < arg.size() && arg[idx] == '-') { idx++; };
+  return arg.substr(idx, arg.size()-idx);
 }
 
 struct PassCmd {
@@ -311,7 +320,23 @@ int main(int argc, char** argv) {
   vector<MiniZinc::Pass*> section_passes;
 
   for (size_t i = 1; i < argc; i++) {
-    PassCmd pass_cmd{string(argv[i])};
+    vector<string> split_args;
+
+    // Attempt to stitch pass args together (arg ends with : or ,)
+    // We expect: pass:arg1,arg2,arg3
+    // This should be possible: --pass: arg1, arg2,arg3
+    string arg = trimLeadingDash(string(argv[i]));
+    split_args.push_back(arg);
+    while(arg[arg.size()-1] == ':' || arg[arg.size()-1] == ',') {
+      i++;
+      if (i >= argc) {
+        break;
+      }
+      arg = string(argv[i]);
+      split_args.push_back(arg);
+    }
+
+    PassCmd pass_cmd{utils::join(split_args, "")};
     MiniZinc::Pass* pass = pass_cmd.getPass(json_store);
     if (pass) {
       // pass
