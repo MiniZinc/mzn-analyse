@@ -23,6 +23,7 @@
 #include "passes/remove_litter.hh"
 #include "passes/repeat_model.hh"
 #include "passes/write_model.hh"
+#include "passes/sort_model.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
@@ -84,6 +85,8 @@ void print_usage() {
             << "     Make k copies of the model with unique ids (default: 2)\n"
             << "   get-solve-anns\n"
             << "     Get solve annotations\n"
+            << "   sort\n"
+            << "     Sort model\n"
             << "\n"
             << "   slackify\n"
             << "     Use in conjunction with slack.mzn annotations to build relaxed model\n"
@@ -168,6 +171,8 @@ struct PassCmd {
       return new RemoveLitter(false);
     } else if (cmd == "remove-litter-aggressive") {
         return new RemoveLitter(true);
+    } else if (cmd == "sort") {
+        return new SortModel();
     } else if (cmd == "in") {
       if (args.empty()) {
         return nullptr;

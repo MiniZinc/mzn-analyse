@@ -42,8 +42,8 @@ std::string Slackify::get_name() { return "slackify"; }
 
 struct IdReplacer : public MiniZinc::EVisitor {
   bool enter(MiniZinc::Expression* e) { return e; };
-  void vId(Id* id) { 
-    if(VarDecl* vd = id->decl()) {
+  void vId(Id* id) {
+    if (VarDecl* vd = id->decl()) {
       id->v(vd->id()->v());
     }
   }
@@ -156,8 +156,8 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
   for (ConstraintI& ci : m->constraints()) {
     top_down(id_replacer, ci.e());
   }
-  if(SolveI* si = m->solveItem()) {
-    if(Expression* obj = si->e()) {
+  if (SolveI* si = m->solveItem()) {
+    if (Expression* obj = si->e()) {
       top_down(id_replacer, obj);
     }
   }
@@ -218,11 +218,8 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
   }
 
   Expression* all_slacks_array = array_concat(all_slacks);
-  AssignI* all_slacks_assign = new AssignI(
-    Location().introduce(),
-    ASTString("all_slacks"),
-    all_slacks_array
-  );
+  AssignI* all_slacks_assign =
+      new AssignI(Location().introduce(), ASTString("all_slacks"), all_slacks_array);
   m->addItem(all_slacks_assign);
 
   Call* obj_call = Call::a(Location().introduce(), ASTString("slack_configure_objective"), {});

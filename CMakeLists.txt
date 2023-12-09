@@ -30,6 +30,7 @@ add_executable(mzn-analyse mzn-analyse.cpp
   lib/passes/read_model.cpp
   lib/passes/repeat_model.cpp
   lib/passes/write_model.cpp
+  lib/passes/sort_model.cpp
   lib/passes/get_ast.cpp
   lib/passes/get_exprs.cpp
   lib/passes/let_substituter.cpp
@@ -59,6 +60,8 @@ add_executable(mzn-analyse mzn-analyse.cpp
   include/passes/json_tool.hh
   include/passes/discretise.hh
   include/passes/slackify.hh
+  include/passes/sort_model.hh
+  include/passes/write_model.hh
   )
 
 target_include_directories(mzn-analyse PRIVATE include)
