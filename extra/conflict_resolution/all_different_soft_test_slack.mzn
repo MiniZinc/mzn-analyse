@@ -1,0 +1,16 @@
+include "all_different.mzn";
+include "slacks.mzn";
+int: n;
+int: v;
+array [1..n] of var 1..v: x;
+var int: adv_slack :: output = slack_link(adv, adv_slack_down, adv_slack_up, 0, ceil(int2float(n*(n-1))/int2float(2)));
+predicate all_different_soft(array [int] of var int: x, var int: violation) = if lb(violation)==0 /\ ub(violation)==0 then all_different(x) else violation==sum ( i, j in index_set(x) where i < j ) ( bool2int(x[i]==x[j]) ) endif;
+constraint all_different_soft(x, adv_slack);
+include "slacks_internal.mzn";
+int: adv = 0;
+var 0..ceil(int2float(n*(n-1))/int2float(2)): adv_slack_up;
+var 0..0: adv_slack_down;
+all_slacks = [adv_slack_up]++[adv_slack_down];
+constraint slack_configure_objective();
+solve minimize slack_objective;
+constraint old_objective==0;
