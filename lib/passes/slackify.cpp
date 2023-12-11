@@ -68,11 +68,19 @@ struct IdFinder : public MiniZinc::EVisitor {
   }
 };
 
-bool hasSlackVarDomain(const vector<SlackParInfo>& slack_pars, VarDeclI& vdi) {
+enum SlackUse {S_NONE, S_DOM, S_EXPR};
+
+SlackUse testSlackUsage(const vector<SlackParInfo>& slack_pars, VarDeclI& vdi) {
   VarDecl* vd = vdi.e();
   IdFinder idf(slack_pars, vd);
+
   top_down(idf, vd->ti()->domain());
-  return idf.found;
+  if(idf.found) return S_DOM;
+
+  top_down(idf, vd->e());
+  if(idf.found) return S_EXPR;
+
+  return S_NONE;
 }
 
 Expression* array_concat(const vector<Expression*>& arrays, int i = 0) {
@@ -132,7 +140,9 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
   // Move variable domains out
   vector<Item*> items_to_add;
   for (VarDeclI& vdi : m->vardecls()) {
-    if (hasSlackVarDomain(slack_pars, vdi)) {
+    SlackUse su = testSlackUsage(slack_pars, vdi);
+
+    if (su == S_DOM) {
       VarDecl* vd = vdi.e();
 
       if (Expression* domain = vd->ti()->domain()) {
@@ -143,7 +153,11 @@ MiniZinc::Env* Slackify::run(MiniZinc::Env* e, std::ostream& log) {
         items_to_add.push_back(ci);
         vd->ti()->domain(nullptr);
       }
+    } else if (su == S_EXPR) {
+      VarDecl* vd = vdi.e();
+      vd->ti()->mkVar(e->envi());
     }
+
   }
   for (Item* ii : items_to_add) {
     m->addItem(ii);

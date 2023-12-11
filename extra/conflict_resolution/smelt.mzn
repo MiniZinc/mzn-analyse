@@ -10,7 +10,7 @@ int: r; % number of recipes
 array[1..r,1..m] of int: c; % c[k,i] use of mineral i in recipe k
 
 int: n; % number of orders
-array[1..n] of 1..r: t :: slack_par(0,10);	% recipe of order
+array[1..n] of 1..r: t;	% recipe of order
 
 include "slacks.mzn";
 array[1..n] of int : h :: slack_par(0,10); % height
