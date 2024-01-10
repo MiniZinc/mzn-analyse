@@ -63,6 +63,6 @@ predicate slack_configure_objective() =
   elseif selectedSlackMode = SLACK_MAX
     then slack_objective = sum(s in all_slacks) (ub(s)) * max(all_slacks) + sum(all_slacks)
   elseif selectedSlackMode = SLACK_NONZERO
-    then slack_objective = sum(i in index_set(all_slacks)) (all_slacks[i] > 0)
+    then slack_objective = sum(s in all_slacks) (ub(s)) * sum(i in index_set(all_slacks)) (all_slacks[i] > 0) + sum(all_slacks)
   else slack_objective = 0 /\ forall(i in index_set(all_slacks)) (all_slacks[i] = 0)
   endif;
