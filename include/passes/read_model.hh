@@ -18,6 +18,8 @@ public:
   ReadModel(const std::vector<std::string>& ips);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+
+  std::string get_name() { return "read-model"; }
 };
 
 };  // namespace MznAnalyse

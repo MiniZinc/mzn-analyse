@@ -14,6 +14,6 @@ public:
   Discretise(unsigned int base_scale);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
-  std::string get_name() override;
+  std::string get_name() { return "discretise"; }
 };
 };  // namespace MznAnalyse

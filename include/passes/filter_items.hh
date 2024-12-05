@@ -20,6 +20,8 @@ public:
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 
   bool should_remove(MiniZinc::Item* item);
+
+  std::string get_name() { return "filter-items"; }
 };
 
 };  // namespace MznAnalyse

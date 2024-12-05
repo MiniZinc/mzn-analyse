@@ -810,8 +810,6 @@ void ASTCollector::add_expr(const ShortLoc& loc, Expression* e) { add_ast(loc, e
 // GetAST
 GetAST::GetAST(const std::vector<std::string>& paths) : ic{paths} {}
 
-std::string GetAST::get_name() { return "get-ast"; }
-
 MiniZinc::Env* GetAST::run(MiniZinc::Env* e, std::ostream& log) {
   Model* m = e->model();
 

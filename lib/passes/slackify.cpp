@@ -38,8 +38,6 @@ struct SlackParInfo {
 
 Slackify::Slackify() {}
 
-std::string Slackify::get_name() { return "slackify"; }
-
 // Force decls of Ids to use the correct Id
 struct IdReplacer : public MiniZinc::EVisitor {
   bool enter(MiniZinc::Expression* e) { return e; };

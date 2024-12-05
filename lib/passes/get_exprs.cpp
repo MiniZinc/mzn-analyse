@@ -188,8 +188,6 @@ GetExprs::GetExprs(const std::vector<std::string>& paths, bool only_par, bool ty
 
 void GetExprs::write_json(ostream& os) { uc.write_json(os); }
 
-std::string GetExprs::get_name() { return "get-exprs"; }
-
 MiniZinc::Env* GetExprs::run(MiniZinc::Env* e, std::ostream& log) {
   LocExprMap expr_map = get_exprs(uc.locs, e->model(), collect_par);
   for (auto& exprs : expr_map) {

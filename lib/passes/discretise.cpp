@@ -25,8 +25,6 @@ namespace MznAnalyse {
 
 Discretise::Discretise(unsigned int base_scale) : base_scale_factor{base_scale} {}
 
-std::string Discretise::get_name() { return "discretise"; }
-
 // void Discretise::write_json(std::ostream& os) { os << json_output; }
 
 struct VarInfo {

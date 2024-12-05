@@ -375,7 +375,6 @@ LetSubstituter::LetSubstituter(const std::vector<std::string>& paths) {
   }
 }
 
-std::string LetSubstituter::get_name() { return "replace-with-newvar"; }
 void LetSubstituter::write_json(std::ostream& os) { os << json_output; }
 
 MiniZinc::Env* LetSubstituter::run(MiniZinc::Env* e, std::ostream& log) {

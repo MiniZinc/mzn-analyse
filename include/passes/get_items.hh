@@ -14,6 +14,7 @@ public:
   GetItems(const std::vector<size_t>& idxs);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  std::string get_name() { return "get-items"; }
 };
 
 };  // namespace MznAnalyse

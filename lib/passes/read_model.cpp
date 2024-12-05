@@ -133,4 +133,5 @@ Env* ReadModel::run(Env* e, std::ostream& log) {
 
   return nenv;
 }
+
 };  // namespace MznAnalyse

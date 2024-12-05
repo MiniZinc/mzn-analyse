@@ -321,8 +321,6 @@ string getObjectiveTermsJSON(SolveI* si, unordered_map<Id*, Expression*>& assign
 
 GetTermTypes::GetTermTypes() {}
 
-std::string GetTermTypes::get_name() { return "get-term-types"; }
-
 void GetTermTypes::write_json(std::ostream& os) { os << json_output; }
 
 struct AssignCollector : public MiniZinc::EVisitor {

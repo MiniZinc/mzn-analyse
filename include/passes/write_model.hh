@@ -16,5 +16,6 @@ public:
   WriteModel(const std::string& op, bool is_fzn = false);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  std::string get_name() { return "write-model"; }
 };
 };  // namespace MznAnalyse

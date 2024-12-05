@@ -9,5 +9,6 @@ public:
   RemoveLitter(bool agg);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  std::string get_name() { return "remove-litter"; }
 };
 };  // namespace MznAnalyse

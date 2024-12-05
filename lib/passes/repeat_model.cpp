@@ -17,8 +17,6 @@ using std::vector;
 
 namespace MznAnalyse {
 
-std::string RepeatModel::get_name() { return "repeat-model"; }
-
 RepeatModel::RepeatModel(unsigned int k) : k_models{k} {}
 
 void RepeatModel::write_json(ostream& os) {

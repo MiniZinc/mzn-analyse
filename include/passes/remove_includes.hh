@@ -15,6 +15,7 @@ public:
   RemoveIncludes(const std::vector<std::string>& is);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  std::string get_name() { return "remove-includes"; }
 };
 
 };  // namespace MznAnalyse

@@ -22,7 +22,8 @@ Env* multiPassFlatten(Env& e, const std::vector<std::unique_ptr<MiniZinc::Pass>>
   for (unsigned int i = 0; i < passes.size(); i++) {
     pre_env->envi().multiPassInfo.currentPassNumber = i;
     if (verbose) {
-      _log << "Start pass " << i << ":\n";
+      ToolPass* tp = dynamic_cast<ToolPass*>(passes[i].get());
+      _log << "Start pass " << i << " " << (tp != nullptr ? tp->get_name(): "default pass") << ":\n";
     }
 
     Env* out_env = passes[i]->run(pre_env, _log);

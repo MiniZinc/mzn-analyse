@@ -26,8 +26,6 @@ namespace MznAnalyse {
 
 GetSolveAnns::GetSolveAnns() {}
 
-std::string GetSolveAnns::get_name() { return "get-solve-anns"; }
-
 void GetSolveAnns::write_json(std::ostream& os) { os << json_output; }
 
 std::string getSolveAnns(const SolveI* si) {

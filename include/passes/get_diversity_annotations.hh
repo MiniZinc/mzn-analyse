@@ -44,7 +44,7 @@ public:
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
 
   void write_json(std::ostream& os) override;
-  std::string get_name() override;
+  std::string get_name() { return "get-diversity-annotations"; }
 };
 
 };  // namespace MznAnalyse

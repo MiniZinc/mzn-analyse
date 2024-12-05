@@ -20,5 +20,6 @@ public:
   JSONTool(std::vector<std::string>& store, JSONCommand cmd, const std::string& out);
 
   MiniZinc::Env* run(MiniZinc::Env* e, std::ostream& log) override;
+  std::string get_name() { return "json-tool"; }
 };
 };  // namespace MznAnalyse

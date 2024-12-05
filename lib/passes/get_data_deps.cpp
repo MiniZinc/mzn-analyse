@@ -89,8 +89,6 @@ void GetDataDeps::write_json(ostream& os) {
 
 GetDataDeps::GetDataDeps() {}
 
-std::string GetDataDeps::get_name() { return "get-data-deps"; }
-
 MiniZinc::Env* GetDataDeps::run(MiniZinc::Env* e, std::ostream& log) {
   Model* m = e->model();
 
