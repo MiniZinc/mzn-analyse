@@ -97,7 +97,8 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
 
           TypeInst* ti;
           Expression* arg0 = ca->arg(0);
-          VarDecl* arg_vd = ca->decl()->param(0);
+          FunctionI* fn = m->matchFn(env->envi(), ca, false, true);
+          VarDecl* arg_vd = fn->param(0);
 
           if (Id* id = Expression::dynamicCast<Id>(arg0)) {
             VarDecl* typed = id->decl();
@@ -193,8 +194,6 @@ void GetDiversityAnns::write_json(ostream& os) {
 }
 
 GetDiversityAnns::GetDiversityAnns() {}
-
-std::string GetDiversityAnns::get_name() { return "get-diversity-annotations"; }
 
 MiniZinc::Env* GetDiversityAnns::run(MiniZinc::Env* e, std::ostream& log) {
   Model* m = e->model();
