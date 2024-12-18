@@ -88,8 +88,11 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           div_opts.type = "global";
           div_opts.k = eval_int(env->envi(), ca->arg(0)).toInt();
           div_opts.gap = eval_float(env->envi(), ca->arg(1)).toDouble();
-        } else if (ca->id() == string("diverse_pairwise") && ca->argCount() == 2) {
+        } else if (ca->id() == string("diverse_pairwise") && ca->argCount() <= 5) {
           VarInfo vi;
+          vi.lb = "0";
+          vi.ub = "infinity";
+          vi.coef = "1";
 
           std::stringstream varname_ss;
           varname_ss << "div_curr_var_" << div_opts.vars.size();
@@ -143,6 +146,29 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
 
           vi.distance_function = eval_string(env->envi(), ca->arg(1));
 
+          if (ca->argCount() == 5) {
+            {
+              Expression* e = eval_par(env->envi(), ca->arg(2));
+              std::stringstream ss;
+              ss << *e;
+              vi.lb = ss.str();
+            }
+
+            {
+              Expression* e = eval_par(env->envi(), ca->arg(3));
+              std::stringstream ss;
+              ss << *e;
+              vi.ub = ss.str();
+            }
+
+            {
+              Expression* e = eval_par(env->envi(), ca->arg(4));
+              std::stringstream ss;
+              ss << *e;
+              vi.coef = ss.str();
+            }
+          }
+
           div_opts.vars.emplace_back(vi);
         }
       }
@@ -184,7 +210,10 @@ void GetDiversityAnns::write_json(ostream& os) {
        << "      \"type\": \"" << vi.type << "\",\n"
        << "      \"prev_name\": \"" << vi.prev_name << "\",\n"
        << "      \"prev_type\": \"" << vi.prev_type << "\",\n"
-       << "      \"distance_function\": \"" << vi.distance_function << "\"\n"
+       << "      \"distance_function\": \"" << vi.distance_function << "\",\n"
+       << "      \"lb\": \"" << vi.lb << "\",\n"
+       << "      \"ub\": \"" << vi.ub << "\",\n"
+       << "      \"coef\": \"" << vi.coef << "\"\n"
        << "    }";
     var_specs.emplace_back(ss.str());
   }

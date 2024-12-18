@@ -12,6 +12,9 @@ struct VarInfo {
   std::string type;
   std::string prev_type;
   std::string distance_function;
+  std::string lb;
+  std::string ub;
+  std::string coef;
 };
 
 struct ObjInfo {
