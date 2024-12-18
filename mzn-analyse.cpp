@@ -276,7 +276,7 @@ std::ostream& operator<<(std::ostream& os, const PassCmd& pass) {
 bool isModelPath(const string& arg) {
   if (arg.size() >= 4) {
     string ext = arg.substr(arg.size() - 4, 4);
-    return ext == ".mzn" || ext == ".fzn" || ext == ".dzn";
+    return ext == ".mzn" || ext == ".fzn" || ext == ".dzn" || ext == "json";
   }
   return arg == "-";
 }

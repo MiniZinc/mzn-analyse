@@ -36,7 +36,7 @@ ReadModel::ReadModel(const string& ip) : is_fzn{false} {
 ReadModel::ReadModel(const vector<string>& ips) : is_fzn{false} {
   for (const string& ip : ips) {
     string extension = ip.size() > 4 ? ip.substr(ip.size() - 4, string::npos) : ".mzn";
-    if (extension != ".dzn") {
+    if (! (extension == ".dzn" || extension == "json") ) {
       is_fzn = extension == ".fzn";
       mzn_paths.push_back(ip);
     } else {
