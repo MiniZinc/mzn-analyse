@@ -3,7 +3,7 @@ stages:
   - trigger
 
 .download_script: &download_script
-  - curl --location --header "PRIVATE-TOKEN:$ACCESS_TOKEN" --silent https://gitlab.com/api/v4/snippets/1796163/raw | tr -d '\r' > download.sh
+  - curl --retry 10 --location --header "PRIVATE-TOKEN:$ACCESS_TOKEN" --silent https://gitlab.com/api/v4/snippets/1796163/raw | tr -d '\r' > download.sh
 
 .build:
   stage: build
@@ -48,7 +48,7 @@ build:win64:
     CMAKEDIR: "CMake/libminizinc"
     CMAKE_ARCH: "Ninja"
   before_script:
-    - curl -o download.sh --location --header "PRIVATE-TOKEN:%ACCESS_TOKEN%" --silent https://gitlab.com/api/v4/snippets/1796163/raw
+    - curl --retry 10 -o download.sh --location --header "PRIVATE-TOKEN:%ACCESS_TOKEN%" --silent https://gitlab.com/api/v4/snippets/1796163/raw
     - dos2unix download.sh
   script:
     - sh download.sh minizinc-vendor master vendor:%MZNARCH% vendor.zip
