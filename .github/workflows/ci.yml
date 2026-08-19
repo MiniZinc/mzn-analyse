@@ -1,0 +1,167 @@
+name: Build & Package
+
+# Build mzn-analyse against a pinned libminizinc release (see
+# scripts/fetch_minizinc.sh for how that release is chosen) and publish it, so the
+# MiniZinc IDE can bundle a build that matches the compiler it ships.
+#
+# Platforms match libminizinc's, so every published compiler has a matching build.
+
+on:
+  push:
+    branches: [develop]
+    tags: ["*"]
+  pull_request: {}
+  workflow_dispatch:
+    inputs:
+      minizinc_release:
+        description: "libminizinc release to build against (blank = tag or edge)."
+        type: string
+        default: ""
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GH_TOKEN: ${{ github.token }}
+  # Honoured by scripts/fetch_minizinc.sh; blank means "resolve from the ref".
+  MZN_RELEASE: ${{ github.event.inputs.minizinc_release }}
+
+jobs:
+  build:
+    name: build (${{ matrix.platform }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: linux,       triple: x86_64-linux-gnu,     runner: ubuntu-24.04,     container: "quay.io/pypa/manylinux_2_28_x86_64",  setup: "",                                                   generator: "Unix Makefiles", cmakedir: "lib64/cmake" }
+          - { platform: linux-arm64, triple: aarch64-linux-gnu,    runner: ubuntu-24.04-arm, container: "quay.io/pypa/manylinux_2_28_aarch64", setup: "",                                                   generator: "Unix Makefiles", cmakedir: "lib64/cmake" }
+          - { platform: musl,        triple: x86_64-linux-musl,    runner: ubuntu-24.04,     container: "alpine:3.20",                         setup: "apk add --no-cache bash build-base cmake ninja git zlib-dev", generator: "Ninja",          cmakedir: "lib/cmake" }
+          - { platform: musl-arm64,  triple: aarch64-linux-musl,   runner: ubuntu-24.04-arm, container: "alpine:3.20",                         setup: "apk add --no-cache bash build-base cmake ninja git zlib-dev", generator: "Ninja",          cmakedir: "lib/cmake" }
+          - { platform: osx,         triple: aarch64-apple-darwin, runner: macos-14,         container: "",                                    setup: "",                                                   generator: "Ninja",          cmakedir: "lib/cmake" }
+          - { platform: osx-intel,   triple: x86_64-apple-darwin,  runner: macos-26-intel,   container: "",                                    setup: "",                                                   generator: "Ninja",          cmakedir: "lib/cmake" }
+          - { platform: win64,       triple: x86_64-windows,       runner: windows-2022,     container: "",                                    setup: "",                                                   generator: "Ninja",          cmakedir: "CMake" }
+          - { platform: win64-arm,   triple: aarch64-windows,      runner: windows-11-arm,   container: "",                                    setup: "",                                                   generator: "Ninja",          cmakedir: "CMake" }
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Fetch libminizinc + Gecode
+        shell: bash
+        run: bash scripts/fetch_minizinc.sh ${{ matrix.triple }}
+
+      - uses: TheMrMilchmann/setup-msvc-dev@v4.1.0
+        if: startsWith(matrix.platform, 'win64')
+        with:
+          arch: ${{ matrix.platform == 'win64-arm' && 'arm64' || 'x64' }}
+
+      # Containers match the compiler's: manylinux_2_28 for the glibc 2.28 floor,
+      # alpine for musl. `setup` installs what the bare image lacks.
+      - name: Configure & build
+        shell: bash
+        env:
+          # MSVC reports __cplusplus as 199711L unless asked not to, so Gecode's
+          # bundled Boost cannot pick a rounding-control implementation on ARM64.
+          CXXFLAGS: ${{ matrix.platform == 'win64-arm' && '/Zc:__cplusplus' || '' }}
+          # Matches minizinc-vendor and libminizinc's own per-platform choice;
+          # ignored (and harmless) on every non-macOS platform.
+          CMAKE_OSX_ARCHITECTURES: ${{ matrix.platform == 'osx-intel' && 'x86_64' || 'arm64' }}
+        run: |
+          set -eux
+          SETUP='${{ matrix.setup }}'
+          if [ -n "${{ matrix.container }}" ]; then
+            docker run --rm -v "$PWD:/work" -w /work \
+              -e ROOT=/work \
+              -e CMAKE_GENERATOR="${{ matrix.generator }}" \
+              -e CMAKEDIR="${{ matrix.cmakedir }}" \
+              -e CMAKE_OSX_ARCHITECTURES="$CMAKE_OSX_ARCHITECTURES" \
+              "${{ matrix.container }}" \
+              sh -c "${SETUP}${SETUP:+ && }bash scripts/ci_build.sh"
+          else
+            ROOT="$PWD" \
+            CMAKE_GENERATOR="${{ matrix.generator }}" \
+            CMAKEDIR="${{ matrix.cmakedir }}" \
+            CMAKE_OSX_ARCHITECTURES="$CMAKE_OSX_ARCHITECTURES" \
+            bash scripts/ci_build.sh
+          fi
+
+      - name: Package
+        shell: bash
+        run: tar -czf "mzn-analyse-${{ matrix.triple }}.tar.gz" -C mzn-analyse .
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mzn-analyse-${{ matrix.platform }}
+          path: mzn-analyse-${{ matrix.triple }}.tar.gz
+
+  publish:
+    name: publish release
+    needs: build
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/tags/'))
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
+      - name: Publish
+        shell: bash
+        run: |
+          set -eux
+          mkdir -p upload
+          cp artifacts/mzn-analyse-*/mzn-analyse-*.tar.gz upload/
+          if [ "${{ startsWith(github.ref, 'refs/tags/') }}" = "true" ]; then
+            TAG="${{ github.ref_name }}"
+            # Only create it if absent; anything else is a real error.
+            if ! gh release view "$TAG" >/dev/null 2>&1; then
+              gh release create "$TAG" --title "mzn-analyse $TAG" --verify-tag \
+              --notes "Built against the MiniZinc $TAG release."
+            fi
+          else
+            TAG=edge
+            # Rolling prerelease, updated in place: deleting and recreating it would
+            # notify every watcher on each develop build.
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -f -a -m "Development build of mzn-analyse" "$TAG" "$GITHUB_SHA"
+            git push -f origin "refs/tags/$TAG"
+            NOTES="Continuously updated build of the latest development version, made against the MiniZinc edge release."
+            if gh release view "$TAG" >/dev/null 2>&1; then
+              gh release edit "$TAG" --prerelease --title "mzn-analyse (edge)" --notes "$NOTES"
+            else
+              gh release create "$TAG" --prerelease --title "mzn-analyse (edge)" --notes "$NOTES"
+            fi
+          fi
+          gh release upload "$TAG" upload/* --clobber
+
+  # Next link in the develop chain: libminizinc -> mzn-analyse -> FindMUS ->
+  # MiniZincIDE. Fires only after this repo's own assets are published, so the
+  # next one never builds against a half-updated upstream.
+  notify-downstream:
+    name: trigger FindMUS rebuild
+    needs: publish
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/create-github-app-token@v3
+        id: app-token
+        with:
+          app-id: ${{ secrets.MINIZINC_BOT_APP_ID }}
+          private-key: ${{ secrets.MINIZINC_BOT_APP_KEY }}
+          owner: MiniZinc
+          repositories: FindMUS
+      - name: Dispatch
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          # workflow_dispatch, not repository_dispatch: the latter always runs the
+          # default branch's workflow, so it could not rebuild develop.
+          gh workflow run ci.yml --repo MiniZinc/FindMUS --ref "$GITHUB_REF_NAME" \
+            -f minizinc_release=edge
