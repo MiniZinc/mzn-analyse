@@ -13,7 +13,6 @@ namespace MznAnalyse {
 
 RemoveLitter::RemoveLitter(bool agg) : aggressive{agg} {}
 
-
 Env* RemoveLitter::run(Env* e, std::ostream& log) {
   Model* model = e->model();
   string mzn_stdlib_dir = FileUtils::file_path(FileUtils::share_directory());

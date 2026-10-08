@@ -71,16 +71,16 @@ struct IdFinder : public MiniZinc::EVisitor {
 
 // Check if any slack vars are used by this VarDeclI
 // Return whether slack is used in the domain, rhs, or not used
-enum SlackUse {S_NONE, S_DOM, S_EXPR};
+enum SlackUse { S_NONE, S_DOM, S_EXPR };
 SlackUse testSlackUsage(const vector<SlackParInfo>& slack_pars, VarDeclI& vdi) {
   VarDecl* vd = vdi.e();
   IdFinder idf(slack_pars, vd);
 
   top_down(idf, vd->ti()->domain());
-  if(idf.found) return S_DOM;
+  if (idf.found) return S_DOM;
 
   top_down(idf, vd->e());
-  if(idf.found) return S_EXPR;
+  if (idf.found) return S_EXPR;
 
   return S_NONE;
 }
