@@ -20,9 +20,11 @@ using std::vector;
 
 namespace MznAnalyse {
 
-UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations, bool typed) : locs{locations}, include_types {typed} {}
+UniqueCollector::UniqueCollector(const std::vector<ShortLoc>& locations, bool typed)
+    : locs{locations}, include_types{typed} {}
 
-UniqueCollector::UniqueCollector(const std::vector<std::string>& paths, bool typed) : include_types {typed} {
+UniqueCollector::UniqueCollector(const std::vector<std::string>& paths, bool typed)
+    : include_types{typed} {
   for (const string& path : paths) {
     locs.emplace_back(path);
   }
@@ -62,7 +64,7 @@ void UniqueCollector::write_json(ostream& os) {
   for (auto& loc_exprs : exprs) {
     std::vector<std::string> unique_exprs;
     for (const auto& expr_info : loc_exprs.second) {
-      if(include_types) {
+      if (include_types) {
         std::stringstream ss;
         ss << "{ \"expression\": \"" << utils::escape(expr_info.second.repr, false) << "\", ";
         ss << " \"type\": \"" << utils::escape(expr_info.second.type, false) << "\" }";
@@ -145,7 +147,7 @@ bool ExpressionExtractorEVisitor::enter(Expression* e) {
     }
   }
 
-  return (is_parent || is_child); // && Expression::eid(e) != Expression::E_ARRAYACCESS;
+  return (is_parent || is_child);  // && Expression::eid(e) != Expression::E_ARRAYACCESS;
 }
 
 ExpressionExtractor::ExpressionExtractor(const std::vector<ShortLoc>& locations,

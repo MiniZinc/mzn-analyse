@@ -10,7 +10,7 @@ namespace MznAnalyse {
 class ToolPass : public MiniZinc::Pass {
 public:
   virtual std::string get_name() { return "MznAnalyse"; };
-  virtual void write_json(std::ostream& os){};
+  virtual void write_json(std::ostream& os) {};
 };
 
 MiniZinc::Env* multiPassFlatten(MiniZinc::Env& e,

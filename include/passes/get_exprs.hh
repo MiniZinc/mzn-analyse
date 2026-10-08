@@ -15,7 +15,7 @@ typedef std::unordered_map<std::string, std::vector<MiniZinc::Expression*>> LocE
 struct ExprInfo {
   std::string repr;
   std::string type;
-  ExprInfo(std::string r, std::string t): repr{r}, type{t} {}
+  ExprInfo(std::string r, std::string t) : repr{r}, type{t} {}
 };
 
 struct UniqueCollector {

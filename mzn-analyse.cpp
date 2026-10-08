@@ -8,7 +8,6 @@
 #include "passes/get_ast.hh"
 #include "passes/get_data_deps.hh"
 #include "passes/get_diversity_annotations.hh"
-#include "passes/slackify.hh"
 #include "passes/get_exprs.hh"
 #include "passes/get_items.hh"
 #include "passes/get_solve_anns.hh"
@@ -22,8 +21,9 @@
 #include "passes/remove_includes.hh"
 #include "passes/remove_litter.hh"
 #include "passes/repeat_model.hh"
-#include "passes/write_model.hh"
+#include "passes/slackify.hh"
 #include "passes/sort_model.hh"
+#include "passes/write_model.hh"
 #include "string_utils.hh"
 #include "tool_pass.hh"
 
@@ -116,8 +116,10 @@ void print_usage() {
 
 string trimLeadingDash(string arg) {
   int idx = 0;
-  while(idx < arg.size() && arg[idx] == '-') { idx++; };
-  return arg.substr(idx, arg.size()-idx);
+  while (idx < arg.size() && arg[idx] == '-') {
+    idx++;
+  };
+  return arg.substr(idx, arg.size() - idx);
 }
 
 struct PassCmd {
@@ -170,9 +172,9 @@ struct PassCmd {
     } else if (cmd == "remove-litter") {
       return new RemoveLitter(false);
     } else if (cmd == "remove-litter-aggressive") {
-        return new RemoveLitter(true);
+      return new RemoveLitter(true);
     } else if (cmd == "sort") {
-        return new SortModel();
+      return new SortModel();
     } else if (cmd == "in") {
       if (args.empty()) {
         return nullptr;
@@ -332,7 +334,7 @@ int main(int argc, char** argv) {
     // This should be possible: --pass: arg1, arg2,arg3
     string arg = trimLeadingDash(string(argv[i]));
     split_args.push_back(arg);
-    while(arg[arg.size()-1] == ':' || arg[arg.size()-1] == ',') {
+    while (arg[arg.size() - 1] == ':' || arg[arg.size() - 1] == ',') {
       i++;
       if (i >= argc) {
         break;
