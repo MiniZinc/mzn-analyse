@@ -108,8 +108,8 @@ Env* RepeatModel::run(Env* e, std::ostream& log) {
   }
 
   if (!isSat) {
-    vector<Expression*> args;
-    args.push_back(new ArrayLit(Location().introduce(), objs));
+    vector<Ref<Expression>> args;
+    args.push_back(make<ArrayLit>(Location().introduce(), objs));
     s0->e(Call::a(Location().introduce(), "sum", args));
   }
 

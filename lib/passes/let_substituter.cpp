@@ -22,36 +22,33 @@ namespace MznAnalyse {
 // Wrap arbitrary Expression* with let
 // e -> let {var lb(e)..ub(e): x_i;
 //           constraint int_eq(e, x_i);} in x_i
-Let* wrap_with_let(Expression* e) {
-  VarDecl* vd = nullptr;
-  Call* call = nullptr;
+Ref<Let> wrap_with_let(Expression* e) {
+  Ref<VarDecl> vd;
+  Ref<Call> call;
 
   if (Expression::type(e).isint()) {
-    Call* lb = Call::a(Location().introduce(), "lb", {e});
-    Call* ub = Call::a(Location().introduce(), "ub", {e});
-    BinOp* bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
-    TypeInst* ti = new TypeInst(Location().introduce(), Type::varint(), bo);
+    Ref<BinOp> bo = make<BinOp>(Location().introduce(), Call::a(Location().introduce(), "lb", {e}),
+                                BOT_DOTDOT, Call::a(Location().introduce(), "ub", {e}));
+    Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::varint(), bo);
 
-    vd = new VarDecl(Location().introduce(), ti, "x_i");
+    vd = make<VarDecl>(Location().introduce(), ti, "x_i");
     call = Call::a(Location().introduce(), "int_eq", {e, vd->id()});
   } else if (Expression::type(e).isfloat()) {
-    Call* lb = Call::a(Location().introduce(), "lb", {e});
-    Call* ub = Call::a(Location().introduce(), "ub", {e});
-    BinOp* bo = new BinOp(Location().introduce(), lb, BOT_DOTDOT, ub);
-    TypeInst* ti = new TypeInst(Location().introduce(), Type::varfloat(), bo);
+    Ref<BinOp> bo = make<BinOp>(Location().introduce(), Call::a(Location().introduce(), "lb", {e}),
+                                BOT_DOTDOT, Call::a(Location().introduce(), "ub", {e}));
+    Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::varfloat(), bo);
 
-    vd = new VarDecl(Location().introduce(), ti, "x_i");
+    vd = make<VarDecl>(Location().introduce(), ti, "x_i");
     call = Call::a(Location().introduce(), "float_eq", {e, vd->id()});
   } else if (Expression::type(e).isbool()) {
-    TypeInst* ti = new TypeInst(Location().introduce(), Type::varbool());
+    Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::varbool());
 
-    vd = new VarDecl(Location().introduce(), ti, "x_i");
+    vd = make<VarDecl>(Location().introduce(), ti, "x_i");
     call = Call::a(Location().introduce(), "bool_eq", {e, vd->id()});
   }
 
   vector<Expression*> context = {vd, call};
-  Let* let = new Let(Location().introduce(), context, vd->id());
-  return let;
+  return make<Let>(Location().introduce(), context, vd->id());
 }
 
 // topdown implementation that takes a list of locations and a
@@ -306,9 +303,9 @@ struct LetReplacerVisitor {
     return found_match;
   }
 
-  Expression* get_replacement(Expression* e) {
+  Ref<Expression> get_replacement(Expression* e) {
     ShortLoc loc{Expression::loc(e)};
-    Expression* replacement = wrap_with_let(e);
+    Ref<Expression> replacement = wrap_with_let(e);
     replacements.emplace_back(e, replacement);
     return replacement;
   }

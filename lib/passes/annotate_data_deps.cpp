@@ -17,107 +17,111 @@ using std::vector;
 
 namespace MznAnalyse {
 
-FunctionI* construct_data_ann(int nargs) {
-  vector<VarDecl*> params;
+Ref<FunctionI> construct_data_ann(int nargs) {
+  vector<Ref<VarDecl>> params;
   // int: depth
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parint()), "depth"));
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parint()), "index"));
+  params.push_back(make<VarDecl>(Location().introduce(),
+                                 make<TypeInst>(Location().introduce(), Type::parint()), "depth"));
+  params.push_back(make<VarDecl>(Location().introduce(),
+                                 make<TypeInst>(Location().introduce(), Type::parint()), "index"));
   // string: type
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parstring()), "name"));
+  params.push_back(make<VarDecl>(
+      Location().introduce(), make<TypeInst>(Location().introduce(), Type::parstring()), "name"));
   // list of string: args
   for (int i = 0; i < nargs; i++) {
     std::stringstream ss;
     ss << "arg_" << i << "_";
-    params.push_back(new VarDecl(
-        Location().introduce(), new TypeInst(Location().introduce(), Type::parstring()), ss.str()));
+    params.push_back(make<VarDecl>(Location().introduce(),
+                                   make<TypeInst>(Location().introduce(), Type::parstring()),
+                                   ss.str()));
   }
-  TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
+  Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::ann());
 
-  return new FunctionI(Location().introduce(), ASTString("data"), ti, params);
+  return make<FunctionI>(Location().introduce(), ASTString("data"), ti, params);
 }
 
-FunctionI* construct_data_term_ann() {
-  vector<VarDecl*> params;
+Ref<FunctionI> construct_data_term_ann() {
+  vector<Ref<VarDecl>> params;
   // int: depth
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parint()), "depth"));
+  params.push_back(make<VarDecl>(Location().introduce(),
+                                 make<TypeInst>(Location().introduce(), Type::parint()), "depth"));
 
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parint()), "index"));
+  params.push_back(make<VarDecl>(Location().introduce(),
+                                 make<TypeInst>(Location().introduce(), Type::parint()), "index"));
 
   // string: type
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parstring()), "name"));
+  params.push_back(make<VarDecl>(
+      Location().introduce(), make<TypeInst>(Location().introduce(), Type::parstring()), "name"));
 
   // list of string: generators
   {
-    vector<TypeInst*> t_idx = {new TypeInst(Location().introduce(), Type::parint())};
-    TypeInst* ti = new TypeInst(Location().introduce(), Type::parstring());
-    ti->setRanges(t_idx);
-    params.push_back(new VarDecl(Location().introduce(), ti, "gens"));
+    vector<Ref<TypeInst>> t_idx = {make<TypeInst>(Location().introduce(), Type::parint())};
+    Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::parstring());
+    ti->setRanges(raw(t_idx));
+    params.push_back(make<VarDecl>(Location().introduce(), ti, "gens"));
   }
 
   // string: location
-  params.push_back(new VarDecl(Location().introduce(),
-                               new TypeInst(Location().introduce(), Type::parstring()), "locs"));
+  params.push_back(make<VarDecl>(
+      Location().introduce(), make<TypeInst>(Location().introduce(), Type::parstring()), "locs"));
 
   // list of string: coefs
   {
-    vector<TypeInst*> t_idx = {new TypeInst(Location().introduce(), Type::parint())};
-    TypeInst* ti = new TypeInst(Location().introduce(), Type::parstring());
-    ti->setRanges(t_idx);
-    params.push_back(new VarDecl(Location().introduce(), ti, "coefs"));
+    vector<Ref<TypeInst>> t_idx = {make<TypeInst>(Location().introduce(), Type::parint())};
+    Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::parstring());
+    ti->setRanges(raw(t_idx));
+    params.push_back(make<VarDecl>(Location().introduce(), ti, "coefs"));
   }
 
   // string: variable
-  params.push_back(new VarDecl(
-      Location().introduce(), new TypeInst(Location().introduce(), Type::parstring()), "variable"));
+  params.push_back(make<VarDecl>(Location().introduce(),
+                                 make<TypeInst>(Location().introduce(), Type::parstring()),
+                                 "variable"));
 
-  TypeInst* ti = new TypeInst(Location().introduce(), Type::ann());
+  Ref<TypeInst> ti = make<TypeInst>(Location().introduce(), Type::ann());
 
-  return new FunctionI(Location().introduce(), ASTString("data"), ti, params);
+  return make<FunctionI>(Location().introduce(), ASTString("data"), ti, params);
 }
 
-Expression* without_anns(EnvI& envi, Expression* e) {
-  Expression* e_copy = copy(envi, e);
+Ref<Expression> without_anns(EnvI& envi, Expression* e) {
+  Ref<Expression> e_copy = copy(envi, e);
   Expression::ann(e_copy).clear();
   return e_copy;
 }
 
-Expression* toStringLit(EnvI& envi, Expression* e) {
+Ref<Expression> toStringLit(EnvI& envi, Expression* e) {
   std::stringstream ss;
   ss << *(without_anns(envi, e));
-  return new StringLit(Location().introduce(), ss.str());
+  return make<StringLit>(Location().introduce(), ss.str());
 }
 
-Expression* toShow(EnvI& envi, Expression* e) {
-  return Call::a(Location().introduce(), "show", {without_anns(envi, e)});
+Ref<Expression> toShow(EnvI& envi, Expression* e) {
+  vector<Ref<Expression>> args;
+  args.push_back(without_anns(envi, e));
+  return Call::a(Location().introduce(), "show", args);
 }
 
-Expression* data_ann(EnvI& envi, size_t depth, size_t index, string type,
-                     vector<Expression*> exprs) {
+Ref<Expression> data_ann(EnvI& envi, size_t depth, size_t index, string type,
+                         vector<Ref<Expression>> exprs) {
   // Construct data(string: type, int: depth, list of string: args);
-  vector<Expression*> args;
+  vector<Ref<Expression>> args;
   args.push_back(IntLit::a(depth));
   args.push_back(IntLit::a(index));
-  args.push_back(new StringLit(Location().introduce(), type));
+  args.push_back(make<StringLit>(Location().introduce(), type));
   args.insert(args.end(), exprs.begin(), exprs.end());
-  Call* ca = Call::a(Location().introduce(), "data", args);
+  Ref<Call> ca = Call::a(Location().introduce(), "data", args);
   ca->type(Type::ann());
   return ca;
 }
 
-Expression* data_eq(EnvI& envi, size_t depth, size_t index, Expression* e) {
+Ref<Expression> data_eq(EnvI& envi, size_t depth, size_t index, Expression* e) {
   if (Expression::isa<IntLit>(e) || Expression::isa<BoolLit>(e) || Expression::isa<SetLit>(e) ||
       Expression::isa<ArrayLit>(e) || Expression::isa<StringLit>(e)) {
     return data_ann(envi, depth, index, "lit", {toShow(envi, e)});
   }
   return data_ann(envi, depth, index, "eq", {toStringLit(envi, e), toShow(envi, e)});
 }
-Expression* data_assign(EnvI& envi, size_t depth, size_t index, Expression* e) {
+Ref<Expression> data_assign(EnvI& envi, size_t depth, size_t index, Expression* e) {
   if (Expression::isa<IntLit>(e) || Expression::isa<BoolLit>(e) || Expression::isa<SetLit>(e) ||
       Expression::isa<ArrayLit>(e) || Expression::isa<StringLit>(e)) {
     return data_ann(envi, depth, index, "lit", {toShow(envi, e)});
@@ -125,11 +129,11 @@ Expression* data_assign(EnvI& envi, size_t depth, size_t index, Expression* e) {
   return data_ann(envi, depth, index, "assign", {toStringLit(envi, e), toShow(envi, e)});
 }
 
-Expression* data_in(EnvI& envi, size_t depth, size_t index, Expression* id, Expression* in) {
+Ref<Expression> data_in(EnvI& envi, size_t depth, size_t index, Expression* id, Expression* in) {
   return data_ann(envi, depth, index, "in", {toStringLit(envi, id), toStringLit(envi, in)});
 }
 
-Expression* data_if(EnvI& envi, size_t depth, size_t index, Expression* where) {
+Ref<Expression> data_if(EnvI& envi, size_t depth, size_t index, Expression* where) {
   return data_ann(envi, depth, index, "if", {toStringLit(envi, where)});
 }
 
@@ -256,9 +260,8 @@ void annotateWithData(EnvI& envi, Expression* root) {
         for (size_t j = 0; j < ite->size(); j++) {
           if (Expression::type(ite->elseExpr()).isvarbool() &&
               Expression::type(ite->ifExpr(j)).isPar()) {
-            Expression::addAnnotation(ite->elseExpr(), data_if(envi, depth, index,
-                                                               new UnOp(Location().introduce(),
-                                                                        UOT_NOT, ite->ifExpr(j))));
+            Ref<Expression> not_if = make<UnOp>(Location().introduce(), UOT_NOT, ite->ifExpr(j));
+            Expression::addAnnotation(ite->elseExpr(), data_if(envi, depth, index, not_if));
             index++;
           }
         }
@@ -269,10 +272,8 @@ void annotateWithData(EnvI& envi, Expression* root) {
           for (size_t j = 0; j < i; j++) {
             if (Expression::type(ite->thenExpr(i)).isvarbool() &&
                 Expression::type(ite->ifExpr(j)).isPar()) {
-              Expression::addAnnotation(
-                  ite->thenExpr(i),
-                  data_if(envi, depth, index,
-                          new UnOp(Location().introduce(), UOT_NOT, ite->ifExpr(j))));
+              Ref<Expression> not_if = make<UnOp>(Location().introduce(), UOT_NOT, ite->ifExpr(j));
+              Expression::addAnnotation(ite->thenExpr(i), data_if(envi, depth, index, not_if));
               index++;
             }
           }
