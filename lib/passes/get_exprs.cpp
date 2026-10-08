@@ -38,12 +38,12 @@ void UniqueCollector::add_expr(const ShortLoc& loc, Expression* e) {
   if (repr[0] == '"') return;
 
   std::stringstream ss_type;
-  TypeInst* ti = nullptr;
+  Ref<TypeInst> ti;
   if (Id* id = Expression::dynamicCast<Id>(e)) {
     VarDecl* typed = id->decl();
     ti = typed->ti();
   } else {
-    ti = new TypeInst(Location().introduce(), Expression::type(e));
+    ti = make<TypeInst>(Location().introduce(), Expression::type(e));
   }
 
   ss_type << *ti;

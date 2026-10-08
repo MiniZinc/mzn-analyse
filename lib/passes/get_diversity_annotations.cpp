@@ -40,16 +40,16 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
     //   Construct temporary div_obj = si->e
     const string obj_name = "div_orig_objective";
 
-    TypeInst* ti = nullptr;
+    Ref<TypeInst> ti;
     Expression* e = si->e();
     if (Id* id = Expression::dynamicCast<Id>(e)) {
       VarDecl* typed = id->decl();
       ti = typed->ti();
     } else {
-      ti = new TypeInst(Location().introduce(), Expression::type(e));
+      ti = make<TypeInst>(Location().introduce(), Expression::type(e));
     }
 
-    VarDecl* objVd = new VarDecl(Location().introduce(), ti, obj_name, e);
+    Ref<VarDecl> objVd = make<VarDecl>(Location().introduce(), ti, obj_name, e);
     Expression::ann(objVd).add(MiniZinc::Constants::constants().ann.output);
     m->addItem(VarDeclI::a(Location().introduce(), objVd));
 
@@ -67,7 +67,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
   Annotation& anns = si->ann();
   for (Expression* ann_e : anns) {
     try {
-      Expression* e = eval_par(env->envi(), ann_e);
+      Ref<Expression> e = eval_par(env->envi(), ann_e);
 
       if (Call* ca = Expression::dynamicCast<Call>(e)) {
         if (ca->id() == string("diversity_inter_constraint") && ca->argCount() == 1) {
@@ -98,7 +98,7 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           varname_ss << "div_curr_var_" << div_opts.vars.size();
           const string varname = varname_ss.str();
 
-          TypeInst* ti;
+          Ref<TypeInst> ti;
           Expression* arg0 = ca->arg(0);
           FunctionI* fn = m->matchFn(env->envi(), ca, false, true);
           VarDecl* arg_vd = fn->param(0);
@@ -107,11 +107,11 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
             VarDecl* typed = id->decl();
             ti = typed->ti();
           } else {
-            ti = new TypeInst(Location().introduce(), Expression::type(arg_vd),
-                              arg_vd->ti()->ranges(), arg_vd->ti()->domain());
+            ti = make<TypeInst>(Location().introduce(), Expression::type(arg_vd),
+                                arg_vd->ti()->ranges(), arg_vd->ti()->domain());
           }
 
-          VarDecl* newVar = new VarDecl(Location().introduce(), ti, varname, arg0);
+          Ref<VarDecl> newVar = make<VarDecl>(Location().introduce(), ti, varname, arg0);
           Expression::ann(newVar).add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), newVar));
           vi.name = varname;
@@ -127,15 +127,15 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
           const string prevvarname = prevvarname_ss.str();
 
           auto ranges = ti->ranges();
-          vector<TypeInst*> prev_ranges;
-          prev_ranges.push_back(new TypeInst(Location().introduce(), Type::parint()));
+          vector<Ref<TypeInst>> prev_ranges;
+          prev_ranges.push_back(make<TypeInst>(Location().introduce(), Type::parint()));
           for (int i = 0; i < ranges.size(); i++) {
-            prev_ranges.push_back(ranges[i]);
+            prev_ranges.emplace_back(ranges[i]);
           }
 
-          TypeInst* prev_ti = new TypeInst(Location().introduce(), arg_vd->type(), prev_ranges,
-                                           arg_vd->ti()->domain());
-          VarDecl* prevVar = new VarDecl(Location().introduce(), prev_ti, prevvarname);
+          Ref<TypeInst> prev_ti = make<TypeInst>(Location().introduce(), arg_vd->type(),
+                                                 prev_ranges, arg_vd->ti()->domain());
+          Ref<VarDecl> prevVar = make<VarDecl>(Location().introduce(), prev_ti, prevvarname);
           Expression::ann(prevVar).add(MiniZinc::Constants::constants().ann.output);
           m->addItem(VarDeclI::a(Location().introduce(), prevVar));
           vi.prev_name = prevvarname;
@@ -148,21 +148,21 @@ void GetDiversityAnns::collect_diversity_annotations(MiniZinc::Env* env, MiniZin
 
           if (ca->argCount() == 5) {
             {
-              Expression* e = eval_par(env->envi(), ca->arg(2));
+              Ref<Expression> e = eval_par(env->envi(), ca->arg(2));
               std::stringstream ss;
               ss << *e;
               vi.lb = ss.str();
             }
 
             {
-              Expression* e = eval_par(env->envi(), ca->arg(3));
+              Ref<Expression> e = eval_par(env->envi(), ca->arg(3));
               std::stringstream ss;
               ss << *e;
               vi.ub = ss.str();
             }
 
             {
-              Expression* e = eval_par(env->envi(), ca->arg(4));
+              Ref<Expression> e = eval_par(env->envi(), ca->arg(4));
               std::stringstream ss;
               ss << *e;
               vi.coef = ss.str();

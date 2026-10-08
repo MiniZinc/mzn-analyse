@@ -409,7 +409,6 @@ int main(int argc, char** argv) {
     passes.emplace_back(PassCmd("json_out").getPass(json_store));
   }
 
-  MiniZinc::GCLock lock;
   MiniZinc::Env env;
 
   multiPassFlatten(env, passes, json_store, std::cerr);

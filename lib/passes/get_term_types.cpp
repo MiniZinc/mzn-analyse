@@ -102,24 +102,23 @@ struct EscapedStringStack {
   size_t size() { return entries.size(); }
 };
 
-Expression* negate(Expression* e) { return new UnOp(Location().introduce(), UOT_NOT, e); }
+Ref<Expression> negate(Expression* e) { return make<UnOp>(Location().introduce(), UOT_NOT, e); }
 
-Expression* conj(vector<Expression*> exprs) {
+Ref<Expression> conj(const vector<Ref<Expression>>& exprs) {
   if (exprs.empty()) return nullptr;
-  if (exprs.size() == 1) {
-    return exprs[0];
+  Ref<Expression> e = exprs[0];
+  for (size_t i = 1; i < exprs.size(); i++) {
+    e = make<BinOp>(Location().introduce(), e, BOT_AND, exprs[i]);
   }
-  BinOp* bo = new BinOp(Location().introduce(), exprs[0], BOT_AND, exprs[1]);
-  for (size_t i = 2; i < exprs.size(); i++) {
-    bo = new BinOp(Location().introduce(), bo, BOT_AND, exprs[i]);
-  }
-  return bo;
+  return e;
 }
 
 void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>& term_strings,
                         string name, EscapedStringStack& gens, EscapedStringStack& coefs,
                         EscapedStringStack& wheres, Expression* root) {
   vector<StackFrame> stack;
+  // Owns the expressions created here while the stack refers to them
+  vector<Ref<Expression>> owned;
   stack.emplace_back(name, gens.size(), coefs.size(), wheres.size(), root);
 
   while (!stack.empty()) {
@@ -160,15 +159,17 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
           //   arg0: X
           //   gen: i in index_set(X)
           //   body: X[i]
-          VarDecl* vd = new VarDecl(Location().introduce(),
-                                    new TypeInst(Location().introduce(), Type::parint()), "i");
+          Ref<VarDecl> vd = make<VarDecl>(
+              Location().introduce(), make<TypeInst>(Location().introduce(), Type::parint()), "i");
           Expression* arg0 = call->arg(0);
 
           stringstream ss;
           ss << "i in index_set(" << *arg0 << ")";
           gens.push(ss.str());
 
-          ArrayAccess* aa = new ArrayAccess(Expression::loc(arg0), arg0, {vd->id()});
+          Ref<ArrayAccess> aa =
+              make<ArrayAccess>(Expression::loc(arg0), arg0, vector<Expression*>{vd->id()});
+          owned.push_back(aa);
           body = aa;
         }
         stack.emplace_back(frame.name, gens.size(), coefs.size(), wheres.size(), body);
@@ -243,11 +244,11 @@ void collectTermStrings(unordered_map<Id*, Expression*>& assigns, vector<string>
             getTermTypeString(frame.name, gens.entries, wheres.entries, coefs.entries, id));
       }
     } else if (ITE* ite = Expression::dynamicCast<ITE>(frame.e)) {
-      vector<Expression*> negs;
+      vector<Ref<Expression>> negs;
       for (size_t i = 0; i < ite->size(); i++) {
         Expression* currentIf = ite->ifExpr(i);
 
-        vector<Expression*> negs_if(negs);
+        vector<Ref<Expression>> negs_if(negs);
         negs_if.push_back(currentIf);
 
         stringstream where_ss;
