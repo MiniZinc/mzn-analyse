@@ -1,12 +1,8 @@
-cmake_minimum_required (VERSION 3.5.0)
+cmake_minimum_required (VERSION 3.20)
 project (mzn-analyse CXX C)
 
-if(POLICY CMP0074)
-  cmake_policy(SET CMP0074 NEW)
-endif(POLICY CMP0074)
-
-message("-- Configuring: C++ options")
-include(cmake-helpers/configure_cpp_14.cmake)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 message("-- Configuring: libminzinc")
 include(cmake-helpers/configure_libminizinc.cmake)
